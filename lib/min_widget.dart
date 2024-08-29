@@ -5,7 +5,7 @@ class MinWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.scale(
-      scale: 3.0,
+      scale: 4.0,
       child: SizedBox(
         width: 8 * 40,
         height: 10 * 25,
@@ -22,11 +22,6 @@ class _MinPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Your drawing code here
     // Use the provided canvas object to draw on the canvas
-
-    // debug print size
-    if (kDebugMode) {
-      print('size: $size');
-    }
 
     // Clear the canvas with a black color
     // canvas.drawColor(Colors.black, BlendMode.src);
