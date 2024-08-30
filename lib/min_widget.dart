@@ -41,7 +41,7 @@ class MinWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.scale(
-      scale: 3.0,
+      scale: 2.5,
       child: FittedBox(
         child: SizedBox(
           width: 8 * 40,
