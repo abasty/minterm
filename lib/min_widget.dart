@@ -16,6 +16,7 @@ Future<ui.Image> loadUiImage(String imageAssetPath) async {
 class FontAtlas {
   static final FontAtlas _singleton = FontAtlas._internal();
   static late final ui.Image _fontImage;
+  bool _isLoaded = false;
 
   ui.Image get fontImage => _fontImage;
 
@@ -27,6 +28,7 @@ class FontAtlas {
     // Load the font image
     loadUiImage('assets/fonts.png').then((image) {
       _fontImage = image;
+      _isLoaded = true;
     });
   }
 }
@@ -37,7 +39,7 @@ class MinWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.scale(
-      scale: 4.0,
+      scale: 3.0,
       child: SizedBox(
         width: 8 * 40,
         height: 10 * 25,
@@ -64,6 +66,10 @@ class _MinPainter extends CustomPainter {
       Paint()..color = Colors.grey.shade900,
     );
 
+    if (!FontAtlas()._isLoaded) {
+      return;
+    }
+
     // Get the character image from the FontAtlas singleton
     final fontImage = FontAtlas().fontImage;
 
@@ -87,7 +93,7 @@ class _MinPainter extends CustomPainter {
         char,
       ],
       [
-        Colors.grey.shade500,
+        Colors.grey.shade700,
       ],
       BlendMode.dstIn,
       null,
