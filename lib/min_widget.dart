@@ -27,7 +27,7 @@ class FontAtlas extends ChangeNotifier {
 
   FontAtlas._internal() {
     // Load the font image
-    loadUiImage('assets/fonts.png').then((image) {
+    loadUiImage('assets/g08x10.png').then((image) {
       _fontImage = image;
       _isLoaded = true;
       notifyListeners();
@@ -90,7 +90,15 @@ class _MinPainter extends CustomPainter {
     final fontImage = FontAtlas().fontImage;
 
     // Get the character image from the font image
-    const char = Rect.fromLTWH(0, 0, 8, 10);
+    const char = Rect.fromLTWH(8, 10, 8, 10);
+
+    // Create a paint object
+    // final paint = Paint()
+    //   // Add a color filter takes only black pixels
+    //   ..colorFilter = const ColorFilter.mode(
+    //     Colors.white,
+    //     BlendMode.dstIn,
+    //   );
 
     // Draw the character in the foreground color
     canvas.drawAtlas(
