@@ -65,6 +65,48 @@ class _MinPainter extends CustomPainter {
     print('MinPainter constructor');
   }
 
+  // Method to draw a character
+  void drawChar(Canvas canvas, ui.Image font, int x, int y, int char) {
+    final fgColor = Colors.grey.shade700;
+    final bgColor = Colors.grey.shade900;
+
+    // Display the background color of the character
+    canvas.drawRect(
+      Rect.fromLTWH(x.toDouble(), y.toDouble(), 8, 10),
+      Paint()..color = bgColor,
+    );
+
+    // Get the character image from the font image
+    final charRect = Rect.fromLTWH(
+      8 * (char ~/ 16).toDouble(),
+      10 * (char % 16).toDouble(),
+      8,
+      10,
+    );
+
+    // Create a paint object with the foreground color
+    final paint = Paint()
+      ..colorFilter = ColorFilter.mode(
+        fgColor,
+        BlendMode.srcIn,
+      );
+
+    // Draw the character in the foreground color
+    canvas.drawImageRect(
+      font,
+      charRect,
+      Rect.fromLTWH(x.toDouble(), y.toDouble(), 8, 10),
+      paint,
+    );
+  }
+
+  // Method to draw a string
+  void drawString(Canvas canvas, ui.Image font, int x, int y, String str) {
+    for (var i = 0; i < str.length; i++) {
+      drawChar(canvas, font, x + i * 8, y, str.codeUnitAt(i));
+    }
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     // Clear the canvas with a black color
@@ -73,56 +115,13 @@ class _MinPainter extends CustomPainter {
       Paint()..color = Colors.black,
     );
 
-    // Draw the background color of the character
-    canvas.drawRect(
-      const Rect.fromLTWH(8, 10, 8, 10),
-      Paint()..color = Colors.grey.shade900,
-    );
-
-    if (!FontAtlas()._isLoaded) {
-      print('FontAtlas not loaded');
-      return;
-    } else {
-      print('FontAtlas loaded');
-    }
+    if (!FontAtlas()._isLoaded) return;
 
     // Get the character image from the FontAtlas singleton
-    final fontImage = FontAtlas().fontImage;
+    final font = FontAtlas().fontImage;
 
-    // Get the character image from the font image
-    const char = Rect.fromLTWH(8, 10, 8, 10);
-
-    // Create a paint object
-    // final paint = Paint()
-    //   // Add a color filter takes only black pixels
-    //   ..colorFilter = const ColorFilter.mode(
-    //     Colors.white,
-    //     BlendMode.dstIn,
-    //   );
-
-    // Draw the character in the foreground color
-    canvas.drawAtlas(
-      fontImage,
-      [
-        RSTransform.fromComponents(
-          rotation: 0.0,
-          scale: 1.0,
-          anchorX: 0.0,
-          anchorY: 0.0,
-          translateX: 8.0,
-          translateY: 10.0,
-        ),
-      ],
-      [
-        char,
-      ],
-      [
-        Colors.grey.shade700,
-      ],
-      BlendMode.dstIn,
-      null,
-      Paint(),
-    );
+    // drawChar(canvas, font, 0, 10, 65);
+    drawString(canvas, font, 0, 10, " Minitel ");
   }
 
   @override
