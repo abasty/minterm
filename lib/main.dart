@@ -36,7 +36,7 @@ class MainApp extends StatelessWidget {
       home: Scaffold(
         body: Container(
           color: const Color.fromARGB(255, 44, 27, 3),
-          child: Center(
+          child: const Center(
             child: MinWidget(),
           ),
         ),
