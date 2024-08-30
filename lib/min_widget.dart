@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'dart:math' as math; // Add this line to import the 'math' library
 
 import 'package:flutter/services.dart';
 
@@ -13,7 +14,7 @@ Future<ui.Image> loadUiImage(String imageAssetPath) async {
   return completer.future;
 }
 
-class FontAtlas {
+class FontAtlas extends ChangeNotifier {
   static final FontAtlas _singleton = FontAtlas._internal();
   static late final ui.Image _fontImage;
   bool _isLoaded = false;
@@ -29,6 +30,7 @@ class FontAtlas {
     loadUiImage('assets/fonts.png').then((image) {
       _fontImage = image;
       _isLoaded = true;
+      notifyListeners();
     });
   }
 }
@@ -40,11 +42,13 @@ class MinWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Transform.scale(
       scale: 3.0,
-      child: SizedBox(
-        width: 8 * 40,
-        height: 10 * 25,
-        child: CustomPaint(
-          painter: _MinPainter(),
+      child: FittedBox(
+        child: SizedBox(
+          width: 8 * 40,
+          height: 10 * 25,
+          child: CustomPaint(
+            painter: _MinPainter(math.Random().nextDouble()),
+          ),
         ),
       ),
     );
@@ -52,6 +56,15 @@ class MinWidget extends StatelessWidget {
 }
 
 class _MinPainter extends CustomPainter {
+  // TODO: put image atlas here
+
+  final double repaint;
+
+  // Add a constructor
+  _MinPainter(this.repaint) {
+    print('MinPainter constructor');
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     // Clear the canvas with a black color
@@ -67,7 +80,10 @@ class _MinPainter extends CustomPainter {
     );
 
     if (!FontAtlas()._isLoaded) {
+      print('FontAtlas not loaded');
       return;
+    } else {
+      print('FontAtlas loaded');
     }
 
     // Get the character image from the FontAtlas singleton
@@ -103,6 +119,7 @@ class _MinPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MinPainter oldDelegate) {
-    return false;
+    // TODO: Use minitel screen dirty flag
+    return oldDelegate.repaint != repaint;
   }
 }

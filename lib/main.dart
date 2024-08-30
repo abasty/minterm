@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'min_widget.dart';
@@ -35,16 +36,24 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
-      ),
-      home: Scaffold(
-        body: Container(
-          color: const Color.fromARGB(255, 44, 27, 3),
-          child: const Center(
-            child: MinWidget(),
+    return ChangeNotifierProvider(
+      create: (context) => FontAtlas(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData.from(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+        ),
+        home: Scaffold(
+          body: Container(
+            color: const Color.fromARGB(255, 44, 27, 3),
+            child: Center(
+              child: Consumer<FontAtlas>(
+                builder: (context, fontAtlas, child) {
+                  print('build MinWidget');
+                  return MinWidget();
+                },
+              ),
+            ),
           ),
         ),
       ),
