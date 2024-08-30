@@ -45,8 +45,8 @@ for file in ['g08x10.bdf', 'g18x10.bdf']:
     print('Bitmap size is', alls.width(), 'x', alls.height(), 'pixels.')
 
     # Convert the bitmap to an image
-    image: Image = Image.frombytes('1', (alls.width(), alls.height()), alls.tobytes('1'))
+    image: Image = Image.frombytes('RGBA', (alls.width(), alls.height()), alls.tobytes('RGBA'))
 
     # Remove font extension from the filename and add save as .png
-    image.save(file.replace('.bdf', '.png'))
+    image.save('../assets/' + file.replace('.bdf', '.png'))
 # end for
