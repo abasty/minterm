@@ -48,10 +48,7 @@ class MainApp extends StatelessWidget {
             color: const Color.fromARGB(255, 44, 27, 3),
             child: Center(
               child: Consumer<FontAtlas>(
-                builder: (context, fontAtlas, child) {
-                  print('build MinWidget');
-                  return MinWidget();
-                },
+                builder: (context, fontAtlas, child) => MinWidget(),
               ),
             ),
           ),

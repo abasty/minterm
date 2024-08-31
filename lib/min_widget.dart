@@ -61,14 +61,14 @@ class _MinPainter extends CustomPainter {
   final double repaint;
 
   // Add a constructor
-  _MinPainter(this.repaint) {
-    print('MinPainter constructor');
-  }
+  _MinPainter(this.repaint);
 
   // Method to draw a character
   void drawChar(Canvas canvas, ui.Image font, int x, int y, int char) {
-    final fgColor = Colors.grey.shade700;
-    final bgColor = Colors.grey.shade900;
+    final fgColor = Colors.white;
+    final bgColor = Colors.black;
+    // final fgColor = Colors.grey.shade700;
+    // final bgColor = Colors.grey.shade900;
 
     // Display the background color of the character
     canvas.drawRect(
@@ -121,7 +121,18 @@ class _MinPainter extends CustomPainter {
     final font = FontAtlas().fontImage;
 
     // drawChar(canvas, font, 0, 10, 65);
-    drawString(canvas, font, 0, 10, " Minitel ");
+    drawString(canvas, font, 40, 0, " (c) 2024 - Alain Basty - GPLv2");
+    drawString(canvas, font, 0, 20, " Minitel ");
+
+    // Build a string with char code 0x80 to 0x8F
+    for (var i = 0; i < 16; i++) {
+      drawChar(canvas, font, i * 8, 40, 0x80 + i);
+    }
+
+    // Draw char 0x00 to 0x1F
+    for (var i = 0; i < 32; i++) {
+      drawChar(canvas, font, i * 8, 60, i);
+    }
   }
 
   @override
