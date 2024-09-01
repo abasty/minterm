@@ -84,19 +84,33 @@ class _MinPainter extends CustomPainter {
   _MinPainter(this.repaint);
 
   // Method to draw a character
-  void drawChar(Canvas canvas, int x, int y, TMinitelChar char) {
-    if ((char.localAttr & kLocationMask) != 0) return;
+  void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
+    if ((char.localAttr & kDoublePart) != 0) return;
 
     final code = char.charCode;
-    final fgColor = MinColors[char.localAttr & kColorMask]!;
-    final bgColor = MinColors[char.globalAttr & kColorMask]!;
+    var fgColor = MinColors[char.localAttr & kColorMask]!;
+    var bgColor = MinColors[char.globalAttr & kColorMask]!;
+    double scaleWidth = (char.localAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
+    double scaleHeight = (char.localAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
     final ui.Image font = (char.globalAttr & kCharsetMask) != kG1Charset
         ? MinFonts().fontG0G2
         : MinFonts().fontG1;
 
+    if ((char.localAttr & kAttrInverse) != 0) {
+      final tmp = fgColor;
+      fgColor = bgColor;
+      bgColor = tmp;
+    }
+
+    if ((char.localAttr & kAttrDoubleHeight) != 0 && y >= 10) {
+      y -= 10.0;
+    } else {
+      scaleHeight = 1.0;
+    }
+
     // Display the background color of the character
     canvas.drawRect(
-      Rect.fromLTWH(x.toDouble(), y.toDouble(), 8, 10),
+      Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
       Paint()..color = bgColor,
     );
 
@@ -119,15 +133,22 @@ class _MinPainter extends CustomPainter {
     canvas.drawImageRect(
       font,
       charRect,
-      Rect.fromLTWH(x.toDouble(), y.toDouble(), 8, 10),
+      Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
       paint,
     );
   }
 
   // Method to draw a string
-  void drawString(Canvas canvas, int x, int y, String str) {
+  void drawString(
+      Canvas canvas, double x, double y, TMinitelChar attr, String str) {
+    double stepX = (attr.localAttr & kAttrDoubleWidth) != 0 ? 16.0 : 8.0;
     for (var i = 0; i < str.length; i++) {
-      drawChar(canvas, x + i * 8, y, TMinitelChar(0, 7, str.codeUnitAt(i)));
+      drawChar(
+        canvas,
+        x + i * stepX,
+        y,
+        TMinitelChar(attr.globalAttr, attr.localAttr, str.codeUnitAt(i)),
+      );
     }
   }
 
@@ -141,12 +162,29 @@ class _MinPainter extends CustomPainter {
 
     if (!MinFonts().isLoaded) return;
 
-    // drawChar(canvas, font, 0, 10, 65);
-    drawString(canvas, 0, 0, "Flutter MinWidget");
-    drawString(canvas, 0, 10, "(c) 2024 - Alain Basty - GPLv2");
+    drawString(
+      canvas,
+      0,
+      0,
+      TMinitelChar(kColorBlack, kColorWhite, 0),
+      "Flutter MinWidget",
+    );
+    drawString(
+      canvas,
+      0,
+      10,
+      TMinitelChar(kColorBlack, kColorWhite, 0),
+      "(c) 2024 - Alain Basty - GPLv2",
+    );
 
     // Draw G2 chars 0x00 to 0x1F
-    drawString(canvas, 0, 50, "Minitel font from Fr\x13d\x13ric Bisson");
+    drawString(
+      canvas,
+      0,
+      50,
+      TMinitelChar(kColorBlack, kColorWhite, 0),
+      "Minitel font from Fr\x13d\x13ric Bisson",
+    );
     for (var i = 0; i < 32; i++) {
       drawChar(
         canvas,
@@ -174,6 +212,42 @@ class _MinPainter extends CustomPainter {
         TMinitelChar(kG1Charset, 7, i),
       );
     }
+    // Draw "ABC" with double width and height
+    drawString(
+      canvas,
+      0,
+      110,
+      TMinitelChar(
+        kColorBlack,
+        kColorWhite | kAttrDoubleHeightWidth,
+        0,
+      ),
+      "Double Width Height",
+    );
+    // Draw "ABC" with double width
+    drawString(
+      canvas,
+      0,
+      120,
+      TMinitelChar(
+        kColorBlack,
+        kColorWhite | kAttrDoubleWidth,
+        0,
+      ),
+      "Double Width",
+    );
+    // Draw "ABC" with double height
+    drawString(
+      canvas,
+      0,
+      140,
+      TMinitelChar(
+        kColorBlack,
+        kColorWhite | kAttrDoubleHeight,
+        0,
+      ),
+      "Double Height",
+    );
   }
 
   @override

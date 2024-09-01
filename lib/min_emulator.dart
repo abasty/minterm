@@ -1,6 +1,3 @@
-// import 'dart:typed_data';
-
-// Constants
 import 'package:charcode/ascii.dart';
 
 const int kAttrNormal = 0x00;
@@ -8,37 +5,39 @@ const int kAttrNormal = 0x00;
 const int kColorBlack = 0x00;
 const int kColorWhite = 0x07;
 
+// Global attributes
+// bgcolor (3), lignage / disjoint (1), charset (2), espsep (1)
 const int kAttrUnderline = 0x08;
-
 const int kG0Charset = 0x00;
-const int kG1Charset = 0x20;
-const int kG2Charset = 0x10;
+const int kG1Charset = 0x10;
+const int kG2Charset = 0x20;
+const int kEspSep = 0x40;
 
-const int kEspSep = 0x30;
-
-const int kLocationTL = 0x40;
-const int kLocationBR = 0x80;
-const int kLocationTR = kLocationTL | kLocationBR;
-
+// Local attributes
+// fgcolor (3), flash (1), inverse (1), taille(2), double part (1)
 const int kAttrFlash = 0x08;
 const int kAttrInverse = 0x10;
-const int kAttrDoubleH = 0x20;
-const int kAttrDoubleW = 0x40;
-const int kAttrDoubleHW = kAttrDoubleH | kAttrDoubleW;
+const int kAttrDoubleHeight = 0x20;
+const int kAttrDoubleWidth = 0x40;
+const int kAttrDoubleHeightWidth = kAttrDoubleHeight | kAttrDoubleWidth;
+const int kDoublePart = 0x80;
 
-const int kColorMask = 0x07;
-const int kCharsetMask = 0x30;
-const int kLocationMask = 0xC0;
-const int kSizeMask = 0x60;
+// Char code redraw flag
 const int kRedrawFlag = 0x80;
 
+// Attribute masks
+const int kColorMask = 0x07;
+const int kCharsetMask = 0x30;
+const int kSizeMask = 0x60;
+
+// Some Minitel special codes
 const int $rep = 0x12;
 const int $sep = 0x13;
 const int $ss2 = 0x19;
 
+// Types
 typedef FHandleCode = void Function();
 
-// Types
 class TPoint {
   int x, y;
   TPoint(this.x, this.y);
@@ -173,7 +172,12 @@ class TMinitel {
   }
 
   void setSizeAttr(int code) {
-    const sizeAttr = [kAttrNormal, kAttrDoubleH, kAttrDoubleW, kAttrDoubleHW];
+    const sizeAttr = [
+      kAttrNormal,
+      kAttrDoubleHeight,
+      kAttrDoubleWidth,
+      kAttrDoubleHeightWidth
+    ];
     if (code >= $L && code <= $O) {
       currentState.charSize = sizeAttr[code - $L];
     }
@@ -236,7 +240,7 @@ class TMinitel {
 
   void setCursorForward() {
     currentState.column++;
-    if ((currentState.charSize & kAttrDoubleW) != 0) {
+    if ((currentState.charSize & kAttrDoubleWidth) != 0) {
       currentState.column++;
     }
     if (currentState.column > 40) {
@@ -245,7 +249,7 @@ class TMinitel {
       } else {
         currentState.column = currentState.column - 40;
         currentState.line++;
-        if ((currentState.charSize & kAttrDoubleH) != 0) {
+        if ((currentState.charSize & kAttrDoubleHeight) != 0) {
           currentState.line++;
         }
         if (scrollOn) {
@@ -256,7 +260,7 @@ class TMinitel {
         } else if (currentState.line > 24) {
           currentState.line = currentState.line - 24;
           if (currentState.line == 1 &&
-              (currentState.charSize & kAttrDoubleH) != 0) {
+              (currentState.charSize & kAttrDoubleHeight) != 0) {
             currentState.line = 2;
           }
         }
@@ -426,8 +430,8 @@ class TMinitel {
     line = currentState.line;
     scroll = scrollOn;
     scrollOn = false;
-    if ((size & kAttrDoubleH) != 0) {
-      currentState.charSize = kAttrDoubleH;
+    if ((size & kAttrDoubleHeight) != 0) {
+      currentState.charSize = kAttrDoubleHeight;
     } else {
       currentState.charSize = kAttrNormal;
     }
