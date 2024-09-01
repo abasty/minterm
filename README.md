@@ -4,15 +4,10 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 
 ## TODO
 
-* [ ] `_MinPainter::drawChar` : utilise un `TMinitelChar`
-
-## Moteur d'émulation
-
-ACU
-
-## Rendering
-
-ACU
+* [x] `_MinPainter.drawChar()` : Utilise un `TMinitelChar`
+* [ ] `TMinitel.putChar()` : Traduire depuis la version assembleur
+* [ ] `_MinPainter.paint()` : Utilise un `TMinitel`, teste `kRedrawFlag` pour
+  repeindre uniquement les caractères impactés
 
 ## Caractères
 
@@ -28,8 +23,9 @@ ACU
 
 * Le jeu de caractères G1 est généré depuis la fonte _bitmap_ `g18x10.bdf` de
   [Pierre Ficheux](http://pficheux.free.fr/) et de son émulateur
-  [Xtel](http://pficheux.free.fr/xtel/). `xtel2minterm.py` utilise `bdfparser`
-  et `PIL` (_Pillow_) pour construire l'image RGBA correspondante et la
-  sauvegarder dans `g1.png`.
+  [Xtel](http://pficheux.free.fr/xtel/). Le caractère #0 est redéfinit comme le
+  masque à appliquer pour les graphiques disjoints. `xtel2minterm.py` utilise
+  `bdfparser` et `PIL` (_Pillow_) pour construire l'image RGBA correspondante et
+  la sauvegarder dans `g1.png`.
 
   ![Jeux G1](assets/g1.png)

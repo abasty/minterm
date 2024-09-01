@@ -8,6 +8,7 @@ const int kColorWhite = 0x07;
 // Global attributes
 // bgcolor (3), lignage / disjoint (1), charset (2), espsep (1)
 const int kAttrUnderline = 0x08;
+const int kAttrDisjointed = kAttrUnderline;
 const int kG0Charset = 0x00;
 const int kG1Charset = 0x10;
 const int kG2Charset = 0x20;

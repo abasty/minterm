@@ -9,9 +9,12 @@ import 'min_emulator.dart';
 Future<ui.Image> loadUiImage(String imageAssetPath) async {
   final ByteData data = await rootBundle.load(imageAssetPath);
   final Completer<ui.Image> completer = Completer();
-  ui.decodeImageFromList(Uint8List.view(data.buffer), (ui.Image img) {
-    return completer.complete(img);
-  });
+  ui.decodeImageFromList(
+    Uint8List.view(data.buffer),
+    (ui.Image img) {
+      return completer.complete(img);
+    },
+  );
   return completer.future;
 }
 
@@ -122,20 +125,45 @@ class _MinPainter extends CustomPainter {
       10,
     );
 
-    // Create a paint object with the foreground color
-    final paint = Paint()
-      ..colorFilter = ColorFilter.mode(
-        fgColor,
-        BlendMode.srcIn,
-      );
-
     // Draw the character in the foreground color
     canvas.drawImageRect(
       font,
       charRect,
       Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-      paint,
+      Paint()
+        ..colorFilter = ColorFilter.mode(
+          fgColor,
+          BlendMode.srcIn,
+        ),
     );
+
+    // Draw underline if applicable (only for G0/G2 charset, not espsep)
+    if ((char.globalAttr & kAttrUnderline) != 0 &&
+        (char.globalAttr & kCharsetMask) != kG1Charset &&
+        (char.globalAttr & kEspSep) == 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(x, y + 9.0 * scaleHeight, 8.0 * scaleWidth, scaleHeight),
+        Paint()..color = fgColor,
+      );
+    }
+
+    // Draw disjointed if applicable (only for G1 charset)
+    if ((char.globalAttr & kAttrDisjointed) != 0 &&
+        (char.globalAttr & kCharsetMask) == kG1Charset) {
+      // Get the disjoint mask
+      const maskRect = Rect.fromLTWH(0, 0, 8, 10);
+      // Apply disjoint mask on character
+      canvas.drawImageRect(
+        font,
+        maskRect,
+        Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
+        Paint()
+          ..colorFilter = ColorFilter.mode(
+            bgColor,
+            BlendMode.srcIn,
+          ),
+      );
+    }
   }
 
   // Method to draw a string
@@ -164,14 +192,14 @@ class _MinPainter extends CustomPainter {
 
     drawString(
       canvas,
+      10 * 8,
       0,
-      0,
-      TMinitelChar(kColorBlack, kColorWhite, 0),
-      "Flutter MinWidget",
+      TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
+      " Flutter MinWidget ",
     );
     drawString(
       canvas,
-      0,
+      5 * 8,
       10,
       TMinitelChar(kColorBlack, kColorWhite, 0),
       "(c) 2024 - Alain Basty - GPLv2",
@@ -181,54 +209,91 @@ class _MinPainter extends CustomPainter {
     drawString(
       canvas,
       0,
-      50,
-      TMinitelChar(kColorBlack, kColorWhite, 0),
-      "Minitel font from Fr\x13d\x13ric Bisson",
+      30,
+      TMinitelChar(kColorBlack, (kColorWhite - 2) | kAttrInverse, 0),
+      "G0 and G2 glyphs from Fr\x13d\x13ric Bisson   ",
     );
     for (var i = 0; i < 32; i++) {
       drawChar(
         canvas,
         i * 8,
-        60,
-        TMinitelChar(1, 3, i),
+        40,
+        TMinitelChar(kColorBlack, kColorWhite, i),
       );
     }
 
     // Draw G1 chars 0x20 to 0x3F
+    drawString(
+      canvas,
+      0,
+      60,
+      TMinitelChar(kColorBlack, (kColorWhite - 2) | kAttrInverse, 0),
+      "G1 glyphs from Pierre Ficheux           ",
+    );
     for (var i = 0x20; i <= 0x3F; i++) {
       drawChar(
         canvas,
         (i - 0x20) * 8,
-        80,
-        TMinitelChar(kG1Charset, 7, i),
+        70,
+        TMinitelChar(kColorBlack | kG1Charset, kColorWhite, i),
       );
     }
-    // Draw G1 chars 0x60 to 0x7F
+    // Draw G1 chars 0x60 to 0x7F disjointed
     for (var i = 0x60; i <= 0x7F; i++) {
       drawChar(
         canvas,
         (i - 0x60) * 8,
-        90,
-        TMinitelChar(kG1Charset, 7, i),
+        80,
+        TMinitelChar(
+          kColorBlack | kG1Charset | kAttrDisjointed,
+          kColorWhite,
+          i,
+        ),
       );
     }
-    // Draw "ABC" with double width and height
+    // Draw G1 char #0
+    drawChar(
+      canvas,
+      0,
+      90,
+      TMinitelChar(
+        kColorBlack | kG1Charset,
+        kColorWhite,
+        0,
+      ),
+    );
+    drawString(
+      canvas,
+      8,
+      90,
+      TMinitelChar(kColorBlack, kColorWhite, 0),
+      " : Disjointed graphics mask",
+    );
+
+    // Draw with double width and height, underlined
     drawString(
       canvas,
       0,
       110,
+      TMinitelChar(kColorBlack, (kColorWhite - 2) | kAttrInverse, 0),
+      "Flutter MinWidget by Alain Basty        ",
+    );
+    drawString(
+      canvas,
+      0,
+      130,
       TMinitelChar(
-        kColorBlack,
+        kColorBlack | kAttrUnderline,
         kColorWhite | kAttrDoubleHeightWidth,
         0,
       ),
       "Double Width Height",
     );
-    // Draw "ABC" with double width
+    // Draw with double width
     drawString(
       canvas,
       0,
-      120,
+      140,
       TMinitelChar(
         kColorBlack,
         kColorWhite | kAttrDoubleWidth,
@@ -236,18 +301,20 @@ class _MinPainter extends CustomPainter {
       ),
       "Double Width",
     );
-    // Draw "ABC" with double height
+    // Draw with double height underlined
     drawString(
       canvas,
       0,
-      140,
+      160,
       TMinitelChar(
-        kColorBlack,
+        kColorBlack | kAttrUnderline,
         kColorWhite | kAttrDoubleHeight,
         0,
       ),
       "Double Height",
     );
+
+    // TODO: Draw the cursor
   }
 
   @override
