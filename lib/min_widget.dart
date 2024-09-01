@@ -27,7 +27,7 @@ class FontAtlas extends ChangeNotifier {
 
   FontAtlas._internal() {
     // Load the font image
-    loadUiImage('assets/g08x10.png').then((image) {
+    loadUiImage('assets/g0g2.png').then((image) {
       _fontImage = image;
       _isLoaded = true;
       notifyListeners();
@@ -121,15 +121,11 @@ class _MinPainter extends CustomPainter {
     final font = FontAtlas().fontImage;
 
     // drawChar(canvas, font, 0, 10, 65);
-    drawString(canvas, font, 40, 0, " (c) 2024 - Alain Basty - GPLv2");
-    drawString(canvas, font, 0, 20, " Minitel ");
-
-    // Build a string with char code 0x80 to 0x8F
-    for (var i = 0; i < 16; i++) {
-      drawChar(canvas, font, i * 8, 40, 0x80 + i);
-    }
+    drawString(canvas, font, 0, 0, "Flutter MinWidget");
+    drawString(canvas, font, 0, 10, "(c) 2024 - Alain Basty - GPLv2");
 
     // Draw char 0x00 to 0x1F
+    drawString(canvas, font, 0, 50, "Minitel font from Fr\x13d\x13ric Bisson");
     for (var i = 0; i < 32; i++) {
       drawChar(canvas, font, i * 8, 60, i);
     }
