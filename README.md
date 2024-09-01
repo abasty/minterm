@@ -1,6 +1,10 @@
 # minterm
 
-Un nouvel émulateur Minitel en Flutter & Dart.
+Encore un émulateur Minitel ! En Flutter & Dart.
+
+## TODO
+
+* [ ] `_MinPainter::drawChar` : utilise un `TMinitelChar`
 
 ## Moteur d'émulation
 

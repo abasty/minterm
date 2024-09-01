@@ -13,6 +13,7 @@ const int kAttrUnderline = 0x08;
 const int kG0Charset = 0x00;
 const int kG1Charset = 0x20;
 const int kG2Charset = 0x10;
+
 const int kEspSep = 0x30;
 
 const int kLocationTL = 0x40;
@@ -25,6 +26,7 @@ const int kAttrDoubleH = 0x20;
 const int kAttrDoubleW = 0x40;
 const int kAttrDoubleHW = kAttrDoubleH | kAttrDoubleW;
 
+const int kColorMask = 0x07;
 const int kCharsetMask = 0x30;
 const int kLocationMask = 0xC0;
 const int kSizeMask = 0x60;

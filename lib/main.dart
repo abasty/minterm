@@ -37,7 +37,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => FontAtlas(),
+      create: (context) => MinFonts(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData.from(
@@ -47,7 +47,7 @@ class MainApp extends StatelessWidget {
           body: Container(
             color: const Color.fromARGB(255, 44, 27, 3),
             child: Center(
-              child: Consumer<FontAtlas>(
+              child: Consumer<MinFonts>(
                 builder: (context, fontAtlas, child) => MinWidget(),
               ),
             ),
