@@ -11,7 +11,7 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 
 ## Caractères
 
-* Les jeux de caractères G0 et G2 sont générés au format PNG  depuis
+* Les jeux de caractères G0 et G2 sont générés au format PNG depuis
   `Minitel.ttf` de [Frédéric Bisson](https://zigazou.dev/)
   ([git](https://github.com/Zigazou)). Certains caractères sont redessinés (`Ç`,
   barres verticales gauche et droite, barre haut, pavé plein). `ttf2minterm.py`

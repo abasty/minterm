@@ -1,6 +1,6 @@
 import 'package:charcode/ascii.dart';
 
-const int kAttrNormal = 0x00;
+const int kAttrNone = 0x00;
 
 const int kColorBlack = 0x00;
 const int kColorWhite = 0x07;
@@ -12,7 +12,7 @@ const int kAttrDisjointed = kAttrUnderline;
 const int kG0Charset = 0x00;
 const int kG1Charset = 0x10;
 const int kG2Charset = 0x20;
-const int kEspSep = 0x40;
+const int kAttrSpace = 0x40;
 
 // Local attributes
 // fgcolor (3), flash (1), inverse (1), taille(2), double part (1)
@@ -50,38 +50,38 @@ class TRect {
 }
 
 class TMinitelChar {
-  int globalAttr;
-  int localAttr;
-  int charCode;
-  TMinitelChar(this.globalAttr, this.localAttr, this.charCode);
+  int gAttr;
+  int lAttr;
+  int code;
+  TMinitelChar(this.gAttr, this.lAttr, this.code);
 }
 
 typedef TMinitelScreen = List<List<TMinitelChar>>;
 
 class TMinitelState {
-  bool separatorFlag = false;
-  int backgroundColor = kColorBlack;
-  int underlinedFlag = kAttrNormal;
-  int disjointed = kAttrNormal;
-  int foregroundColor = kColorWhite;
-  int flashFlag = kAttrNormal;
-  int charSize = kAttrNormal;
-  int inverseFlag = kAttrNormal;
+  bool needAttrSpace = false;
+  int bgColor = kColorBlack;
+  int underlined = kAttrNone;
+  int disjointed = kAttrNone;
+  int fgColor = kColorWhite;
+  int blink = kAttrNone;
+  int size = kAttrNone;
+  int inverse = kAttrNone;
   int charset = kG0Charset;
-  int line = 0;
-  int column = 0;
+  int l = 0;
+  int c = 0;
 
-  TMinitelState({this.line = 0, this.column = 0});
+  TMinitelState({this.l = 0, this.c = 0});
 
   void resetAttr() {
-    separatorFlag = false;
-    backgroundColor = kColorBlack;
-    underlinedFlag = kAttrNormal;
-    disjointed = kAttrNormal;
-    foregroundColor = kColorWhite;
-    flashFlag = kAttrNormal;
-    charSize = kAttrNormal;
-    inverseFlag = kAttrNormal;
+    needAttrSpace = false;
+    bgColor = kColorBlack;
+    underlined = kAttrNone;
+    disjointed = kAttrNone;
+    fgColor = kColorWhite;
+    blink = kAttrNone;
+    size = kAttrNone;
+    inverse = kAttrNone;
     charset = kG0Charset;
   }
 }
@@ -94,7 +94,7 @@ class TMinitel {
   int lastCharset = kG0Charset;
   bool scrollOn = false;
   bool cursorOn = false;
-  TMinitelState currentState = TMinitelState(line: 1, column: 1);
+  TMinitelState state = TMinitelState(l: 1, c: 1);
   TMinitelState savedState = TMinitelState();
   TMinitelScreen screen = List.generate(
     25,
@@ -107,15 +107,15 @@ class TMinitel {
   void markAllAsDirty() {
     for (int line = 0; line <= 24; ++line) {
       for (int column = 0; column <= 41; ++column) {
-        screen[line][column].charCode |= kRedrawFlag;
+        screen[line][column].code |= kRedrawFlag;
       }
     }
   }
 
   void markCharAsDirty(int l, int c) {
-    screen[l][c].charCode |= kRedrawFlag;
-    screen[l][0].charCode |= kRedrawFlag;
-    screen[0][41].charCode |= kRedrawFlag;
+    screen[l][c].code |= kRedrawFlag;
+    screen[l][0].code |= kRedrawFlag;
+    screen[0][41].code |= kRedrawFlag;
   }
 
   void markRectAsDirty(TRect r) {
@@ -129,22 +129,22 @@ class TMinitel {
   // TODO: This should go away and be implemented in the widget
   void draw() {
     // Test if the screen has at least one dirty character
-    if ((screen[0][41].charCode & kRedrawFlag) != 0) return;
+    if ((screen[0][41].code & kRedrawFlag) != 0) return;
 
     // Clear the screen dirty flag
-    screen[0][41].charCode &= ~kRedrawFlag;
+    screen[0][41].code &= ~kRedrawFlag;
 
     for (int line = 0; line <= 24; ++line) {
       // Test if the line has at least one dirty character
-      if ((screen[line][0].charCode & kRedrawFlag) != 0) continue;
+      if ((screen[line][0].code & kRedrawFlag) != 0) continue;
 
       // Clear the line dirty flag
-      screen[line][0].charCode &= ~kRedrawFlag;
+      screen[line][0].code &= ~kRedrawFlag;
 
       for (int column = 1; column <= 40; ++column) {
-        if ((screen[line][column].charCode & kRedrawFlag) == 0) continue;
+        if ((screen[line][column].code & kRedrawFlag) == 0) continue;
 
-        screen[line][column].charCode &= ~kRedrawFlag;
+        screen[line][column].code &= ~kRedrawFlag;
         // AfficheCar(ADRC, line, column);
       }
     }
@@ -152,65 +152,64 @@ class TMinitel {
 
   void setBackgroundColor(int code) {
     if (code >= 80 && code <= 80 + 7) {
-      currentState.backgroundColor = code - 80;
-      currentState.separatorFlag = true;
+      state.bgColor = code - 80;
+      state.needAttrSpace = true;
     }
   }
 
   void setForegroundColor(int code) {
     if (code >= 64 && code <= 64 + 7) {
-      currentState.foregroundColor = code - 64;
-      currentState.separatorFlag = true;
+      state.fgColor = code - 64;
     }
   }
 
   void setFlashAttr(int code) {
-    currentState.flashFlag = code == $H ? kAttrFlash : kAttrNormal;
+    state.blink = code == $H ? kAttrFlash : kAttrNone;
   }
 
   void setInverseAttr(int code) {
-    currentState.inverseFlag = code == $backslash ? kAttrInverse : kAttrNormal;
+    state.inverse = code == $backslash ? kAttrInverse : kAttrNone;
   }
 
   void setSizeAttr(int code) {
     const sizeAttr = [
-      kAttrNormal,
+      kAttrNone,
       kAttrDoubleHeight,
       kAttrDoubleWidth,
       kAttrDoubleHeightWidth
     ];
     if (code >= $L && code <= $O) {
-      currentState.charSize = sizeAttr[code - $L];
+      state.size = sizeAttr[code - $L];
     }
   }
 
   void setUnderlineAttr(int code) {
-    int underlineFlag = code == $Z ? kAttrUnderline : kAttrNormal;
-    if (currentState.charset == kG1Charset) {
-      currentState.disjointed = underlineFlag;
+    int underlinedFlag = code == $Z ? kAttrUnderline : kAttrNone;
+    if (state.charset == kG1Charset) {
+      state.disjointed = underlinedFlag;
     } else {
-      currentState.underlinedFlag = underlineFlag;
-      currentState.separatorFlag = true; // FIXME: Check this
+      state.underlined = underlinedFlag;
+      state.needAttrSpace = true;
     }
   }
 
   void setG0Charset() {
-    currentState.charSize = kAttrNormal;
-    currentState.inverseFlag = kAttrNormal;
-    currentState.charset = kG0Charset;
+    state.size = kAttrNone;
+    state.inverse = kAttrNone;
+    state.charset = kG0Charset;
   }
 
   void setG1Charset() {
-    currentState.underlinedFlag = kAttrNormal;
-    currentState.disjointed = kAttrNormal;
-    currentState.charSize = kAttrNormal;
-    currentState.inverseFlag = kAttrNormal;
-    currentState.charset = kG1Charset;
-    currentState.separatorFlag = false;
+    state.underlined = kAttrNone;
+    state.disjointed = kAttrNone;
+    state.size = kAttrNone;
+    state.inverse = kAttrNone;
+    state.charset = kG1Charset;
+    state.needAttrSpace = false;
   }
 
   void setG2Charset() {
-    if (currentState.charset == kG0Charset) {
+    if (state.charset == kG0Charset) {
       stateCode = $ss2;
     } else {
       stateCode = 0;
@@ -219,50 +218,49 @@ class TMinitel {
 
   void setCursorPosition(int line, int column) {
     if ((line >= 64) && (line <= 88) && (column >= 65) && (column <= 105)) {
-      if ((currentState.line != 0) && (line == 64)) {
-        savedState = currentState;
+      if ((state.l != 0) && (line == 64)) {
+        savedState = state;
       }
-      currentState.line = line - 64;
-      currentState.column = column - 64;
-      currentState.separatorFlag = false;
+      state.l = line - 64;
+      state.c = column - 64;
+      state.needAttrSpace = false;
     } else if ((line >= 48) &&
         (line <= 50) &&
         (column >= 48) &&
         (column <= 57)) {
-      if ((currentState.line != 0) && (line == 48) && (column == 48)) {
-        savedState = currentState;
+      if ((state.l != 0) && (line == 48) && (column == 48)) {
+        savedState = state;
       }
-      currentState.line = ((line & 15) * 10) + (column & 15);
-      currentState.column = 1;
-      currentState.separatorFlag = false;
+      state.l = ((line & 15) * 10) + (column & 15);
+      state.c = 1;
+      state.needAttrSpace = false;
     }
-    currentState.resetAttr();
+    state.resetAttr();
   }
 
   void setCursorForward() {
-    currentState.column++;
-    if ((currentState.charSize & kAttrDoubleWidth) != 0) {
-      currentState.column++;
+    state.c++;
+    if ((state.size & kAttrDoubleWidth) != 0) {
+      state.c++;
     }
-    if (currentState.column > 40) {
-      if (currentState.line == 0) {
-        currentState.column = 40;
+    if (state.c > 40) {
+      if (state.l == 0) {
+        state.c = 40;
       } else {
-        currentState.column = currentState.column - 40;
-        currentState.line++;
-        if ((currentState.charSize & kAttrDoubleHeight) != 0) {
-          currentState.line++;
+        state.c = state.c - 40;
+        state.l++;
+        if ((state.size & kAttrDoubleHeight) != 0) {
+          state.l++;
         }
         if (scrollOn) {
-          while (currentState.line > 24) {
+          while (state.l > 24) {
             scrollUp();
-            currentState.line--;
+            state.l--;
           }
-        } else if (currentState.line > 24) {
-          currentState.line = currentState.line - 24;
-          if (currentState.line == 1 &&
-              (currentState.charSize & kAttrDoubleHeight) != 0) {
-            currentState.line = 2;
+        } else if (state.l > 24) {
+          state.l = state.l - 24;
+          if (state.l == 1 && (state.size & kAttrDoubleHeight) != 0) {
+            state.l = 2;
           }
         }
       }
@@ -270,8 +268,8 @@ class TMinitel {
   }
 
   void setCursorHome() {
-    currentState.line = 1;
-    currentState.column = 1;
+    state.l = 1;
+    state.c = 1;
     stateCode = 0;
   }
 
@@ -286,9 +284,9 @@ class TMinitel {
   }
 
   void clearScreen() {
-    currentState.resetAttr();
-    currentState.line = 1;
-    currentState.column = 1;
+    state.resetAttr();
+    state.l = 1;
+    state.c = 1;
     for (int line = 1; line <= 24; ++line) {
       for (int column = 0; column <= 41; ++column) {
         screen[line][column] = emptyChar;
@@ -328,25 +326,100 @@ class TMinitel {
     if (charCode >= 65) {
       n = charCode - 64;
       currentCode = lastCode;
-      if (lastCharset == kG2Charset && currentState.charset == kG0Charset) {
-        currentState.charset = kG2Charset;
+      if (lastCharset == kG2Charset && state.charset == kG0Charset) {
+        state.charset = kG2Charset;
       }
       for (i = 1; i <= n; ++i) {
         handleChar();
       }
-      if (lastCharset == kG2Charset && currentState.charset == kG2Charset) {
-        currentState.charset = kG0Charset;
+      if (lastCharset == kG2Charset && state.charset == kG2Charset) {
+        state.charset = kG0Charset;
       }
     }
     stateCode = 0;
   }
 
+  // Propagate global attributes to the right
+  void propagateGlobalAttr(int line, int column) {
+    for (int c = column; c <= 40; ++c) {
+      var char = screen[line][c];
+      char.gAttr = screen[line][column - 1].gAttr;
+    }
+  }
+
   void putChar(int charCode) {
-    // Implement putChar logic here (set chars in screen)
+    final line = state.l;
+    final column = state.c;
+    var c = screen[line][column];
+
+    // Reset global attributes
+    c.gAttr = 0;
+
+    // Set common local attributes
+    c.lAttr = state.fgColor;
+    c.lAttr |= state.blink;
+
+    // Set char code
+    c.code = charCode;
+
+    if (state.charset == kG1Charset) {
+      // Set G1 global attributes
+      c.gAttr |= kG1Charset;
+      c.gAttr |= state.bgColor;
+      c.gAttr |= state.disjointed;
+    } else {
+      // Set size and inverse attribute
+      c.lAttr |= state.size;
+      c.lAttr |= state.inverse;
+
+      if (charCode == $space && state.needAttrSpace) {
+        // Set background color and underline for separator
+        c.gAttr |= state.bgColor;
+        c.gAttr |= state.underlined;
+        c.gAttr |= kAttrSpace;
+        state.needAttrSpace = false;
+      } else {
+        if (column == 1) {
+          // Set default global attributes
+          c.gAttr = 0;
+        } else {
+          // Set background and underline attributes from previous char
+          final prevChar = screen[line][column - 1];
+          c.gAttr = prevChar.gAttr & (kColorMask | kAttrUnderline);
+          // If previous char is G1 charset, remove underline attribute
+          if ((prevChar.gAttr & kCharsetMask) == kG1Charset) {
+            c.gAttr &= ~kAttrUnderline;
+          }
+        }
+      }
+    }
+
+    markCharAsDirty(line, column);
+    // propagate on the right
+
+    if ((c.lAttr & kAttrDoubleWidth) != 0 && column < 40) {
+      screen[line][column + 1].lAttr = c.lAttr | kDoublePart;
+      screen[line][column + 1].code = c.code;
+      markCharAsDirty(line, column + 1);
+    }
+
+    if ((c.lAttr & kAttrDoubleHeight) != 0 && line > 0) {
+      screen[line - 1][column].lAttr = c.lAttr | kDoublePart;
+      screen[line - 1][column].code = c.code;
+      markCharAsDirty(line - 1, column);
+    }
+
+    if ((c.lAttr & kSizeMask) == kAttrDoubleHeightWidth &&
+        line > 0 &&
+        column < 40) {
+      screen[line - 1][column + 1].lAttr = c.lAttr | kDoublePart;
+      screen[line - 1][column + 1].code = c.code;
+      markCharAsDirty(line - 1, column + 1);
+    }
   }
 
   void handleChar() {
-    lastCharset = currentState.charset;
+    lastCharset = state.charset;
     putChar(currentCode);
     lastCode = currentCode;
     setCursorForward();
@@ -362,55 +435,55 @@ class TMinitel {
   }
 
   void handleVerticalTab() {
-    if (currentState.line != 0) {
-      if (currentState.line > 1) {
-        currentState.line--;
+    if (state.l != 0) {
+      if (state.l > 1) {
+        state.l--;
       } else if (scrollOn) {
-        currentState.line = 1;
+        state.l = 1;
         scrollDown();
       } else {
-        currentState.line = 24;
+        state.l = 24;
       }
     }
     stateCode = 0;
   }
 
   void handleLineFeed() {
-    if (currentState.line == 0) {
-      currentState = savedState;
-    } else if (currentState.line < 24) {
-      currentState.line++;
+    if (state.l == 0) {
+      state = savedState;
+    } else if (state.l < 24) {
+      state.l++;
     } else if (scrollOn) {
-      currentState.line = 24;
+      state.l = 24;
       scrollUp();
     } else {
-      currentState.line = 1;
+      state.l = 1;
     }
     stateCode = 0;
   }
 
   void handleBackSpace() {
-    if (currentState.column > 1) {
-      currentState.column--;
+    if (state.c > 1) {
+      state.c--;
       stateCode = 0;
     } else {
-      currentState.column = 40;
+      state.c = 40;
       handleVerticalTab();
     }
   }
 
   void handleTabulation() {
-    if (currentState.column < 40) {
-      currentState.column++;
+    if (state.c < 40) {
+      state.c++;
       stateCode = 0;
     } else {
-      currentState.column = 1;
+      state.c = 1;
       handleLineFeed();
     }
   }
 
   void handleCarriageReturn() {
-    currentState.column = 1;
+    state.c = 1;
     stateCode = 0;
   }
 
@@ -424,24 +497,24 @@ class TMinitel {
     int column, line;
     bool scroll;
 
-    n = 41 - currentState.column;
+    n = 41 - state.c;
     currentCode = $space;
-    size = currentState.charSize;
-    column = currentState.column;
-    line = currentState.line;
+    size = state.size;
+    column = state.c;
+    line = state.l;
     scroll = scrollOn;
     scrollOn = false;
     if ((size & kAttrDoubleHeight) != 0) {
-      currentState.charSize = kAttrDoubleHeight;
+      state.size = kAttrDoubleHeight;
     } else {
-      currentState.charSize = kAttrNormal;
+      state.size = kAttrNone;
     }
     for (int i = 1; i <= n; ++i) {
       handleChar();
     }
-    currentState.charSize = size;
-    currentState.column = column;
-    currentState.line = line;
+    state.size = size;
+    state.c = column;
+    state.l = line;
     scrollOn = scroll;
     stateCode = 0;
   }
@@ -516,8 +589,8 @@ class TMinitel {
     int codeIndex;
 
     cursor = cursorOn;
-    column = currentState.column;
-    line = currentState.line;
+    column = state.c;
+    line = state.l;
     codeIndex = 0;
     while (codes[codeIndex] != 0) {
       currentCode = codes[codeIndex];
@@ -547,9 +620,9 @@ class TMinitel {
                 currentCode != $J &&
                 currentCode != $K &&
                 !(currentCode >= $M && currentCode <= $O)) {
-              currentState.charset = kG2Charset;
+              state.charset = kG2Charset;
               handleChar();
-              currentState.charset = kG0Charset;
+              state.charset = kG0Charset;
             } else if (currentCode == $A ||
                 currentCode == $B ||
                 currentCode == $C ||
@@ -558,12 +631,12 @@ class TMinitel {
               prevCode = currentCode;
               stateCode = $ss2 + 1;
             } else {
-              currentState.charset = kG0Charset;
+              state.charset = kG0Charset;
               stateCode = 0;
             }
             break;
           case const ($ss2 + 1):
-            currentState.charset = kG2Charset;
+            state.charset = kG2Charset;
             switch (prevCode) {
               case $A: // Grave
                 switch (currentCode) {
@@ -577,7 +650,7 @@ class TMinitel {
                     currentCode = 0x52;
                     break;
                   default:
-                    currentState.charset = kG0Charset;
+                    state.charset = kG0Charset;
                     break;
                 }
                 break;
@@ -587,7 +660,7 @@ class TMinitel {
                     currentCode = 0x53;
                     break;
                   default:
-                    currentState.charset = kG0Charset;
+                    state.charset = kG0Charset;
                     break;
                 }
                 break;
@@ -609,7 +682,7 @@ class TMinitel {
                     currentCode = 0x58;
                     break;
                   default:
-                    currentState.charset = kG0Charset;
+                    state.charset = kG0Charset;
                     break;
                 }
                 break;
@@ -631,7 +704,7 @@ class TMinitel {
                     currentCode = 0x5D;
                     break;
                   default:
-                    currentState.charset = kG0Charset;
+                    state.charset = kG0Charset;
                     break;
                 }
                 break;
@@ -644,13 +717,13 @@ class TMinitel {
                     currentCode = 0x5F;
                     break;
                   default:
-                    currentState.charset = kG0Charset;
+                    state.charset = kG0Charset;
                     break;
                 }
                 break;
             }
             handleChar();
-            currentState.charset = kG0Charset;
+            state.charset = kG0Charset;
             break;
 
           case $esc:
@@ -669,12 +742,12 @@ class TMinitel {
                   setUnderlineAttr(currentCode);
                   break;
                 case >= $backslash && <= $rbracket:
-                  if (currentState.charset != kG1Charset) {
+                  if (state.charset != kG1Charset) {
                     setInverseAttr(currentCode);
                   }
                   break;
                 case >= $L && <= $O:
-                  if (currentState.charset != kG1Charset) {
+                  if (state.charset != kG1Charset) {
                     setSizeAttr(currentCode);
                   }
                   break;
@@ -739,10 +812,9 @@ class TMinitel {
       }
       if (cursor != cursorOn) {
         markCharAsDirty(line, column);
-      } else if (cursorOn &&
-          (column != currentState.column || line != currentState.line)) {
+      } else if (cursorOn && (column != state.c || line != state.l)) {
         markCharAsDirty(line, column);
-        markCharAsDirty(currentState.line, currentState.column);
+        markCharAsDirty(state.l, state.c);
       }
     }
   }

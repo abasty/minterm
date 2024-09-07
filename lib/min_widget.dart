@@ -88,24 +88,24 @@ class _MinPainter extends CustomPainter {
 
   // Method to draw a character
   void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
-    if ((char.localAttr & kDoublePart) != 0) return;
+    if ((char.lAttr & kDoublePart) != 0) return;
 
-    final code = char.charCode;
-    var fgColor = MinColors[char.localAttr & kColorMask]!;
-    var bgColor = MinColors[char.globalAttr & kColorMask]!;
-    double scaleWidth = (char.localAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
-    double scaleHeight = (char.localAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
-    final ui.Image font = (char.globalAttr & kCharsetMask) != kG1Charset
+    final code = char.code;
+    var fgColor = MinColors[char.lAttr & kColorMask]!;
+    var bgColor = MinColors[char.gAttr & kColorMask]!;
+    double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
+    double scaleHeight = (char.lAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
+    final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
         ? MinFonts().fontG0G2
         : MinFonts().fontG1;
 
-    if ((char.localAttr & kAttrInverse) != 0) {
+    if ((char.lAttr & kAttrInverse) != 0) {
       final tmp = fgColor;
       fgColor = bgColor;
       bgColor = tmp;
     }
 
-    if ((char.localAttr & kAttrDoubleHeight) != 0 && y >= 10) {
+    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= 10) {
       y -= 10.0;
     } else {
       scaleHeight = 1.0;
@@ -138,9 +138,9 @@ class _MinPainter extends CustomPainter {
     );
 
     // Draw underline if applicable (only for G0/G2 charset, not espsep)
-    if ((char.globalAttr & kAttrUnderline) != 0 &&
-        (char.globalAttr & kCharsetMask) != kG1Charset &&
-        (char.globalAttr & kEspSep) == 0) {
+    if ((char.gAttr & kAttrUnderline) != 0 &&
+        (char.gAttr & kCharsetMask) != kG1Charset &&
+        (char.gAttr & kAttrSpace) == 0) {
       canvas.drawRect(
         Rect.fromLTWH(x, y + 9.0 * scaleHeight, 8.0 * scaleWidth, scaleHeight),
         Paint()..color = fgColor,
@@ -148,8 +148,8 @@ class _MinPainter extends CustomPainter {
     }
 
     // Draw disjointed if applicable (only for G1 charset)
-    if ((char.globalAttr & kAttrDisjointed) != 0 &&
-        (char.globalAttr & kCharsetMask) == kG1Charset) {
+    if ((char.gAttr & kAttrDisjointed) != 0 &&
+        (char.gAttr & kCharsetMask) == kG1Charset) {
       // Get the disjoint mask
       const maskRect = Rect.fromLTWH(0, 0, 8, 10);
       // Apply disjoint mask on character
@@ -169,13 +169,13 @@ class _MinPainter extends CustomPainter {
   // Method to draw a string
   void drawString(
       Canvas canvas, double x, double y, TMinitelChar attr, String str) {
-    double stepX = (attr.localAttr & kAttrDoubleWidth) != 0 ? 16.0 : 8.0;
+    double stepX = (attr.lAttr & kAttrDoubleWidth) != 0 ? 16.0 : 8.0;
     for (var i = 0; i < str.length; i++) {
       drawChar(
         canvas,
         x + i * stepX,
         y,
-        TMinitelChar(attr.globalAttr, attr.localAttr, str.codeUnitAt(i)),
+        TMinitelChar(attr.gAttr, attr.lAttr, str.codeUnitAt(i)),
       );
     }
   }
