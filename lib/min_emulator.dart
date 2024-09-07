@@ -104,50 +104,14 @@ class TMinitel {
     ),
   );
 
-  void markAllAsDirty() {
-    for (int line = 0; line <= 24; ++line) {
-      for (int column = 0; column <= 41; ++column) {
-        screen[line][column].code |= kRedrawFlag;
-      }
-    }
-  }
-
   void markCharAsDirty(int l, int c) {
     screen[l][c].code |= kRedrawFlag;
     screen[l][0].code |= kRedrawFlag;
     screen[0][41].code |= kRedrawFlag;
   }
 
-  void markRectAsDirty(TRect r) {
-    for (int line = r.a.y; line <= r.b.y; ++line) {
-      for (int column = r.a.x; column <= r.b.x; ++column) {
-        markCharAsDirty(line, column);
-      }
-    }
-  }
-
-  // TODO: This should go away and be implemented in the widget
-  void draw() {
-    // Test if the screen has at least one dirty character
-    if ((screen[0][41].code & kRedrawFlag) != 0) return;
-
-    // Clear the screen dirty flag
-    screen[0][41].code &= ~kRedrawFlag;
-
-    for (int line = 0; line <= 24; ++line) {
-      // Test if the line has at least one dirty character
-      if ((screen[line][0].code & kRedrawFlag) != 0) continue;
-
-      // Clear the line dirty flag
-      screen[line][0].code &= ~kRedrawFlag;
-
-      for (int column = 1; column <= 40; ++column) {
-        if ((screen[line][column].code & kRedrawFlag) == 0) continue;
-
-        screen[line][column].code &= ~kRedrawFlag;
-        // AfficheCar(ADRC, line, column);
-      }
-    }
+  void markScreenAsDirty() {
+    screen[0][41].code |= kRedrawFlag;
   }
 
   void setBackgroundColor(int code) {
@@ -339,83 +303,92 @@ class TMinitel {
     stateCode = 0;
   }
 
-  // Propagate global attributes to the right
-  void propagateGlobalAttr(int line, int column) {
-    for (int c = column; c <= 40; ++c) {
-      var char = screen[line][c];
-      char.gAttr = screen[line][column - 1].gAttr;
+  void copyCodeAndLocalAttr(int l, int c, TMinitelChar char) {
+    screen[l][c].lAttr = char.lAttr | kDoublePart;
+    screen[l][c].code = char.code;
+  }
+
+  void inheritGlobalAttr(int l, int c) {
+    var char = screen[l][c];
+    // Set background and underline attributes from previous char
+    final left = screen[l][c - 1];
+    char.gAttr = left.gAttr & (kColorMask | kAttrUnderline);
+    // If previous char is G1 charset, remove underline attribute
+    if ((left.gAttr & kCharsetMask) == kG1Charset) {
+      char.gAttr &= ~kAttrUnderline;
     }
   }
 
-  void putChar(int charCode) {
-    final line = state.l;
-    final column = state.c;
-    var c = screen[line][column];
+  // Propagates global attributes and dirty flag to the right
+  void propagateAndMakeDirty(int l, int c) {
+    var first = screen[l][c];
+    markCharAsDirty(l, c);
+    for (int col = c + 1; col < 40; ++col) {
+      var char = screen[l][col];
+      if ((char.gAttr & (kG1Charset | kAttrSpace)) != 0) {
+        break;
+      }
+      char.gAttr = first.gAttr & (kColorMask | kAttrUnderline);
+      markCharAsDirty(l, col);
+    }
+  }
+
+  void putChar(int code) {
+    final l = state.l;
+    final c = state.c;
+    var char = screen[l][c];
 
     // Reset global attributes
-    c.gAttr = 0;
+    char.gAttr = 0;
 
     // Set common local attributes
-    c.lAttr = state.fgColor;
-    c.lAttr |= state.blink;
+    char.lAttr = state.fgColor;
+    char.lAttr |= state.blink;
 
     // Set char code
-    c.code = charCode;
+    char.code = code;
 
+    // Set special attributes
     if (state.charset == kG1Charset) {
       // Set G1 global attributes
-      c.gAttr |= kG1Charset;
-      c.gAttr |= state.bgColor;
-      c.gAttr |= state.disjointed;
+      char.gAttr |= kG1Charset;
+      char.gAttr |= state.bgColor;
+      char.gAttr |= state.disjointed;
     } else {
       // Set size and inverse attribute
-      c.lAttr |= state.size;
-      c.lAttr |= state.inverse;
-
-      if (charCode == $space && state.needAttrSpace) {
+      char.lAttr |= state.size;
+      char.lAttr |= state.inverse;
+      if (code == $space && state.needAttrSpace) {
         // Set background color and underline for separator
-        c.gAttr |= state.bgColor;
-        c.gAttr |= state.underlined;
-        c.gAttr |= kAttrSpace;
+        char.gAttr |= state.bgColor;
+        char.gAttr |= state.underlined;
+        char.gAttr |= kAttrSpace;
         state.needAttrSpace = false;
       } else {
-        if (column == 1) {
-          // Set default global attributes
-          c.gAttr = 0;
-        } else {
-          // Set background and underline attributes from previous char
-          final prevChar = screen[line][column - 1];
-          c.gAttr = prevChar.gAttr & (kColorMask | kAttrUnderline);
-          // If previous char is G1 charset, remove underline attribute
-          if ((prevChar.gAttr & kCharsetMask) == kG1Charset) {
-            c.gAttr &= ~kAttrUnderline;
-          }
-        }
+        inheritGlobalAttr(l, c);
       }
     }
-
-    markCharAsDirty(line, column);
-    // propagate on the right
-
-    if ((c.lAttr & kAttrDoubleWidth) != 0 && column < 40) {
-      screen[line][column + 1].lAttr = c.lAttr | kDoublePart;
-      screen[line][column + 1].code = c.code;
-      markCharAsDirty(line, column + 1);
+    // Handle top left if applicable
+    if ((char.lAttr & kAttrDoubleHeight) != 0 && l > 0) {
+      copyCodeAndLocalAttr(l - 1, c, char);
+      inheritGlobalAttr(l - 1, c);
+    }
+    // Handle bottom right if applicable
+    if ((char.lAttr & kAttrDoubleWidth) != 0 && c < 40) {
+      copyCodeAndLocalAttr(l, c + 1, char);
+    }
+    // Handle top right if applicable
+    if ((char.lAttr & kSizeMask) == kAttrDoubleHeightWidth && l > 0 && c < 40) {
+      copyCodeAndLocalAttr(l - 1, c + 1, char);
     }
 
-    if ((c.lAttr & kAttrDoubleHeight) != 0 && line > 0) {
-      screen[line - 1][column].lAttr = c.lAttr | kDoublePart;
-      screen[line - 1][column].code = c.code;
-      markCharAsDirty(line - 1, column);
+    // Propagate global attributes to the right and update dirty flag
+    propagateAndMakeDirty(l, c);
+    if ((char.lAttr & kAttrDoubleHeight) != 0 && l > 0) {
+      propagateAndMakeDirty(l - 1, c);
     }
 
-    if ((c.lAttr & kSizeMask) == kAttrDoubleHeightWidth &&
-        line > 0 &&
-        column < 40) {
-      screen[line - 1][column + 1].lAttr = c.lAttr | kDoublePart;
-      screen[line - 1][column + 1].code = c.code;
-      markCharAsDirty(line - 1, column + 1);
-    }
+    markScreenAsDirty();
   }
 
   void handleChar() {
