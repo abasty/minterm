@@ -66,7 +66,7 @@ class MinWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.scale(
-      scale: 2.5,
+      scale: 2.0,
       child: FittedBox(
         child: SizedBox(
           width: 8 * 40,
@@ -179,6 +179,30 @@ class _MinPainter extends CustomPainter {
       );
     }
   }
+
+  // // TODO: This should go away and be implemented in the widget
+  // void draw() {
+  //   // Test if the screen has at least one dirty character
+  //   if ((screen[0][41].code & kRedrawFlag) != 0) return;
+
+  //   // Clear the screen dirty flag
+  //   screen[0][41].code &= ~kRedrawFlag;
+
+  //   for (int line = 0; line <= 24; ++line) {
+  //     // Test if the line has at least one dirty character
+  //     if ((screen[line][0].code & kRedrawFlag) != 0) continue;
+
+  //     // Clear the line dirty flag
+  //     screen[line][0].code &= ~kRedrawFlag;
+
+  //     for (int column = 1; column <= 40; ++column) {
+  //       if ((screen[line][column].code & kRedrawFlag) == 0) continue;
+
+  //       screen[line][column].code &= ~kRedrawFlag;
+  //       // AfficheCar(ADRC, line, column);
+  //     }
+  //   }
+  // }
 
   @override
   void paint(Canvas canvas, Size size) {
