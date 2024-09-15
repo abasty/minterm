@@ -24,7 +24,7 @@ const int kAttrDoubleHeightWidth = kAttrDoubleHeight | kAttrDoubleWidth;
 const int kDoublePart = 0x80;
 
 // Char code redraw flag
-const int kRedrawFlag = 0x80;
+const int kisDirty = 0x80;
 
 // Attribute masks
 const int kColorMask = 0x07;
@@ -100,18 +100,18 @@ class TMinitel {
     25,
     (_) => List.generate(
       42,
-      (_) => TMinitelChar(kG1Charset, kColorWhite, kRedrawFlag + $space),
+      (_) => TMinitelChar(kG1Charset, kColorWhite, kisDirty + $space),
     ),
   );
 
-  void markCharAsDirty(int l, int c) {
-    screen[l][c].code |= kRedrawFlag;
-    screen[l][0].code |= kRedrawFlag;
-    screen[0][41].code |= kRedrawFlag;
+  bool get isDirty {
+    return (screen[0][41].code & kisDirty) != 0;
   }
 
-  void markScreenAsDirty() {
-    screen[0][41].code |= kRedrawFlag;
+  void markCharAsDirty(int l, int c) {
+    screen[l][c].code |= kisDirty;
+    screen[l][0].code |= kisDirty;
+    screen[0][41].code |= kisDirty;
   }
 
   void setBackgroundColor(int code) {
@@ -387,8 +387,6 @@ class TMinitel {
     if ((char.lAttr & kAttrDoubleHeight) != 0 && l > 0) {
       propagateAndMakeDirty(l - 1, c);
     }
-
-    markScreenAsDirty();
   }
 
   void handleChar() {
@@ -794,4 +792,4 @@ class TMinitel {
 }
 
 final TMinitelChar emptyChar =
-    TMinitelChar(kG1Charset, kColorWhite, kRedrawFlag + $space);
+    TMinitelChar(kG1Charset, kColorWhite, kisDirty + $space);

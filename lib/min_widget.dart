@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 import 'dart:math' as math; // Add this line to import the 'math' library
 
 import 'package:flutter/services.dart';
+import 'package:minterm/min_model.dart';
+import 'package:provider/provider.dart';
 import 'min_emulator.dart';
 
 Future<ui.Image> loadUiImage(String imageAssetPath) async {
@@ -30,22 +32,23 @@ final MinColors = [
   Colors.white,
 ];
 
-class MinFonts extends ChangeNotifier {
-  static final MinFonts _singleton = MinFonts._internal();
+class MinSettings extends ChangeNotifier {
+  static final MinSettings _singleton = MinSettings._internal();
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
+  var scale = 2.0;
   int _loaded = 0;
 
   ui.Image get fontG0G2 => _fontG0G2;
   ui.Image get fontG1 => _fontG1;
   bool get isLoaded => _loaded == 2;
 
-  factory MinFonts() {
+  factory MinSettings() {
     return _singleton;
   }
 
-  MinFonts._internal() {
+  MinSettings._internal() {
     loadUiImage('assets/g0g2.png').then((image) {
       _fontG0G2 = image;
       _loaded++;
@@ -58,6 +61,11 @@ class MinFonts extends ChangeNotifier {
       notifyListeners();
     });
   }
+
+  static void setScale(double scale) {
+    _singleton.scale = math.max(1.0, math.min(4.0, scale));
+    _singleton.notifyListeners();
+  }
 }
 
 class MinWidget extends StatelessWidget {
@@ -65,14 +73,23 @@ class MinWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Transform.scale(
-      scale: 2.0,
-      child: FittedBox(
-        child: SizedBox(
-          width: 8 * 40,
-          height: 10 * 25,
-          child: CustomPaint(
-            painter: _MinPainter(math.Random().nextDouble()),
+    return ChangeNotifierProvider(
+      create: (context) => MinSettings(),
+      child: Consumer<MinSettings>(
+        builder: (context, settings, child) => Transform.scale(
+          scale: settings.scale,
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 8 * 40,
+            height: 10 * 25,
+            child: ChangeNotifierProvider(
+              create: (context) => MinModel(),
+              child: Consumer<MinModel>(
+                builder: (context, minmodel, child) => CustomPaint(
+                  painter: _MinPainter(minmodel),
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -81,10 +98,10 @@ class MinWidget extends StatelessWidget {
 }
 
 class _MinPainter extends CustomPainter {
-  final double repaint;
+  final MinModel minmodel;
 
   // Add a constructor
-  _MinPainter(this.repaint);
+  _MinPainter(this.minmodel);
 
   // Method to draw a character
   void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
@@ -96,8 +113,8 @@ class _MinPainter extends CustomPainter {
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
     double scaleHeight = (char.lAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
     final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
-        ? MinFonts().fontG0G2
-        : MinFonts().fontG1;
+        ? MinSettings().fontG0G2
+        : MinSettings().fontG1;
 
     if ((char.lAttr & kAttrInverse) != 0) {
       final tmp = fgColor;
@@ -212,7 +229,7 @@ class _MinPainter extends CustomPainter {
       Paint()..color = Colors.black,
     );
 
-    if (!MinFonts().isLoaded) return;
+    if (!MinSettings().isLoaded) return;
 
     drawString(
       canvas,
@@ -343,7 +360,6 @@ class _MinPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MinPainter oldDelegate) {
-    // TODO: Use minitel screen dirty flag
-    return oldDelegate.repaint != repaint;
+    return minmodel.minitel.isDirty;
   }
 }

@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'min_widget.dart';
@@ -36,22 +35,25 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MinFonts(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData.from(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
-        ),
-        home: Scaffold(
-          body: Container(
-            color: const Color.fromARGB(255, 44, 27, 3),
-            child: Center(
-              child: Consumer<MinFonts>(
-                builder: (context, fontAtlas, child) => MinWidget(),
-              ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.from(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+      ),
+      home: Scaffold(
+        body: Column(
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                var scale = MinSettings().scale + 0.5;
+                if (scale > 4) scale = 0.5;
+                MinSettings.setScale(scale);
+              },
+              child: Text('Scale'),
             ),
-          ),
+            // Add a button widget
+            MinWidget(),
+          ],
         ),
       ),
     );
