@@ -49,10 +49,10 @@ class MainApp extends StatelessWidget {
                 if (scale > 4) scale = 0.5;
                 MinSettings.setScale(scale);
               },
-              child: Text('Scale'),
+              child: const Text('Scale'),
             ),
             // Add a button widget
-            MinWidget(),
+            const MinWidget(),
           ],
         ),
       ),
