@@ -79,11 +79,11 @@ class MinWidget extends StatelessWidget {
         builder: (context, settings, child) => Transform.scale(
           scale: settings.scale,
           alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: 8 * 40,
-            height: 10 * 25,
-            child: ChangeNotifierProvider(
-              create: (context) => MinModel(),
+          child: ChangeNotifierProvider(
+            create: (context) => MinModel(),
+            child: SizedBox(
+              width: 8 * 40,
+              height: 10 * 25,
               child: Consumer<MinModel>(
                 builder: (context, minmodel, child) => CustomPaint(
                   painter: _MinPainter(minmodel),
@@ -197,29 +197,37 @@ class _MinPainter extends CustomPainter {
     }
   }
 
-  // // TODO: This should go away and be implemented in the widget
-  // void draw() {
-  //   // Test if the screen has at least one dirty character
-  //   if ((screen[0][41].code & kRedrawFlag) != 0) return;
+  // TODO: This should go away and be implemented in the widget
+  void draw(Canvas canvas) {
+    var screen = minmodel.minitel.screen;
 
-  //   // Clear the screen dirty flag
-  //   screen[0][41].code &= ~kRedrawFlag;
+    // Test if the screen has at least one dirty character
+    // if ((screen[0][41].code & kIsDirty) != 0) return;
 
-  //   for (int line = 0; line <= 24; ++line) {
-  //     // Test if the line has at least one dirty character
-  //     if ((screen[line][0].code & kRedrawFlag) != 0) continue;
+    // Clear the screen dirty flag
+    screen[0][41].code &= ~kIsDirty;
 
-  //     // Clear the line dirty flag
-  //     screen[line][0].code &= ~kRedrawFlag;
+    for (int line = 0; line <= 24; ++line) {
+      // Test if the line has at least one dirty character
+      // if ((screen[line][0].code & kIsDirty) != 0) continue;
 
-  //     for (int column = 1; column <= 40; ++column) {
-  //       if ((screen[line][column].code & kRedrawFlag) == 0) continue;
+      // Clear the line dirty flag
+      screen[line][0].code &= ~kIsDirty;
 
-  //       screen[line][column].code &= ~kRedrawFlag;
-  //       // AfficheCar(ADRC, line, column);
-  //     }
-  //   }
-  // }
+      for (int column = 1; column <= 40; ++column) {
+        // if ((screen[line][column].code & kIsDirty) == 0) continue;
+
+        screen[line][column].code &= ~kIsDirty;
+
+        drawChar(
+          canvas,
+          (column - 1) * 8.0,
+          line * 10.0,
+          screen[line][column],
+        );
+      }
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -231,6 +239,9 @@ class _MinPainter extends CustomPainter {
 
     if (!MinSettings().isLoaded) return;
 
+    // Draw the screen
+    draw(canvas);
+
     drawString(
       canvas,
       10 * 8,
@@ -238,6 +249,8 @@ class _MinPainter extends CustomPainter {
       TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
       " Flutter MinWidget ",
     );
+
+/*
     drawString(
       canvas,
       5 * 8,
@@ -353,7 +366,7 @@ class _MinPainter extends CustomPainter {
         0,
       ),
       "Double Height",
-    );
+    );*/
 
     // TODO: Draw the cursor
   }

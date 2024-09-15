@@ -24,7 +24,7 @@ const int kAttrDoubleHeightWidth = kAttrDoubleHeight | kAttrDoubleWidth;
 const int kDoublePart = 0x80;
 
 // Char code redraw flag
-const int kisDirty = 0x80;
+const int kIsDirty = 0x80;
 
 // Attribute masks
 const int kColorMask = 0x07;
@@ -100,18 +100,18 @@ class TMinitel {
     25,
     (_) => List.generate(
       42,
-      (_) => TMinitelChar(kG1Charset, kColorWhite, kisDirty + $space),
+      (_) => TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space),
     ),
   );
 
   bool get isDirty {
-    return (screen[0][41].code & kisDirty) != 0;
+    return (screen[0][41].code & kIsDirty) != 0;
   }
 
   void markCharAsDirty(int l, int c) {
-    screen[l][c].code |= kisDirty;
-    screen[l][0].code |= kisDirty;
-    screen[0][41].code |= kisDirty;
+    screen[l][c].code |= kIsDirty;
+    screen[l][0].code |= kIsDirty;
+    screen[0][41].code |= kIsDirty;
   }
 
   void setBackgroundColor(int code) {
@@ -563,7 +563,7 @@ class TMinitel {
     column = state.c;
     line = state.l;
     codeIndex = 0;
-    while (codes[codeIndex] != 0) {
+    while (codeIndex < codes.length) {
       currentCode = codes[codeIndex];
       if (currentCode < $space) {
         fadr[currentCode]();
@@ -779,8 +779,8 @@ class TMinitel {
             stateCode = 0;
             break;
         }
-        ++codeIndex;
       }
+      ++codeIndex;
       if (cursor != cursorOn) {
         markCharAsDirty(line, column);
       } else if (cursorOn && (column != state.c || line != state.l)) {
@@ -792,4 +792,4 @@ class TMinitel {
 }
 
 final TMinitelChar emptyChar =
-    TMinitelChar(kG1Charset, kColorWhite, kisDirty + $space);
+    TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);

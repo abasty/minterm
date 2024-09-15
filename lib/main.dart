@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'min_model.dart';
 import 'min_widget.dart';
 
 void main() async {
@@ -40,20 +42,39 @@ class MainApp extends StatelessWidget {
       theme: ThemeData.from(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
       ),
-      home: Scaffold(
-        body: Column(
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                var scale = MinSettings().scale + 0.5;
-                if (scale > 4) scale = 0.5;
-                MinSettings.setScale(scale);
-              },
-              child: const Text('Scale'),
-            ),
-            // Add a button widget
-            const MinWidget(),
-          ],
+      home: ChangeNotifierProvider<MinModel>(
+        create: (context) => MinModel(),
+        child: Scaffold(
+          body: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Add a button widget
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      var scale = MinSettings().scale + 0.5;
+                      if (scale > 4) scale = 0.5;
+                      MinSettings.setScale(scale);
+                    },
+                    child: const Text('Scale'),
+                  ),
+                  // Add a button widget to send keys to the minitel
+                  Consumer<MinModel>(
+                    builder: (context, minmodel, child) => ElevatedButton(
+                      onPressed: () {
+                        minmodel.emulate([0x41, 0x42, 0x43]);
+                      },
+                      child: const Text('Send ABC'),
+                    ),
+                  ),
+                ],
+              ),
+              // Add text widget
+              const MinWidget(),
+            ],
+          ),
         ),
       ),
     );
