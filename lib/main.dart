@@ -49,7 +49,6 @@ class MainApp extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Add a button widget
               Row(
                 children: [
                   ElevatedButton(
@@ -60,13 +59,20 @@ class MainApp extends StatelessWidget {
                     },
                     child: const Text('Scale'),
                   ),
-                  // Add a button widget to send keys to the minitel
                   Consumer<MinModel>(
                     builder: (context, minmodel, child) => ElevatedButton(
                       onPressed: () {
                         minmodel.emulate([0x41, 0x42, 0x43]);
                       },
                       child: const Text('Send ABC'),
+                    ),
+                  ),
+                  Consumer<MinModel>(
+                    builder: (context, minmodel, child) => ElevatedButton(
+                      onPressed: () {
+                        minmodel.emulate([0x0C]);
+                      },
+                      child: const Text('Clear'),
                     ),
                   ),
                 ],

@@ -54,7 +54,13 @@ class TMinitelChar {
   int lAttr;
   int code;
   TMinitelChar(this.gAttr, this.lAttr, this.code);
+  TMinitelChar.from(TMinitelChar char)
+      : gAttr = char.gAttr,
+        lAttr = char.lAttr,
+        code = char.code;
 }
+
+final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
 
 typedef TMinitelScreen = List<List<TMinitelChar>>;
 
@@ -253,10 +259,10 @@ class TMinitel {
     state.c = 1;
     for (int line = 1; line <= 24; ++line) {
       for (int column = 0; column <= 41; ++column) {
-        screen[line][column] = emptyChar;
+        screen[line][column] = TMinitelChar.from(kEmptyChar);
       }
     }
-    screen[0][41] = emptyChar;
+    screen[0][41] = TMinitelChar.from(kEmptyChar);
     stateCode = 0;
   }
 
@@ -267,9 +273,9 @@ class TMinitel {
       }
     }
     for (int column = 1; column <= 40; ++column) {
-      screen[24][column] = emptyChar;
+      screen[24][column] = TMinitelChar.from(kEmptyChar);
     }
-    screen[0][41] = emptyChar;
+    screen[0][41] = TMinitelChar.from(kEmptyChar);
   }
 
   void scrollDown() {
@@ -279,9 +285,9 @@ class TMinitel {
       }
     }
     for (int column = 1; column <= 40; ++column) {
-      screen[1][column] = emptyChar;
+      screen[1][column] = TMinitelChar.from(kEmptyChar);
     }
-    screen[0][41] = emptyChar;
+    screen[0][41] = TMinitelChar.from(kEmptyChar);
   }
 
   void repeat(int charCode) {
@@ -790,6 +796,3 @@ class TMinitel {
     }
   }
 }
-
-final TMinitelChar emptyChar =
-    TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
