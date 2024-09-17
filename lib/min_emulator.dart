@@ -155,7 +155,7 @@ class TMinitel {
             handleSS2();
             break;
           case const ($ss2 + 1):
-            handleSS2Next();
+            handleSS2AccentedChar();
             break;
           case $esc:
             handleEscapeNext();
@@ -371,27 +371,21 @@ class TMinitel {
   }
 
   void handleSS2() {
-    if (!(currentCode >= $A && currentCode <= $H) &&
-        currentCode != $J &&
-        currentCode != $K &&
-        !(currentCode >= $M && currentCode <= $O)) {
-      state.charset = kG2Charset;
-      handleChar();
-      state.charset = kG0Charset;
-    } else if (currentCode == $A ||
+    if (currentCode == $A ||
         currentCode == $B ||
         currentCode == $C ||
         currentCode == $H ||
         currentCode == $K) {
+      // Accented characters
       prevCode = currentCode;
       stateCode = $ss2 + 1;
     } else {
-      state.charset = kG0Charset;
-      stateCode = 0;
+      // Special characters
+      handleSS2SpecialChar();
     }
   }
 
-  void handleSS2Next() {
+  void handleSS2AccentedChar() {
     state.charset = kG2Charset;
     switch (prevCode) {
       case $A: // Grave
@@ -480,6 +474,72 @@ class TMinitel {
     }
     handleChar();
     state.charset = kG0Charset;
+  }
+
+  void handleSS2SpecialChar() {
+    // Special characters
+    state.charset = kG2Charset;
+    switch (currentCode) {
+      case 0x23:
+        currentCode = 0x00; // £
+        break;
+      case 0x24:
+        currentCode = $dollar; // $
+        break;
+      case 0x26:
+        currentCode = 0x23; // #
+        break;
+      case 0x27:
+        currentCode = 0x0E; // paragraph
+        break;
+      case 0x2C:
+        currentCode = 0x01; // left arrow
+        break;
+      case 0x2D:
+        currentCode = 0x02; // up arrow
+        break;
+      case 0x2E:
+        currentCode = 0x03; // right arrow
+        break;
+      case 0x2F:
+        currentCode = 0x04; // down arrow
+        break;
+      case 0x30:
+        currentCode = 0x05; // degree
+        break;
+      case 0x31:
+        currentCode = 0x06; // plus/minus
+        break;
+      case 0x38:
+        currentCode = 0x07; // division
+        break;
+      case 0x3A:
+        currentCode = 0x08; // fraction 1/4
+        break;
+      case 0x3B:
+        currentCode = 0x09; // fraction 1/2
+        break;
+      case 0x3C:
+        currentCode = 0x0A; // fraction 3/4
+        break;
+      case 0x6A:
+        currentCode = 0x0B; // OE
+        break;
+      case 0x7A:
+        currentCode = 0x0C; // oe
+        break;
+      case 0x7B:
+        currentCode = 0x0D; // beta
+        break;
+      default:
+        state.charset = kG0Charset;
+        break;
+    }
+    if (state.charset == kG2Charset) {
+      handleChar();
+      state.charset = kG0Charset;
+    }
+    stateCode = 0;
   }
 
   void handleTabulation() {
