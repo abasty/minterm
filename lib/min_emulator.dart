@@ -397,13 +397,13 @@ class TMinitel {
       case $A: // Grave
         switch (currentCode) {
           case $a:
-            currentCode = 0x50;
+            currentCode = 0x10;
             break;
           case $e:
-            currentCode = 0x51;
+            currentCode = 0x11;
             break;
           case $u:
-            currentCode = 0x52;
+            currentCode = 0x12;
             break;
           default:
             state.charset = kG0Charset;
@@ -413,7 +413,7 @@ class TMinitel {
       case $B: // Aigu
         switch (currentCode) {
           case $e:
-            currentCode = 0x53;
+            currentCode = 0x13;
             break;
           default:
             state.charset = kG0Charset;
@@ -423,19 +423,19 @@ class TMinitel {
       case $C: // Circonflexe
         switch (currentCode) {
           case $a:
-            currentCode = 0x54;
+            currentCode = 0x14;
             break;
           case $e:
-            currentCode = 0x55;
+            currentCode = 0x15;
             break;
           case $i:
-            currentCode = 0x56;
+            currentCode = 0x16;
             break;
           case $o:
-            currentCode = 0x57;
+            currentCode = 0x17;
             break;
           case $u:
-            currentCode = 0x58;
+            currentCode = 0x18;
             break;
           default:
             state.charset = kG0Charset;
@@ -445,19 +445,19 @@ class TMinitel {
       case $H: // Tréma
         switch (currentCode) {
           case $a:
-            currentCode = 0x59;
+            currentCode = 0x19;
             break;
           case $e:
-            currentCode = 0x5A;
+            currentCode = 0x1A;
             break;
           case $i:
-            currentCode = 0x5B;
+            currentCode = 0x1B;
             break;
           case $o:
-            currentCode = 0x5C;
+            currentCode = 0x1C;
             break;
           case $u:
-            currentCode = 0x5D;
+            currentCode = 0x1D;
             break;
           default:
             state.charset = kG0Charset;
@@ -467,10 +467,10 @@ class TMinitel {
       case $K: // Cedille
         switch (currentCode) {
           case $c:
-            currentCode = 0x5E;
+            currentCode = 0x1E;
             break;
           case $C:
-            currentCode = 0x5F;
+            currentCode = 0x1F;
             break;
           default:
             state.charset = kG0Charset;
