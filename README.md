@@ -5,8 +5,8 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 ## TODO
 
 * [x] `_MinPainter.drawChar()` : Utilise un `TMinitelChar`
-* [ ] `TMinitel.putChar()` : Traduire depuis la version assembleur
-* [ ] `_MinPainter.paint()` : Utilise un `TMinitel`, teste `kRedrawFlag` pour
+* [x] `TMinitel.putChar()` : Traduire depuis la version assembleur
+* [x] `_MinPainter.paint()` : Utilise un `TMinitel`, teste `kRedrawFlag` pour
   repeindre uniquement les caractères impactés
 
 ## Caractères
