@@ -119,12 +119,20 @@ class SendFile extends StatelessWidget {
         onPressed: () async {
           FilePickerResult? result = await FilePicker.platform.pickFiles(
             initialDirectory: '/home/alain/Projects/minitel/new-zboub/pages/',
+            type: FileType.custom,
             allowedExtensions: ['tel'],
           );
           if (result != null) {
-            final file = File(result.files.single.path!);
-            final codes = file.readAsBytesSync();
-            minmodel.emulate(codes);
+            Uint8List? codes;
+            if (kIsWeb) {
+              codes = result.files.single.bytes;
+            } else {
+              final file = File(result.files.single.path!);
+              codes = file.readAsBytesSync();
+            }
+            if (codes != null) {
+              minmodel.emulate(codes);
+            }
           }
         },
         child: const Text('Load file...'),

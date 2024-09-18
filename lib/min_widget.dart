@@ -27,7 +27,7 @@ final MinColors = [
   Colors.green, // 600
   Colors.yellow, // 400
   Colors.blue, // 850
-  Color(0xFFFF00FF), // 700
+  const Color(0xFFFF00FF), // 700
   Colors.cyan, // 500
   Colors.white,
 ];
