@@ -61,9 +61,7 @@ class MainApp extends StatelessWidget {
 }
 
 class SendABC extends StatelessWidget {
-  const SendABC({
-    super.key,
-  });
+  const SendABC({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -80,9 +78,7 @@ class SendABC extends StatelessWidget {
 }
 
 class Clear extends StatelessWidget {
-  const Clear({
-    super.key,
-  });
+  const Clear({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +94,7 @@ class Clear extends StatelessWidget {
 }
 
 class Scale extends StatelessWidget {
-  const Scale({
-    super.key,
-  });
+  const Scale({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -116,9 +110,7 @@ class Scale extends StatelessWidget {
 }
 
 class SendFile extends StatelessWidget {
-  const SendFile({
-    super.key,
-  });
+  const SendFile({super.key});
 
   @override
   Widget build(BuildContext context) {
