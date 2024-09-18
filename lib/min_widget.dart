@@ -23,12 +23,24 @@ Future<ui.Image> loadUiImage(String imageAssetPath) async {
 // ignore: non_constant_identifier_names
 final MinColors = [
   Colors.black,
-  Colors.grey[850],
+  Colors.red, // 800
+  Colors.green, // 600
+  Colors.yellow, // 400
+  Colors.blue, // 850
+  Color(0xFFFF00FF), // 700
+  Colors.cyan, // 500
+  Colors.white,
+];
+
+// ignore: non_constant_identifier_names
+final MinGrey = [
+  Colors.black,
   Colors.grey[800],
-  Colors.grey[700],
   Colors.grey[600],
-  Colors.grey[500],
   Colors.grey[400],
+  Colors.grey[850],
+  Colors.grey[700],
+  Colors.grey[500],
   Colors.white,
 ];
 
@@ -108,8 +120,8 @@ class _MinPainter extends CustomPainter {
     if ((char.lAttr & kDoublePart) != 0) return;
 
     final code = char.code;
-    var fgColor = MinColors[char.lAttr & kColorMask]!;
-    var bgColor = MinColors[char.gAttr & kColorMask]!;
+    var fgColor = MinGrey[char.lAttr & kColorMask]!;
+    var bgColor = MinGrey[char.gAttr & kColorMask]!;
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
     double scaleHeight = (char.lAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
     final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
