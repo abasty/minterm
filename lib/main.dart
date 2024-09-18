@@ -70,9 +70,9 @@ class SendABC extends StatelessWidget {
     return Consumer<MinModel>(
       builder: (context, minmodel, child) => ElevatedButton(
         onPressed: () {
-          minmodel.emulate([0x41, 0x42, 0x43]);
+          minmodel.emulate([0x48, 0x1B, 0x5D, 0x4F, 0x1B, 0x5C, 0x48]);
         },
-        child: const Text('Send ABC'),
+        child: const Text('Send HOH'),
       ),
     );
   }

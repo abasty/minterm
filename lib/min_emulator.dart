@@ -275,7 +275,7 @@ class TMinitel {
         case >= $Y && <= $Z:
           setUnderlineAttr(currentCode);
           break;
-        case >= $backslash && <= $rbracket:
+        case == 0x5C || == 0x5D:
           if (state.charset != kG1Charset) {
             setInverseAttr(currentCode);
           }
@@ -785,7 +785,7 @@ class TMinitel {
   }
 
   void setInverseAttr(int code) {
-    state.inverse = code == $backslash ? kAttrInverse : kAttrNone;
+    state.inverse = code == 0x5D ? kAttrInverse : kAttrNone;
   }
 
   void setSizeAttr(int code) {
