@@ -640,12 +640,13 @@ class TMinitel {
     // Handle bottom right if applicable
     if ((char.lAttr & kAttrDoubleWidth) != 0 && c < 40) {
       copyCodeAndLocalAttr(l, c + 1, char);
+      inheritGlobalAttr(l, c + 1);
     }
     // Handle top right if applicable
     if ((char.lAttr & kSizeMask) == kAttrDoubleHeightWidth && l > 0 && c < 40) {
       copyCodeAndLocalAttr(l - 1, c + 1, char);
+      inheritGlobalAttr(l - 1, c + 1);
     }
-
     // Propagate global attributes to the right and update dirty flag
     propagateAndMakeDirty(l, c);
     if ((char.lAttr & kAttrDoubleHeight) != 0 && l > 0) {
