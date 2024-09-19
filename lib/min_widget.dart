@@ -165,8 +165,8 @@ class _MinPainter extends CustomPainter {
     if ((char.lAttr & kDoublePart) != 0) return;
 
     final code = char.code;
-    var fgColor = MinSettings().colors[char.lAttr & kColorMask]!;
-    var bgColor = MinSettings().colors[char.gAttr & kColorMask]!;
+    var fgColor = MinSettings().colors[char.lAttr & kColorMask];
+    var bgColor = MinSettings().colors[char.gAttr & kColorMask];
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
     double scaleHeight = (char.lAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
     final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
