@@ -1,12 +1,37 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:ui' as ui;
 import 'dart:math' as math; // Add this line to import the 'math' library
+import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:minterm/min_model.dart';
 import 'package:provider/provider.dart';
+
 import 'min_emulator.dart';
+
+// ignore: non_constant_identifier_names
+final MinColors = <Color>[
+  Colors.black,
+  Colors.red, // 800
+  Colors.green, // 600
+  Colors.yellow, // 400
+  Colors.blue, // 850
+  const Color(0xFFFF00FF), // 700
+  Colors.cyan, // 500
+  Colors.white,
+];
+
+// ignore: non_constant_identifier_names
+final MinGrey = <Color>[
+  Colors.black,
+  Colors.grey[800]!,
+  Colors.grey[600]!,
+  Colors.grey[400]!,
+  Colors.grey[850]!,
+  Colors.grey[700]!,
+  Colors.grey[500]!,
+  Colors.white,
+];
 
 Future<ui.Image> loadUiImage(String imageAssetPath) async {
   final ByteData data = await rootBundle.load(imageAssetPath);
@@ -20,46 +45,18 @@ Future<ui.Image> loadUiImage(String imageAssetPath) async {
   return completer.future;
 }
 
-// ignore: non_constant_identifier_names
-final MinColors = [
-  Colors.black,
-  Colors.red, // 800
-  Colors.green, // 600
-  Colors.yellow, // 400
-  Colors.blue, // 850
-  const Color(0xFFFF00FF), // 700
-  Colors.cyan, // 500
-  Colors.white,
-];
-
-// ignore: non_constant_identifier_names
-final MinGrey = [
-  Colors.black,
-  Colors.grey[800],
-  Colors.grey[600],
-  Colors.grey[400],
-  Colors.grey[850],
-  Colors.grey[700],
-  Colors.grey[500],
-  Colors.white,
-];
-
 class MinSettings extends ChangeNotifier {
   static final MinSettings _singleton = MinSettings._internal();
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
   var scale = 2.0;
+  var _colors = MinGrey;
   int _loaded = 0;
-
-  ui.Image get fontG0G2 => _fontG0G2;
-  ui.Image get fontG1 => _fontG1;
-  bool get isLoaded => _loaded == 2;
 
   factory MinSettings() {
     return _singleton;
   }
-
   MinSettings._internal() {
     loadUiImage('assets/g0g2.png').then((image) {
       _fontG0G2 = image;
@@ -73,10 +70,27 @@ class MinSettings extends ChangeNotifier {
       notifyListeners();
     });
   }
+  List<Color> get colors => _colors;
+
+  set colors(List<Color> colors) {
+    _colors = colors;
+    notifyListeners();
+  }
+
+  ui.Image get fontG0G2 => _fontG0G2;
+
+  ui.Image get fontG1 => _fontG1;
+
+  bool get isLoaded => _loaded == 2;
 
   static void setScale(double scale) {
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
     _singleton.notifyListeners();
+  }
+
+  // Toggles between two color schemes
+  void toggleColors() {
+    colors = colors == MinColors ? MinGrey : MinColors;
   }
 }
 
@@ -112,16 +126,47 @@ class MinWidget extends StatelessWidget {
 class _MinPainter extends CustomPainter {
   final MinModel minmodel;
 
-  // Add a constructor
   _MinPainter(this.minmodel);
+
+  void draw(Canvas canvas) {
+    var screen = minmodel.minitel.screen;
+
+    // Test if the screen has at least one dirty character
+    // if ((screen[0][41].code & kIsDirty) != 0) return;
+
+    // Clear the screen dirty flag
+    screen[0][41].code &= ~kIsDirty;
+
+    for (int line = 0; line <= 24; ++line) {
+      // Test if the line has at least one dirty character
+      // if ((screen[line][0].code & kIsDirty) != 0) continue;
+
+      // Clear the line dirty flag
+      screen[line][0].code &= ~kIsDirty;
+
+      for (int column = 1; column <= 40; ++column) {
+        // if ((screen[line][column].code & kIsDirty) == 0) continue;
+
+        screen[line][column].code &= ~kIsDirty;
+
+        drawChar(
+          canvas,
+          (column - 1) * 8.0,
+          line * 10.0,
+          screen[line][column],
+        );
+      }
+    }
+  }
 
   // Method to draw a character
   void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
+    // FIXME: Always draw background
     if ((char.lAttr & kDoublePart) != 0) return;
 
     final code = char.code;
-    var fgColor = MinGrey[char.lAttr & kColorMask]!;
-    var bgColor = MinGrey[char.gAttr & kColorMask]!;
+    var fgColor = MinSettings().colors[char.lAttr & kColorMask]!;
+    var bgColor = MinSettings().colors[char.gAttr & kColorMask]!;
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
     double scaleHeight = (char.lAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
     final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
@@ -206,38 +251,6 @@ class _MinPainter extends CustomPainter {
         y,
         TMinitelChar(attr.gAttr, attr.lAttr, str.codeUnitAt(i)),
       );
-    }
-  }
-
-  // TODO: This should go away and be implemented in the widget
-  void draw(Canvas canvas) {
-    var screen = minmodel.minitel.screen;
-
-    // Test if the screen has at least one dirty character
-    // if ((screen[0][41].code & kIsDirty) != 0) return;
-
-    // Clear the screen dirty flag
-    screen[0][41].code &= ~kIsDirty;
-
-    for (int line = 0; line <= 24; ++line) {
-      // Test if the line has at least one dirty character
-      // if ((screen[line][0].code & kIsDirty) != 0) continue;
-
-      // Clear the line dirty flag
-      screen[line][0].code &= ~kIsDirty;
-
-      for (int column = 1; column <= 40; ++column) {
-        // if ((screen[line][column].code & kIsDirty) == 0) continue;
-
-        screen[line][column].code &= ~kIsDirty;
-
-        drawChar(
-          canvas,
-          (column - 1) * 8.0,
-          line * 10.0,
-          screen[line][column],
-        );
-      }
     }
   }
 

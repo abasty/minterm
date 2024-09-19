@@ -50,12 +50,30 @@ class MainApp extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [Scale(), Clear(), SendABC(), SendFile()]),
+              Row(children: [
+                Clear(),
+                Scale(),
+                SetColors(),
+                SendABC(),
+                SendFile(),
+              ]),
               MinWidget(),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class SetColors extends StatelessWidget {
+  const SetColors({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => MinSettings().toggleColors(),
+      child: const Text('Colors'),
     );
   }
 }
