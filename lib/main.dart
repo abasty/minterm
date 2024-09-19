@@ -41,7 +41,10 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.orange,
+          surface: Colors.black,
+        ),
       ),
       home: ChangeNotifierProvider<MinModel>(
         create: (context) => MinModel(),
@@ -57,6 +60,7 @@ class MainApp extends StatelessWidget {
                 SendABC(),
                 SendFile(),
               ]),
+              Divider(height: 32.0, color: Colors.black),
               MinWidget(),
             ],
           ),
