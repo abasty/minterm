@@ -57,6 +57,7 @@ class MainApp extends StatelessWidget {
                 Clear(),
                 Scale(),
                 SetColors(),
+                SetBps(),
                 SendABC(),
                 SendFile(),
               ]),
@@ -66,6 +67,30 @@ class MainApp extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class SetBps extends StatefulWidget {
+  const SetBps({super.key});
+
+  @override
+  State<SetBps> createState() => _SetBpsState();
+}
+
+class _SetBpsState extends State<SetBps> {
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        final bps = MinSettings().bps;
+        setState(() => MinSettings().bps = bps == 1200
+            ? 4800
+            : bps == 4800
+                ? 300
+                : 1200);
+      },
+      child: Text('${MinSettings().bps} bps'),
     );
   }
 }
@@ -106,9 +131,7 @@ class Clear extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<MinModel>(
       builder: (context, minmodel, child) => ElevatedButton(
-        onPressed: () {
-          minmodel.emulate([0x0C]);
-        },
+        onPressed: () => minmodel.emulate([0x0C]),
         child: const Text('Clear'),
       ),
     );
@@ -153,7 +176,7 @@ class SendFile extends StatelessWidget {
               codes = file.readAsBytesSync();
             }
             if (codes != null) {
-              minmodel.emulate(codes);
+              minmodel.emulate(codes, bps: MinSettings().bps);
             }
           }
         },

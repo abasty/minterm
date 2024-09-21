@@ -52,6 +52,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG1;
   var scale = 2.0;
   var _colors = MinGrey;
+  int _bps = 1200;
   int _loaded = 0;
 
   factory MinSettings() {
@@ -82,6 +83,13 @@ class MinSettings extends ChangeNotifier {
   ui.Image get fontG1 => _fontG1;
 
   bool get isLoaded => _loaded == 2;
+
+  int get bps => _bps;
+
+  set bps(int value) {
+    _bps = value;
+    notifyListeners();
+  }
 
   static void setScale(double scale) {
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
