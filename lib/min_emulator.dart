@@ -80,14 +80,14 @@ class TMinitel {
 
   void setPartAttr(int l, int c, TMinitelChar char, int partFlags) {
     final partChar = screen[l][c];
-    // if (char.code == $space) {
-    //   partChar.gAttr = (char.gAttr & kColorMask) | kAttrSpace;
-    // } else {
-    //   partChar.lAttr = (char.lAttr & ~kSizeMask) | kDoublePart | partFlags;
-    // }
-    partChar.lAttr = (char.lAttr & ~kSizeMask) | kDoublePart | partFlags;
     partChar.code = char.code;
-    inheritGlobalAttr(l, c);
+    partChar.lAttr = (char.lAttr & ~kSizeMask) | kDoublePart | partFlags;
+//    if (char.code == $space) {
+    if ((char.gAttr & kAttrSpace) == kAttrSpace) {
+      partChar.gAttr = (char.gAttr & kColorMask) | kAttrSpace;
+    } else {
+      inheritGlobalAttr(l, c);
+    }
   }
 
   // TODO: Use a list of uint8_t instead of List<int>
