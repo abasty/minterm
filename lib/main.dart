@@ -83,12 +83,8 @@ class _SetBpsState extends State<SetBps> {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-        final bps = MinSettings().bps;
-        setState(() => MinSettings().bps = bps == 1200
-            ? 4800
-            : bps == 4800
-                ? 300
-                : 1200);
+        final bps = MinSettings().bps * 2;
+        setState(() => MinSettings().bps = bps <= 9600 ? bps : 300);
       },
       child: Text('${MinSettings().bps} bps'),
     );
