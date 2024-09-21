@@ -161,54 +161,54 @@ class _MinPainter extends CustomPainter {
 
   // Method to draw a character
   void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
-    // FIXME: Always draw background
-    if ((char.lAttr & kDoublePart) != 0) return;
-
-    final code = char.code;
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
-    double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
-    double scaleHeight = (char.lAttr & kAttrDoubleHeight) != 0 ? 2.0 : 1.0;
-    final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
-        ? MinSettings().fontG0G2
-        : MinSettings().fontG1;
 
+    // Swap the foreground and background colors if the inverse attribute is set
     if ((char.lAttr & kAttrInverse) != 0) {
       final tmp = fgColor;
       fgColor = bgColor;
       bgColor = tmp;
     }
 
-    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= 10) {
-      y -= 10.0;
-    } else {
-      scaleHeight = 1.0;
+    // Draw the upper part background color
+    const kUpperPart = kDoublePart | kAttrDoubleHeight;
+    if ((char.lAttr & kUpperPart) == kUpperPart && y >= 10) {
+      canvas.drawRect(Rect.fromLTWH(x, y, 8, 10), Paint()..color = bgColor);
     }
 
-    // Display the background color of the character
+    // If the character is a double part character, do not draw it
+    if ((char.lAttr & kDoublePart) != 0) return;
+
+    // Compute the scale width
+    double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
+
+    // Draw the lower part background color
     canvas.drawRect(
-      Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-      Paint()..color = bgColor,
-    );
+        Rect.fromLTWH(x, y, 8 * scaleWidth, 10), Paint()..color = bgColor);
+
+    // Compute the scale height and adjust the y position if the character is
+    // double height
+    double scaleHeight = 1.0;
+    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= 10) {
+      y -= 10.0;
+      scaleHeight = 2.0;
+    }
 
     // Get the character image from the font image
+    final code = char.code;
     final charRect = Rect.fromLTWH(
-      8 * (code ~/ 16).toDouble(),
-      10 * (code % 16).toDouble(),
-      8,
-      10,
-    );
+        8 * (code ~/ 16).toDouble(), 10 * (code % 16).toDouble(), 8, 10);
 
     // Draw the character in the foreground color
+    final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
+        ? MinSettings().fontG0G2
+        : MinSettings().fontG1;
     canvas.drawImageRect(
       font,
       charRect,
       Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-      Paint()
-        ..colorFilter = ColorFilter.mode(
-          fgColor,
-          BlendMode.srcIn,
-        ),
+      Paint()..colorFilter = ColorFilter.mode(fgColor, BlendMode.srcIn),
     );
 
     // Draw underline if applicable (only for G0/G2 charset, not espsep)
@@ -231,11 +231,7 @@ class _MinPainter extends CustomPainter {
         font,
         maskRect,
         Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-        Paint()
-          ..colorFilter = ColorFilter.mode(
-            bgColor,
-            BlendMode.srcIn,
-          ),
+        Paint()..colorFilter = ColorFilter.mode(bgColor, BlendMode.srcIn),
       );
     }
   }

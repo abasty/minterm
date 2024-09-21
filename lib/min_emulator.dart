@@ -78,9 +78,16 @@ class TMinitel {
     stateCode = 0;
   }
 
-  void copyCodeAndLocalAttr(int l, int c, TMinitelChar char) {
-    screen[l][c].lAttr = char.lAttr | kDoublePart;
-    screen[l][c].code = char.code;
+  void setPartAttr(int l, int c, TMinitelChar char, int partFlags) {
+    final partChar = screen[l][c];
+    // if (char.code == $space) {
+    //   partChar.gAttr = (char.gAttr & kColorMask) | kAttrSpace;
+    // } else {
+    //   partChar.lAttr = (char.lAttr & ~kSizeMask) | kDoublePart | partFlags;
+    // }
+    partChar.lAttr = (char.lAttr & ~kSizeMask) | kDoublePart | partFlags;
+    partChar.code = char.code;
+    inheritGlobalAttr(l, c);
   }
 
   // TODO: Use a list of uint8_t instead of List<int>
@@ -634,18 +641,15 @@ class TMinitel {
     }
     // Handle top left if applicable
     if ((char.lAttr & kAttrDoubleHeight) != 0 && l > 0) {
-      copyCodeAndLocalAttr(l - 1, c, char);
-      inheritGlobalAttr(l - 1, c);
+      setPartAttr(l - 1, c, char, kAttrDoubleHeight);
     }
     // Handle bottom right if applicable
     if ((char.lAttr & kAttrDoubleWidth) != 0 && c < 40) {
-      copyCodeAndLocalAttr(l, c + 1, char);
-      inheritGlobalAttr(l, c + 1);
+      setPartAttr(l, c + 1, char, kAttrDoubleWidth);
     }
     // Handle top right if applicable
     if ((char.lAttr & kSizeMask) == kAttrDoubleHeightWidth && l > 0 && c < 40) {
-      copyCodeAndLocalAttr(l - 1, c + 1, char);
-      inheritGlobalAttr(l - 1, c + 1);
+      setPartAttr(l - 1, c + 1, char, kAttrDoubleHeightWidth);
     }
     // Propagate global attributes to the right and update dirty flag
     propagateAndMakeDirty(l, c);
