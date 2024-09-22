@@ -82,7 +82,6 @@ class TMinitel {
     final partChar = screen[l][c];
     partChar.code = char.code;
     partChar.lAttr = (char.lAttr & ~kSizeMask) | kDoublePart | partFlags;
-//    if (char.code == $space) {
     if ((char.gAttr & kAttrSpace) == kAttrSpace) {
       partChar.gAttr = (char.gAttr & kColorMask) | kAttrSpace;
     } else {
