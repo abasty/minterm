@@ -138,25 +138,11 @@ class _MinPainter extends CustomPainter {
 
   void draw(Canvas canvas) {
     var screen = minmodel.minitel.screen;
-
-    // Test if the screen has at least one dirty character
-    // if ((screen[0][41].code & kIsDirty) != 0) return;
-
-    // Clear the screen dirty flag
     screen[0][41].code &= ~kIsDirty;
-
     for (int line = 0; line <= 24; ++line) {
-      // Test if the line has at least one dirty character
-      // if ((screen[line][0].code & kIsDirty) != 0) continue;
-
-      // Clear the line dirty flag
       screen[line][0].code &= ~kIsDirty;
-
-      for (int column = 1; column <= 40; ++column) {
-        // if ((screen[line][column].code & kIsDirty) == 0) continue;
-
+      for (int column = 40; column >= 1; --column) {
         screen[line][column].code &= ~kIsDirty;
-
         drawChar(
           canvas,
           (column - 1) * 8.0,
@@ -179,24 +165,14 @@ class _MinPainter extends CustomPainter {
       bgColor = tmp;
     }
 
-    // Draw the upper part background color
-    const kUpperPart = kDoublePart | kAttrDoubleHeight;
-    if ((char.lAttr & kUpperPart) == kUpperPart && y >= 10) {
-      canvas.drawRect(Rect.fromLTWH(x, y, 8, 10), Paint()..color = bgColor);
-    }
+    // Draw the background color
+    canvas.drawRect(Rect.fromLTWH(x, y, 8, 10), Paint()..color = bgColor);
 
-    // If the character is a double part character, do not draw it
+    // If the character is a part of a double character stop rendering here
     if ((char.lAttr & kDoublePart) != 0) return;
 
-    // Compute the scale width
+    // Compute scale factors and adjust y position given the size attributes
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
-
-    // Draw the lower part background color
-    canvas.drawRect(
-        Rect.fromLTWH(x, y, 8 * scaleWidth, 10), Paint()..color = bgColor);
-
-    // Compute the scale height and adjust the y position if the character is
-    // double height
     double scaleHeight = 1.0;
     if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= 10) {
       y -= 10.0;
