@@ -8,7 +8,7 @@ class MinModel extends ChangeNotifier {
   final minitel = TMinitel();
   var _codes = <int>[];
   int _index = 0;
-  int _bps = 1200;
+  int _bps = 4800;
   Timer? _timer;
 
   factory MinModel() {
@@ -17,13 +17,13 @@ class MinModel extends ChangeNotifier {
 
   MinModel._internal();
 
-  void emulate(List<int> codes, {int bps = 1200}) {
+  void emulate(List<int> codes, {int bps = 4800}) {
     if (_timer != null) _timer!.cancel();
     _bps = bps;
     _codes = codes;
     _index = 0;
-    _timer =
-        Timer.periodic(Duration(milliseconds: 1000 ~/ (_bps / 8)), (timer) {
+    final us = (8.0e+6 / _bps.toDouble()).toInt();
+    _timer = Timer.periodic(Duration(microseconds: us), (Timer timer) {
       if (_index < _codes.length) {
         minitel.emulate([_codes[_index++]]);
         if (minitel.isDirty) notifyListeners();
