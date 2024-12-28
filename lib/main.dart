@@ -48,20 +48,21 @@ class MainApp extends StatelessWidget {
       ),
       home: ChangeNotifierProvider<MinModel>(
         create: (context) => MinModel(),
-        child: const Scaffold(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Row(children: [
+              Clear(),
+              Scale(),
+              SetColors(),
+              SetBps(),
+              SendABC(),
+              SendFile(),
+            ]),
+          ),
           body: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Clear(),
-                Scale(),
-                SetColors(),
-                SetBps(),
-                SendABC(),
-                SendFile(),
-              ]),
-              Divider(height: 32.0, color: Colors.black),
               MinWidget(),
             ],
           ),
