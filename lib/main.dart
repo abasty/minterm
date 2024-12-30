@@ -2,9 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:path/path.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:file_picker/file_picker.dart';
 
 import 'min_model.dart';
 import 'min_widget.dart';
@@ -135,49 +136,74 @@ class Clear extends StatelessWidget {
   }
 }
 
-class Scale extends StatelessWidget {
+class Scale extends StatefulWidget {
   const Scale({super.key});
 
+  @override
+  State<Scale> createState() => _ScaleState();
+}
+
+class _ScaleState extends State<Scale> {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
         var scale = MinSettings().scale + 0.5;
         if (scale > 4) scale = 0.5;
-        MinSettings.setScale(scale);
+        setState(() => MinSettings.setScale(scale));
       },
-      child: const Text('Scale'),
+      child: Text('Scale x${MinSettings().scale}'),
     );
   }
 }
 
-class SendFile extends StatelessWidget {
+class SendFile extends StatefulWidget {
   const SendFile({super.key});
+
+  @override
+  State<SendFile> createState() => _SendFileState();
+}
+
+class _SendFileState extends State<SendFile> {
+  late final List<String> pages;
+  bool isLoaded = false;
+
+  @override
+  initState() {
+    super.initState();
+    AssetManifest.loadFromAssetBundle(rootBundle).then((manifest) {
+      pages = manifest
+          .listAssets()
+          .where((string) => string.endsWith("tel"))
+          .toList();
+      isLoaded = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<MinModel>(
       builder: (context, minmodel, child) => ElevatedButton(
+        child: const Text('Load page...'),
         onPressed: () async {
-          FilePickerResult? result = await FilePicker.platform.pickFiles(
-            initialDirectory: '/home/alain/Projects/minitel/new-zboub/pages/',
-            type: FileType.custom,
-            allowedExtensions: ['tel'],
-          );
-          if (result != null) {
-            Uint8List? codes;
-            if (kIsWeb) {
-              codes = result.files.single.bytes;
-            } else {
-              final file = File(result.files.single.path!);
-              codes = file.readAsBytesSync();
-            }
-            if (codes != null) {
-              minmodel.emulate(codes, bps: MinSettings().bps);
-            }
+          if (!isLoaded) return;
+
+          int? pageIndex = await showMenu(
+              context: context,
+              position: RelativeRect.fill,
+              items: [
+                for (int idx = 0; idx < pages.length; idx++)
+                  PopupMenuItem<int>(
+                    value: idx,
+                    child: Text(basenameWithoutExtension(pages[idx])),
+                  )
+              ]);
+          if (pageIndex != null) {
+            final ByteData bytes = await rootBundle.load(pages[pageIndex]);
+            Uint8List codes = bytes.buffer.asUint8List();
+            minmodel.emulate(codes, bps: MinSettings().bps);
           }
         },
-        child: const Text('Load file...'),
       ),
     );
   }
