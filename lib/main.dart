@@ -212,7 +212,7 @@ class Connection extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-        MinModel().setServer('wss://echo.websocket.events');
+        MinModel().setServer('wss://3611.re/ws');
       },
       child: const Text('Connect'),
     );
