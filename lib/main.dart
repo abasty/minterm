@@ -58,6 +58,8 @@ class MainApp extends StatelessWidget {
               SetBps(),
               SendABC(),
               SendFile(),
+              Connection(),
+              SendKey(),
             ]),
           ),
           body: Column(
@@ -85,10 +87,10 @@ class _SetBpsState extends State<SetBps> {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-        final bps = MinSettings().bps * 2;
-        setState(() => MinSettings().bps = bps <= 9600 ? bps : 300);
+        final bps = MinModel().bps * 2;
+        setState(() => MinModel().bps = bps <= 9600 ? bps : 300);
       },
-      child: Text('${MinSettings().bps} bps'),
+      child: Text('${MinModel().bps} bps'),
     );
   }
 }
@@ -110,14 +112,12 @@ class SendABC extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MinModel>(
-      builder: (context, minmodel, child) => ElevatedButton(
-        onPressed: () {
-          minmodel
-              .emulate([0x48, 0x1B, 0x5D, 0x4F, 0x1B, 0x5C, 0x48, 0x20, 10]);
-        },
-        child: const Text('Send HOH'),
-      ),
+    return ElevatedButton(
+      onPressed: () {
+        MinModel()
+            .emulate([0x48, 0x1B, 0x5D, 0x4F, 0x1B, 0x5C, 0x48, 0x20, 10]);
+      },
+      child: const Text('Send HOH'),
     );
   }
 }
@@ -127,11 +127,9 @@ class Clear extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MinModel>(
-      builder: (context, minmodel, child) => ElevatedButton(
-        onPressed: () => minmodel.emulate([0x0C]),
-        child: const Text('Clear'),
-      ),
+    return ElevatedButton(
+      onPressed: () => MinModel().emulate([0x0C]),
+      child: const Text('Clear'),
     );
   }
 }
@@ -182,29 +180,55 @@ class _SendFileState extends State<SendFile> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MinModel>(
-      builder: (context, minmodel, child) => ElevatedButton(
-        child: const Text('Load page...'),
-        onPressed: () async {
-          if (!isLoaded) return;
+    return ElevatedButton(
+      child: const Text('Load page...'),
+      onPressed: () async {
+        if (!isLoaded) return;
 
-          int? pageIndex = await showMenu(
-              context: context,
-              position: RelativeRect.fill,
-              items: [
-                for (int idx = 0; idx < pages.length; idx++)
-                  PopupMenuItem<int>(
-                    value: idx,
-                    child: Text(basenameWithoutExtension(pages[idx])),
-                  )
-              ]);
-          if (pageIndex != null) {
-            final ByteData bytes = await rootBundle.load(pages[pageIndex]);
-            Uint8List codes = bytes.buffer.asUint8List();
-            minmodel.emulate(codes, bps: MinSettings().bps);
-          }
-        },
-      ),
+        int? pageIndex = await showMenu(
+            context: context,
+            position: RelativeRect.fill,
+            items: [
+              for (int idx = 0; idx < pages.length; idx++)
+                PopupMenuItem<int>(
+                  value: idx,
+                  child: Text(basenameWithoutExtension(pages[idx])),
+                )
+            ]);
+        if (pageIndex != null) {
+          final ByteData bytes = await rootBundle.load(pages[pageIndex]);
+          Uint8List codes = bytes.buffer.asUint8List();
+          MinModel().emulate(codes);
+        }
+      },
+    );
+  }
+}
+
+class Connection extends StatelessWidget {
+  const Connection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        MinModel().setServer('wss://echo.websocket.events');
+      },
+      child: const Text('Connect'),
+    );
+  }
+}
+
+class SendKey extends StatelessWidget {
+  const SendKey({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        MinModel().sendKeysToServer('*SOS');
+      },
+      child: Text('Key'),
     );
   }
 }

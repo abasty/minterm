@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'min_emulator.dart';
 
@@ -10,6 +11,8 @@ class MinModel extends ChangeNotifier {
   int _index = 0;
   int _bps = 4800;
   Timer? _timer;
+  String? _serverAddress;
+  WebSocketChannel? _server;
 
   factory MinModel() {
     return _singleton;
@@ -17,7 +20,15 @@ class MinModel extends ChangeNotifier {
 
   MinModel._internal();
 
-  void emulate(List<int> codes, {int bps = 4800}) {
+  int get bps => _bps;
+  set bps(int value) {
+    if (value > 0) {
+      _bps = value;
+      notifyListeners();
+    }
+  }
+
+  void emulate(List<int> codes) {
     if (_timer != null) _timer!.cancel();
     _bps = bps;
     _codes = codes;
@@ -32,5 +43,36 @@ class MinModel extends ChangeNotifier {
         _timer = null;
       }
     });
+  }
+
+  void closeServer() {
+    if (_server != null) {
+      _server!.sink.close();
+      _server = null;
+    }
+    _serverAddress = null;
+  }
+
+  void setServer(String serverAddress) {
+    if (_serverAddress != null) _server!.sink.close();
+    _serverAddress = serverAddress;
+    _server = WebSocketChannel.connect(Uri.parse(serverAddress));
+    _server!.stream.listen((message) {
+      emulate(message.codeUnits);
+    }, onError: (error) {
+      debugPrint('WebSocket error: $error');
+      closeServer();
+    }, onDone: () {
+      debugPrint('WebSocket connection closed');
+      closeServer();
+    });
+  }
+
+  void sendKeysToServer(String keys) {
+    if (_server != null) {
+      _server!.sink.add(keys);
+    } else {
+      debugPrint('No server connection established.');
+    }
   }
 }
