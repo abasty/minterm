@@ -73,12 +73,8 @@ class MinTerm extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Minterm'),
         ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            MinWidget(),
-          ],
+        body: Center(
+          child: MinWidget(),
         ),
       ),
     );

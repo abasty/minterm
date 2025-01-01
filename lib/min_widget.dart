@@ -105,7 +105,7 @@ class MinWidget extends StatelessWidget {
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => Transform.scale(
           scale: settings.scale,
-          alignment: Alignment.topLeft,
+          alignment: Alignment.center,
           child: ChangeNotifierProvider(
             create: (context) => MinModel(),
             child: SizedBox(
