@@ -50,7 +50,7 @@ class MinSettings extends ChangeNotifier {
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
-  var scale = 2.0;
+  var scale = 1.0;
   var _colors = MinGrey;
   int _loaded = 0;
 
@@ -91,6 +91,7 @@ class MinSettings extends ChangeNotifier {
   // Toggles between two color schemes
   void toggleColors() {
     colors = colors == MinColors ? MinGrey : MinColors;
+    _singleton.notifyListeners();
   }
 }
 
@@ -233,13 +234,13 @@ class _MinPainter extends CustomPainter {
     // Draw the screen
     draw(canvas);
 
-    drawString(
-      canvas,
-      10 * 8,
-      0,
-      TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
-      " Flutter MinWidget ",
-    );
+    // drawString(
+    //   canvas,
+    //   10 * 8,
+    //   0,
+    //   TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
+    //   " Flutter MinWidget ",
+    // );
 
     // TODO: Draw the cursor
   }

@@ -9,7 +9,7 @@ class MinModel extends ChangeNotifier {
   final minitel = TMinitel();
   var _codes = <int>[];
   int _index = -1;
-  int _bps = 4800;
+  int _bps = 1200;
   Timer? _timer;
   String? _serverAddress;
   WebSocketChannel? _server;
