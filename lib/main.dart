@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+// import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart';
@@ -31,16 +32,16 @@ void main() async {
       await windowManager.focus();
     });
   }
-  runApp((MaterialApp(
+
+  // debugPaintSizeEnabled = true;
+
+  runApp(MaterialApp(
     debugShowCheckedModeBanner: true,
-    theme: ThemeData.from(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.orange,
-        // surface: Colors.black,
-      ),
+    theme: ThemeData(
+      primarySwatch: Colors.blue,
     ),
     home: MinTerm(),
-  )));
+  ));
 }
 
 class MinTerm extends StatelessWidget {
@@ -50,32 +51,32 @@ class MinTerm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<MinModel>(
-      create: (context) => MinModel(),
-      child: Scaffold(
-        drawer: Drawer(
-          child: ListView(
-            children: [
-              CloseMenu(),
-              Divider(),
-              Scale(),
-              SetColors(),
-              SetBps(),
-              Divider(),
-              Clear(),
-              SendHOH(),
-              SendFile(),
-              Connection(),
-              SendKey(),
-            ],
-          ),
+    return Scaffold(
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            CloseMenu(),
+            Divider(),
+            Scale(),
+            SetColors(),
+            SetBps(),
+            Divider(),
+            Clear(),
+            SendHOH(),
+            SendFile(),
+            Connection(),
+            SendKey(),
+          ],
         ),
-        appBar: AppBar(
-          title: const Text('Minterm'),
-        ),
-        body: Center(
-          child: MinWidget(),
-        ),
+      ),
+      appBar: AppBar(
+        title: const Text('Minterm'),
+      ),
+      body: Column(
+        children: [
+          MinWidget(),
+          Container(height: 0, color: Colors.amber),
+        ],
       ),
     );
   }

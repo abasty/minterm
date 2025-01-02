@@ -103,16 +103,16 @@ class MinWidget extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => MinSettings(),
       child: Consumer<MinSettings>(
-        builder: (context, settings, child) => Transform.scale(
-          scale: settings.scale,
-          alignment: Alignment.center,
-          child: ChangeNotifierProvider(
-            create: (context) => MinModel(),
-            child: SizedBox(
-              width: 8 * 40,
-              height: 10 * 25,
-              child: Consumer<MinModel>(
-                builder: (context, minmodel, child) => CustomPaint(
+        builder: (context, settings, child) => ChangeNotifierProvider(
+          create: (context) => MinModel(),
+          child: SizedBox(
+            width: 8 * 40 * MinSettings().scale,
+            height: 10 * 25 * MinSettings().scale,
+            child: Consumer<MinModel>(
+              builder: (context, minmodel, child) => Transform.scale(
+                scale: MinSettings().scale,
+                alignment: Alignment.topLeft,
+                child: CustomPaint(
                   painter: _MinPainter(minmodel),
                 ),
               ),
