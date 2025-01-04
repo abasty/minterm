@@ -74,7 +74,7 @@ class MinTerm extends StatelessWidget {
       ),
       body: Column(
         children: [
-          MinWidget(),
+          MinScreen(),
           Container(height: 0, color: Colors.amber),
         ],
       ),

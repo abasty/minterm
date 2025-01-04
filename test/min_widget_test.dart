@@ -124,6 +124,6 @@ import 'package:minterm/min_widget.dart';
 void main() {
   testWidgets('MinWidget creation', (WidgetTester tester) async {
     // Build our widget and trigger a frame.
-    await tester.pumpWidget(const MinWidget());
+    await tester.pumpWidget(const MinScreen());
   });
 }

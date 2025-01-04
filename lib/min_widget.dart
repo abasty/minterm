@@ -95,8 +95,8 @@ class MinSettings extends ChangeNotifier {
   }
 }
 
-class MinWidget extends StatelessWidget {
-  const MinWidget({super.key});
+class MinScreen extends StatelessWidget {
+  const MinScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
