@@ -4,9 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:minterm/min_emulator.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart';
-import 'package:window_manager/window_manager.dart';
+// import 'package:window_manager/window_manager.dart';
 
 import 'min_model.dart';
 import 'min_widget.dart';
@@ -15,24 +16,76 @@ void main() async {
   if (kIsWeb) {
     // Code to execute only on web targets
   } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    WidgetsFlutterBinding.ensureInitialized();
-    await windowManager.ensureInitialized();
+    // await windowManager.ensureInitialized();
 
-    WindowOptions windowOptions = const WindowOptions(
-      // size: Size(4 * 8 * 40 + 64, 4 * 10 * 25 + 64),
-      size: Size(700, 1100),
-      center: true,
-      title: 'Terminal Minitel',
-      // backgroundColor: Colors.transparent,
-      // skipTaskbar: false,
-      // titleBarStyle: TitleBarStyle.hidden,
-      // windowButtonVisibility: false,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
+    // WindowOptions windowOptions = const WindowOptions(
+    //   // size: Size(4 * 8 * 40 + 64, 4 * 10 * 25 + 64),
+    //   size: Size(700, 1100),
+    //   center: true,
+    //   title: 'Terminal Minitel',
+    //   // backgroundColor: Colors.transparent,
+    //   // skipTaskbar: false,
+    //   // titleBarStyle: TitleBarStyle.hidden,
+    //   // windowButtonVisibility: false,
+    // );
+    // windowManager.waitUntilReadyToShow(windowOptions, () async {
+    //   await windowManager.show();
+    //   await windowManager.focus();
   }
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  HardwareKeyboard.instance.addHandler((event) {
+    if (event is KeyDownEvent) {
+      // If local (not connected)
+      // MinModel().emulate([event.logicalKey.keyId]);
+      // If connected
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.pageDown:
+          // Suite
+          MinModel().sendKeysToServer(TMinitelKey.suite);
+          break;
+        case LogicalKeyboardKey.pageUp:
+          // Retour
+          MinModel().sendKeysToServer(TMinitelKey.retour);
+          break;
+        case LogicalKeyboardKey.f1:
+          // Guide
+          MinModel().sendKeysToServer(TMinitelKey.guide);
+          break;
+        case LogicalKeyboardKey.backspace:
+          // Correction
+          MinModel().sendKeysToServer(TMinitelKey.correction);
+          break;
+        case LogicalKeyboardKey.enter:
+          // Envoi
+          MinModel().sendKeysToServer(TMinitelKey.envoi);
+          break;
+        case LogicalKeyboardKey.home:
+          // Sommaire
+          MinModel().sendKeysToServer(TMinitelKey.sommaire);
+          break;
+        case LogicalKeyboardKey.escape:
+          // Annulation
+          MinModel().sendKeysToServer(TMinitelKey.annulation);
+          break;
+
+        default:
+          // Other keys
+          if (event.character != null) {
+            MinModel().sendKeysToServer(event.character!);
+          }
+          break;
+      }
+      int code = event.character != null ? event.character!.codeUnitAt(0) : 0;
+      debugPrint(
+        'char: #$code, label: ${event.logicalKey.keyLabel}, id: ${event.logicalKey.keyId}',
+      );
+      // MinModel().sendKeysToServer(event.logicalKey.keyLabel);
+      return true;
+    }
+    return false;
+  });
 
   // debugPaintSizeEnabled = true;
 
@@ -106,6 +159,7 @@ class MinKeyboard extends StatelessWidget {
           create: (context) => MinSettings(),
           child: Visibility(
             visible: MinSettings().keyboard,
+            replacement: const Text('HW keyboard'),
             child: Container(
               color: Colors.grey[200],
               child: SizedBox(

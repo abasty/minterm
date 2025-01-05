@@ -36,6 +36,18 @@ const int kG2Charset = 0x20;
 const int kIsDirty = 0x80;
 const int kSizeMask = 0x60;
 
+class TMinitelKey {
+  static const cxFin = '\x13I';
+  static const sommaire = '\x13F';
+  static const guide = '\x13D';
+  static const annulation = '\x13E';
+  static const correction = '\x13G';
+  static const retour = '\x13B';
+  static const suite = '\x13H';
+  static const repetition = '\x13C';
+  static const envoi = '\x13A';
+}
+
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
 
 // Types
