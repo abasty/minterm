@@ -366,6 +366,7 @@ class _SendFileState extends State<SendFile> {
           Uint8List codes = bytes.buffer.asUint8List();
           MinModel().emulate(codes);
         }
+        // FIXME: problem on context (async gap)
         Navigator.pop(context);
       },
     );
@@ -379,7 +380,8 @@ class Connection extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
-        MinModel().setServer('wss://3611.re/ws');
+        // MinModel().setServer('wss://3611.re/ws');
+        MinModel().setServer('wss://3615co.de/ws');
         Navigator.pop(context);
       },
       title: const Text('Connection'),
