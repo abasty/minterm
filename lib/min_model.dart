@@ -22,18 +22,27 @@ class MinModel extends ChangeNotifier {
 
   int get bps => _bps;
   set bps(int value) {
-    if (value > 0) {
-      _bps = value;
-      notifyListeners();
-    }
+    _bps = value;
+    notifyListeners();
   }
 
   void emulate(List<int> codes) {
     // Manage the timer to send the codes at the right speed
     if (_timer != null) _timer!.cancel();
-    final us = (8.0e+6 / _bps.toDouble()).toInt();
+
     // Add the new codes to the list
     _codes += codes;
+
+    // If the speed is 0, send all the codes at once
+    if (_bps == 0) {
+      // Send all the codes at once
+      minitel.emulate(_codes);
+      _codes.clear();
+      if (minitel.isDirty) notifyListeners();
+      return;
+    }
+
+    final us = (8.0e+6 / _bps.toDouble()).toInt();
     // Init the index
     if (_index < 0) _index = 0;
     // Start the timer

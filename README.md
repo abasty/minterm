@@ -4,13 +4,13 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 
 ## TODO
 
-* [ ] Version Android
 * [ ] Connexion serial to ttl
-* [ ] Ajouter websockets et services connus
 * [ ] Ajouter BASTOS
 * [ ] Implémenter clavier clavier zx81 étendu et clavier minitel 1b
 * [ ] Mode vidéo inverse
 * [ ] Implémenter blink
+* [x] Version Android
+* [x] Ajouter websockets et services connus
 * [x] `_MinPainter.drawChar()` : Utilise un `TMinitelChar`
 * [x] `TMinitel.putChar()` : Traduire depuis la version assembleur
 * [x] `_MinPainter.paint()` : Utilise un `TMinitel`, teste `kRedrawFlag` pour
@@ -36,3 +36,12 @@ Encore un émulateur Minitel ! En Flutter & Dart.
   la sauvegarder dans `g1.png`.
 
   ![Jeux G1](assets/g1.png)
+
+## Clavier
+
+![alt text](clavier.png)
+
+# Liens
+
+* <https://fr.wikipedia.org/wiki/Micro-serveur_Minitel>
+* <https://archive.org/details/minitel-stum1b/page/n39/mode/1up?view=theater>

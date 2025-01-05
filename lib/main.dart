@@ -19,7 +19,8 @@ void main() async {
     await windowManager.ensureInitialized();
 
     WindowOptions windowOptions = const WindowOptions(
-      size: Size(4 * 8 * 40 + 64, 4 * 10 * 25 + 64),
+      // size: Size(4 * 8 * 40 + 64, 4 * 10 * 25 + 64),
+      size: Size(700, 1100),
       center: true,
       title: 'Terminal Minitel',
       // backgroundColor: Colors.transparent,
@@ -57,9 +58,9 @@ class MinTerm extends StatelessWidget {
           children: [
             CloseMenu(),
             Divider(),
+            SetBps(),
             Scale(),
             SetColors(),
-            SetBps(),
             Divider(),
             Clear(),
             SendHOH(),
@@ -76,7 +77,41 @@ class MinTerm extends StatelessWidget {
         children: [
           MinScreen(),
           Container(height: 0, color: Colors.amber),
+          MinKeyboard(),
         ],
+      ),
+    );
+  }
+}
+
+class MinKeyboard extends StatelessWidget {
+  const MinKeyboard({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => MinSettings(),
+      child: Consumer<MinSettings>(
+        builder: (context, settings, child) => ChangeNotifierProvider(
+          create: (context) => MinSettings(),
+          child: SizedBox(
+            width: 280 * MinSettings().scale,
+            height: 200 * MinSettings().scale,
+            child: Container(
+              color: Colors.grey[200],
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage("assets/clavier.png"),
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -106,14 +141,25 @@ class SetBps extends StatefulWidget {
 }
 
 class _SetBpsState extends State<SetBps> {
+  static const speeds = [300, 1200, 4800, 9600, 0];
+  int speedIndex = 1;
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
-        final bps = MinModel().bps * 2;
-        setState(() => MinModel().bps = bps <= 9600 ? bps : 300);
+        speedIndex = (speedIndex + 1) % speeds.length;
+        setState(() => MinModel().bps = speeds[speedIndex]);
       },
-      title: Text('${MinModel().bps} bps'),
+      title: Row(
+        children: [
+          const Text('Speed'),
+          Expanded(child: Container()),
+          MinModel().bps == 0
+              ? const Text('max')
+              : Text('${MinModel().bps} bps'),
+        ],
+      ),
     );
   }
 }
@@ -175,12 +221,29 @@ class _ScaleState extends State<Scale> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: () {
-        var scale = MinSettings().scale + 0.5;
-        if (scale > 4) scale = 0.5;
-        setState(() => MinSettings.setScale(scale));
-      },
-      title: Text('Scale x${MinSettings().scale}'),
+      title: Row(
+        children: [
+          const Text('Scale'),
+          Expanded(child: Container()),
+          IconButton(
+            icon: const Icon(Icons.remove),
+            onPressed: () {
+              var scale = MinSettings().scale - 0.5;
+              if (scale < 1) scale = 4.0;
+              setState(() => MinSettings.setScale(scale));
+            },
+          ),
+          Text('${MinSettings().scale}'),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              var scale = MinSettings().scale + 0.5;
+              if (scale > 4) scale = 0.5;
+              setState(() => MinSettings.setScale(scale));
+            },
+          ),
+        ],
+      ),
     );
   }
 }
