@@ -61,6 +61,13 @@ class MinTerm extends StatelessWidget {
             SetBps(),
             Scale(),
             SetColors(),
+            ListTile(
+              title: const Text('Keyboard'),
+              onTap: () {
+                MinSettings().toggleKeyboard();
+                Navigator.pop(context);
+              },
+            ),
             Divider(),
             Clear(),
             SendHOH(),
@@ -73,12 +80,13 @@ class MinTerm extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Minterm'),
       ),
-      body: Column(
-        children: [
-          MinScreen(),
-          Container(height: 0, color: Colors.amber),
-          MinKeyboard(),
-        ],
+      body: Center(
+        child: Column(
+          children: [
+            MinScreen(),
+            MinKeyboard(),
+          ],
+        ),
       ),
     );
   }
@@ -96,16 +104,27 @@ class MinKeyboard extends StatelessWidget {
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => ChangeNotifierProvider(
           create: (context) => MinSettings(),
-          child: SizedBox(
-            width: 280 * MinSettings().scale,
-            height: 200 * MinSettings().scale,
+          child: Visibility(
+            visible: MinSettings().keyboard,
             child: Container(
               color: Colors.grey[200],
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/clavier.png"),
-                    fit: BoxFit.fill,
+              child: SizedBox(
+                width: 8 * 40 * MinSettings().scale,
+                height: 10 * 25 * MinSettings().scale,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Container(
+                      color: Colors.grey[200],
+                      child: Container(
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage("assets/clavier.png"),
+                            fit: BoxFit.fill,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

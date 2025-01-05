@@ -53,6 +53,7 @@ class MinSettings extends ChangeNotifier {
   var scale = 1.0;
   var _colors = MinGrey;
   int _loaded = 0;
+  bool _keyboard = true;
 
   factory MinSettings() {
     return _singleton;
@@ -83,6 +84,8 @@ class MinSettings extends ChangeNotifier {
 
   bool get isLoaded => _loaded == 2;
 
+  get keyboard => _keyboard;
+
   static void setScale(double scale) {
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
     _singleton.notifyListeners();
@@ -91,6 +94,11 @@ class MinSettings extends ChangeNotifier {
   // Toggles between two color schemes
   void toggleColors() {
     colors = colors == MinColors ? MinGrey : MinColors;
+    _singleton.notifyListeners();
+  }
+
+  void toggleKeyboard() {
+    _keyboard = !_keyboard;
     _singleton.notifyListeners();
   }
 }
