@@ -115,7 +115,7 @@ class MinScreen extends StatelessWidget {
       create: (context) => MinSettings(),
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinSettings(),
+          create: (context) => MinModel(),
           child: SizedBox(
             width: 8 * 40 * MinSettings().scale,
             height: 10 * 25 * MinSettings().scale,
