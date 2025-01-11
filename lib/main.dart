@@ -77,11 +77,10 @@ void main() async {
           }
           break;
       }
-      int code = event.character != null ? event.character!.codeUnitAt(0) : 0;
-      debugPrint(
-        'char: #$code, label: ${event.logicalKey.keyLabel}, id: ${event.logicalKey.keyId}',
-      );
-      // MinModel().sendKeysToServer(event.logicalKey.keyLabel);
+      // int code = event.character != null ? event.character!.codeUnitAt(0) : 0;
+      // debugPrint(
+      // 'char: #$code, label: ${event.logicalKey.keyLabel}, id: ${event.logicalKey.keyId}',
+      // );
       return true;
     }
     return false;
