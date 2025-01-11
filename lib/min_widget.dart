@@ -51,6 +51,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
   var scale = 1.0;
+  var duration = 200;
   var _colors = MinGrey;
   int _loaded = 0;
   bool _keyboard = true;
@@ -87,6 +88,7 @@ class MinSettings extends ChangeNotifier {
   get keyboard => _keyboard;
 
   static void setScale(double scale) {
+    _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
     _singleton.notifyListeners();
   }
@@ -97,8 +99,9 @@ class MinSettings extends ChangeNotifier {
     _singleton.notifyListeners();
   }
 
-  void toggleKeyboard() {
-    _keyboard = !_keyboard;
+  static void toggleKeyboard() {
+    _singleton.duration = 200;
+    _singleton._keyboard = !_singleton._keyboard;
     _singleton.notifyListeners();
   }
 }
@@ -112,7 +115,7 @@ class MinScreen extends StatelessWidget {
       create: (context) => MinSettings(),
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinModel(),
+          create: (context) => MinSettings(),
           child: SizedBox(
             width: 8 * 40 * MinSettings().scale,
             height: 10 * 25 * MinSettings().scale,

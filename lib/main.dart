@@ -116,7 +116,7 @@ class MinTerm extends StatelessWidget {
             ListTile(
               title: const Text('Keyboard'),
               onTap: () {
-                MinSettings().toggleKeyboard();
+                MinSettings.toggleKeyboard();
                 Navigator.pop(context);
               },
             ),
@@ -156,27 +156,20 @@ class MinKeyboard extends StatelessWidget {
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => ChangeNotifierProvider(
           create: (context) => MinSettings(),
-          child: Visibility(
-            visible: MinSettings().keyboard,
-            replacement: const Text('HW keyboard'),
-            child: Container(
-              color: Colors.grey[200],
-              child: SizedBox(
-                width: 8 * 40 * MinSettings().scale,
-                height: 10 * 25 * MinSettings().scale,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Container(
-                      color: Colors.grey[200],
-                      child: Container(
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage("assets/clavier.png"),
-                            fit: BoxFit.fill,
-                          ),
-                        ),
-                      ),
+          child: Container(
+            width: 8 * 40 * MinSettings().scale,
+            color: Colors.grey[200],
+            child: AnimatedContainer(
+              height:
+                  MinSettings().keyboard ? 10 * 25 * MinSettings().scale : 0,
+              duration: Duration(milliseconds: MinSettings().duration),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage("assets/clavier.png"),
+                      fit: BoxFit.fill,
                     ),
                   ),
                 ),
