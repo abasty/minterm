@@ -89,7 +89,7 @@ void main() async {
   // debugPaintSizeEnabled = true;
 
   runApp(MaterialApp(
-    debugShowCheckedModeBanner: true,
+    debugShowCheckedModeBanner: false,
     theme: ThemeData(
       primarySwatch: Colors.blue,
     ),
@@ -131,6 +131,16 @@ class MinTerm extends StatelessWidget {
       ),
       appBar: AppBar(
         title: const Text('Minterm'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.keyboard),
+            onPressed: () => MinSettings.toggleKeyboard(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.color_lens),
+            onPressed: () => MinSettings().toggleColors(),
+          ),
+        ],
       ),
       body: Center(
         child: Column(

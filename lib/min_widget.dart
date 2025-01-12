@@ -50,11 +50,12 @@ class MinSettings extends ChangeNotifier {
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
+  static const durationMax = 400;
   var scale = 1.0;
-  var duration = 200;
+  var duration = durationMax;
   var _colors = MinGrey;
   int _loaded = 0;
-  bool _keyboard = true;
+  bool _keyboard = false;
 
   factory MinSettings() {
     return _singleton;
@@ -100,7 +101,7 @@ class MinSettings extends ChangeNotifier {
   }
 
   static void toggleKeyboard() {
-    _singleton.duration = 200;
+    _singleton.duration = durationMax;
     _singleton._keyboard = !_singleton._keyboard;
     _singleton.notifyListeners();
   }
