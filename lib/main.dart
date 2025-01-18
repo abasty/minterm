@@ -166,27 +166,91 @@ class MinKeyboard extends StatelessWidget {
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => ChangeNotifierProvider(
           create: (context) => MinSettings(),
-          child: Container(
+          child: SizedBox(
             width: 8 * 40 * MinSettings().scale,
-            color: Colors.grey[200],
-            child: AnimatedContainer(
-              height:
-                  MinSettings().keyboard ? 10 * 25 * MinSettings().scale : 0,
-              duration: Duration(milliseconds: MinSettings().duration),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Container(
+            height: 10 * 25 * MinSettings().scale,
+            child: Stack(
+              children: [
+                KeyboardImage(),
+                Container(
                   decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage("assets/clavier.png"),
-                      fit: BoxFit.fill,
+                    border: Border.all(
+                      width: 0.5,
+                      color: Colors.black,
                     ),
                   ),
                 ),
-              ),
+                MinKey(left: 5, top: 10),
+                MinKey(left: 37, top: 120, width: 26),
+                MinKey(left: 68, top: 120, width: 26),
+                MinKey(left: 98, top: 120, width: 26),
+                MinKey(left: 128, top: 120, width: 26),
+                MinKey(left: 157, top: 120, width: 26),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class KeyboardImage extends StatelessWidget {
+  const KeyboardImage({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      // Keyboard image
+      decoration: BoxDecoration(
+        // border: Border.all(width: 2, color: Colors.red),
+        image: DecorationImage(
+          image: AssetImage("assets/clavier.png"),
+          fit: BoxFit.fill,
+        ),
+      ),
+    );
+  }
+}
+
+class MinKey extends StatelessWidget {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final String normal;
+  final String shift;
+
+  const MinKey({
+    super.key,
+    this.left = 0,
+    this.top = 0,
+    this.width = 35,
+    this.height = 20,
+    this.normal = "",
+    this.shift = "",
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = MinSettings().scale;
+    return Positioned(
+      left: left * scale,
+      top: top * scale,
+      width: width * scale,
+      height: height * scale,
+      child: InkWell(
+        child: Container(
+          decoration: BoxDecoration(
+            // color: Colors.transparent,
+            border: Border.all(width: 1, color: Colors.red),
+          ),
+        ),
+        onTap: () {
+          debugPrint('toto');
+        },
       ),
     );
   }
