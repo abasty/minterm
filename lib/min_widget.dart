@@ -295,14 +295,30 @@ class MinKeyboard extends StatelessWidget {
                 ),
                 // Function keys
                 MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
-                // ESC line
+                // ESC
                 MinKey(left: 37, top: 120),
-                MinKey(left: 68, top: 120),
-                MinKey(left: 98, top: 120),
-                MinKey(left: 128, top: 120),
-                MinKey(left: 157, top: 120),
-                // A Z E R T Y U I O P
-                MinKey(left: 26, top: 147, k: "A"),
+                // Special chars
+                for (int i = 0; i < 7; i++)
+                  MinKey(
+                    left: 67 + i * 30,
+                    top: 120,
+                    k: ",.';-:?"[i],
+                    // sk "<>@+=#/"
+                  ),
+                // AZERTY first line
+                for (int i = 0; i < 10; i++)
+                  MinKey(
+                    left: 26 + i * 28.8,
+                    top: 147,
+                    k: "AZERTYUIOP"[i],
+                  ),
+                // AZERTY second line
+                for (int i = 0; i < 10; i++)
+                  MinKey(
+                    left: 34 + i * 28.8,
+                    top: 173,
+                    k: "QSDFGHJKLM"[i],
+                  ),
               ],
             ),
           ),
