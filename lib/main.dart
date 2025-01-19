@@ -2,12 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:minterm/min_emulator.dart';
-import 'package:provider/provider.dart';
 import 'package:path/path.dart';
-// import 'package:window_manager/window_manager.dart';
 
 import 'min_model.dart';
 import 'min_widget.dart';
@@ -35,6 +32,9 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
+  // MinModel().setServer('wss://3611.re/ws');
+  MinModel().setServerAddress('wss://3615co.de/ws');
+
   HardwareKeyboard.instance.addHandler((event) {
     if (event is KeyDownEvent) {
       // If local (not connected)
@@ -43,44 +43,40 @@ void main() async {
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
           // Suite
-          MinModel().sendKeysToServer(TMinitelKey.suite);
+          MinModel().handleKeys(TMinitelKey.suite);
           break;
         case LogicalKeyboardKey.pageUp:
           // Retour
-          MinModel().sendKeysToServer(TMinitelKey.retour);
+          MinModel().handleKeys(TMinitelKey.retour);
           break;
         case LogicalKeyboardKey.f1:
           // Guide
-          MinModel().sendKeysToServer(TMinitelKey.guide);
+          MinModel().handleKeys(TMinitelKey.guide);
           break;
         case LogicalKeyboardKey.backspace:
           // Correction
-          MinModel().sendKeysToServer(TMinitelKey.correction);
+          MinModel().handleKeys(TMinitelKey.correction);
           break;
         case LogicalKeyboardKey.enter:
           // Envoi
-          MinModel().sendKeysToServer(TMinitelKey.envoi);
+          MinModel().handleKeys(TMinitelKey.envoi);
           break;
         case LogicalKeyboardKey.home:
           // Sommaire
-          MinModel().sendKeysToServer(TMinitelKey.sommaire);
+          MinModel().handleKeys(TMinitelKey.sommaire);
           break;
         case LogicalKeyboardKey.escape:
           // Annulation
-          MinModel().sendKeysToServer(TMinitelKey.annulation);
+          MinModel().handleKeys(TMinitelKey.annulation);
           break;
 
         default:
           // Other keys
           if (event.character != null) {
-            MinModel().sendKeysToServer(event.character!);
+            MinModel().handleKeys(event.character!);
           }
           break;
       }
-      // int code = event.character != null ? event.character!.codeUnitAt(0) : 0;
-      // debugPrint(
-      // 'char: #$code, label: ${event.logicalKey.keyLabel}, id: ${event.logicalKey.keyId}',
-      // );
       return true;
     }
     return false;
@@ -125,7 +121,6 @@ class MinTerm extends StatelessWidget {
             SendHOH(),
             SendFile(),
             Connection(),
-            SendKey(),
           ],
         ),
       ),
@@ -223,6 +218,7 @@ class SendHOH extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
+        MinModel().end();
         MinModel()
             .emulate([0x48, 0x1B, 0x5D, 0x4F, 0x1B, 0x5C, 0x48, 0x20, 10]);
         Navigator.pop(context);
@@ -239,6 +235,7 @@ class Clear extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
+        MinModel().end();
         MinModel().emulate([0x0C]);
         Navigator.pop(context);
       },
@@ -314,7 +311,7 @@ class _SendFileState extends State<SendFile> {
       title: const Text('Load page...'),
       onTap: () async {
         if (!isLoaded) return;
-
+        MinModel().end();
         int? pageIndex = await showMenu(
             context: context,
             position: RelativeRect.fill,
@@ -330,7 +327,6 @@ class _SendFileState extends State<SendFile> {
           Uint8List codes = bytes.buffer.asUint8List();
           MinModel().emulate(codes);
         }
-        // FIXME: problem on context (async gap)
         Navigator.pop(context);
       },
     );
@@ -344,26 +340,10 @@ class Connection extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
-        // MinModel().setServer('wss://3611.re/ws');
-        MinModel().setServer('wss://3615co.de/ws');
+        MinModel().connectOrEnd();
         Navigator.pop(context);
       },
-      title: const Text('Connection'),
-    );
-  }
-}
-
-class SendKey extends StatelessWidget {
-  const SendKey({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        MinModel().sendKeysToServer('*SOS');
-        Navigator.pop(context);
-      },
-      title: Text('Send *SOS'),
+      title: const Text('Connection/End'),
     );
   }
 }

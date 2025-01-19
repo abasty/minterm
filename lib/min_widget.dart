@@ -156,6 +156,10 @@ class _MinPainter extends CustomPainter {
         );
       }
     }
+
+    final statusCode = minmodel.isConnected ? 0x43 : 0x46;
+    final statusChar = TMinitelChar(0, kAttrInverse + kColorWhite, statusCode);
+    drawChar(canvas, 36 * 8, 0, statusChar);
   }
 
   // Method to draw a character
@@ -289,12 +293,16 @@ class MinKeyboard extends StatelessWidget {
                     ),
                   ),
                 ),
-                MinKey(left: 5, top: 10),
-                MinKey(left: 37, top: 120, width: 26),
-                MinKey(left: 68, top: 120, width: 26),
-                MinKey(left: 98, top: 120, width: 26),
-                MinKey(left: 128, top: 120, width: 26),
-                MinKey(left: 157, top: 120, width: 26),
+                // Function keys
+                MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
+                // ESC line
+                MinKey(left: 37, top: 120),
+                MinKey(left: 68, top: 120),
+                MinKey(left: 98, top: 120),
+                MinKey(left: 128, top: 120),
+                MinKey(left: 157, top: 120),
+                // A Z E R T Y U I O P
+                MinKey(left: 26, top: 147, k: "A"),
               ],
             ),
           ),
@@ -327,17 +335,17 @@ class MinKey extends StatelessWidget {
   final double top;
   final double width;
   final double height;
-  final String normal;
-  final String shift;
+  final String k;
+  final String ks;
 
   const MinKey({
     super.key,
     this.left = 0,
     this.top = 0,
-    this.width = 35,
+    this.width = 25,
     this.height = 20,
-    this.normal = "",
-    this.shift = "",
+    this.k = "",
+    this.ks = "",
   });
 
   @override
@@ -351,12 +359,21 @@ class MinKey extends StatelessWidget {
       child: InkWell(
         child: Container(
           decoration: BoxDecoration(
-            // color: Colors.transparent,
             border: Border.all(width: 1, color: Colors.red),
           ),
         ),
         onTap: () {
-          debugPrint('toto');
+          switch (k) {
+            case '':
+              debugPrint("Key with no action");
+              break;
+            case TMinitelKey.cxFin:
+              MinModel().connectOrEnd();
+              break;
+            default:
+              MinModel().handleKeys(k);
+              break;
+          }
         },
       ),
     );

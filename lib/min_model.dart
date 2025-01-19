@@ -20,6 +20,8 @@ class MinModel extends ChangeNotifier {
 
   MinModel._internal();
 
+  bool get isConnected => _server != null;
+
   int get bps => _bps;
   set bps(int value) {
     _bps = value;
@@ -61,34 +63,50 @@ class MinModel extends ChangeNotifier {
     });
   }
 
-  void closeServer() {
-    if (_server != null) {
+  void end() {
+    if (isConnected) {
       _server!.sink.close();
       _server = null;
     }
-    _serverAddress = null;
   }
 
-  void setServer(String serverAddress) {
-    if (_serverAddress != null) _server!.sink.close();
+  void setServerAddress(String serverAddress) {
     _serverAddress = serverAddress;
-    _server = WebSocketChannel.connect(Uri.parse(serverAddress));
-    _server!.stream.listen((message) {
-      emulate(message.codeUnits);
-    }, onError: (error) {
-      debugPrint('WebSocket error: $error');
-      closeServer();
-    }, onDone: () {
-      debugPrint('WebSocket connection closed');
-      closeServer();
-    });
   }
 
-  void sendKeysToServer(String keys) {
-    if (_server != null) {
+  void connect() {
+    if (isConnected) end();
+    if (_serverAddress == null) return;
+
+    _server = WebSocketChannel.connect(Uri.parse(_serverAddress!));
+    _server!.stream.listen(
+      (message) {
+        emulate(message.codeUnits);
+      },
+      onError: (error) {
+        debugPrint('WebSocket error: $error');
+        end();
+      },
+      onDone: () {
+        debugPrint('WebSocket connection closed');
+        end();
+      },
+    );
+  }
+
+  void connectOrEnd() {
+    if (isConnected) {
+      end();
+    } else {
+      connect();
+    }
+  }
+
+  void handleKeys(String keys) {
+    if (isConnected) {
       _server!.sink.add(keys);
     } else {
-      debugPrint('No server connection established.');
+      emulate(keys.codeUnits);
     }
   }
 }
