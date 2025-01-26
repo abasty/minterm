@@ -295,6 +295,58 @@ class MinKeyboard extends StatelessWidget {
                 ),
                 // Function keys
                 MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
+                for (int i = 0; i < 4; i++)
+                  MinKey(
+                    left: 66 + i * 40,
+                    top: 36,
+                    width: 35,
+                    k: [
+                      TMinitelKey.sommaire,
+                      TMinitelKey.annulation,
+                      TMinitelKey.retour,
+                      TMinitelKey.repetition,
+                    ][i],
+                  ),
+                for (int i = 0; i < 4; i++)
+                  MinKey(
+                    left: 66 + i * 40,
+                    top: 63,
+                    width: 35,
+                    k: [
+                      TMinitelKey.guide,
+                      TMinitelKey.correction,
+                      TMinitelKey.suite,
+                      TMinitelKey.envoi,
+                    ][i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 8,
+                    k: "123"[i],
+                    // sk "<>@+=#/"
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 34,
+                    k: "456"[i],
+                    // sk "<>@+=#/"
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 60,
+                    k: "789"[i],
+                    // sk "<>@+=#/"
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 86,
+                    k: "*0#"[i],
+                    // sk "<>@+=#/"
+                  ),
                 // ESC
                 MinKey(left: 37, top: 120),
                 // Special chars
@@ -319,6 +371,19 @@ class MinKeyboard extends StatelessWidget {
                     top: 173,
                     k: "QSDFGHJKLM"[i],
                   ),
+                // AZERTY third line
+                for (int i = 0; i < 6; i++)
+                  MinKey(
+                    left: 49 + i * 28.8,
+                    top: 199,
+                    k: "WXCVBN"[i],
+                  ),
+                MinKey(
+                  left: 64,
+                  top: 225,
+                  width: 142,
+                  k: " ",
+                )
               ],
             ),
           ),
