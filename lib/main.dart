@@ -131,6 +131,7 @@ class MinTerm extends StatelessWidget {
             icon: const Icon(Icons.keyboard),
             onPressed: () => MinSettings.toggleKeyboard(),
           ),
+          CapsLock(),
           IconButton(
             icon: const Icon(Icons.color_lens),
             onPressed: () => MinSettings().toggleColors(),
@@ -145,6 +146,25 @@ class MinTerm extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class CapsLock extends StatefulWidget {
+  const CapsLock({
+    super.key,
+  });
+
+  @override
+  State<CapsLock> createState() => _CapsLockState();
+}
+
+class _CapsLockState extends State<CapsLock> {
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: MinSettings().capslock ? const Text('A') : const Text('a'),
+      onPressed: () => setState(() => MinSettings.toggleCapslock()),
     );
   }
 }

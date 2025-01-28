@@ -10,6 +10,7 @@ class MinModel extends ChangeNotifier {
   var _codes = <int>[];
   int _index = -1;
   int _bps = 1200;
+  bool _isShifted = false;
   Timer? _timer;
   String? _serverAddress;
   WebSocketChannel? _server;
@@ -21,6 +22,8 @@ class MinModel extends ChangeNotifier {
   MinModel._internal();
 
   bool get isConnected => _server != null;
+
+  bool get isShifted => _isShifted;
 
   int get bps => _bps;
   set bps(int value) {
@@ -103,6 +106,11 @@ class MinModel extends ChangeNotifier {
   }
 
   void handleKeys(String keys) {
+    if (keys == 'shift') {
+      _isShifted = !_isShifted;
+      return;
+    }
+    _isShifted = false;
     if (isConnected) {
       _server!.sink.add(keys);
     } else {

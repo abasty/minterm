@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math; // Add this line to import the 'math' library
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:minterm/min_model.dart';
@@ -56,6 +57,7 @@ class MinSettings extends ChangeNotifier {
   var _colors = MinGrey;
   int _loaded = 0;
   bool _keyboard = false;
+  bool _capslock = true;
 
   factory MinSettings() {
     return _singleton;
@@ -88,6 +90,8 @@ class MinSettings extends ChangeNotifier {
 
   get keyboard => _keyboard;
 
+  get capslock => _capslock;
+
   static void setScale(double scale) {
     _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
@@ -103,6 +107,11 @@ class MinSettings extends ChangeNotifier {
   static void toggleKeyboard() {
     _singleton.duration = durationMax;
     _singleton._keyboard = !_singleton._keyboard;
+    _singleton.notifyListeners();
+  }
+
+  static void toggleCapslock() {
+    _singleton._capslock = !_singleton._capslock;
     _singleton.notifyListeners();
   }
 }
@@ -306,6 +315,7 @@ class MinKeyboard extends StatelessWidget {
                       TMinitelKey.retour,
                       TMinitelKey.repetition,
                     ][i],
+                    ks: "ê\\é{"[i],
                   ),
                 for (int i = 0; i < 4; i++)
                   MinKey(
@@ -318,44 +328,45 @@ class MinKeyboard extends StatelessWidget {
                       TMinitelKey.suite,
                       TMinitelKey.envoi,
                     ][i],
+                    ks: "ë è}"[i],
                   ),
                 for (int i = 0; i < 3; i++)
                   MinKey(
                     left: 237 + i * 29,
                     top: 8,
                     k: "123"[i],
-                    // sk "<>@+=#/"
+                    ks: "!\"#"[i],
                   ),
                 for (int i = 0; i < 3; i++)
                   MinKey(
                     left: 237 + i * 29,
                     top: 34,
                     k: "456"[i],
-                    // sk "<>@+=#/"
+                    ks: "\$%&"[i],
                   ),
                 for (int i = 0; i < 3; i++)
                   MinKey(
                     left: 237 + i * 29,
                     top: 60,
                     k: "789"[i],
-                    // sk "<>@+=#/"
+                    ks: "'()"[i],
                   ),
                 for (int i = 0; i < 3; i++)
                   MinKey(
                     left: 237 + i * 29,
                     top: 86,
                     k: "*0#"[i],
-                    // sk "<>@+=#/"
+                    ks: "[ ]"[i], // TODO: Add top arrow
                   ),
                 // ESC
-                MinKey(left: 37, top: 120),
+                MinKey(left: 37, top: 120), // TODO: What to do on ESC ?
                 // Special chars
                 for (int i = 0; i < 7; i++)
                   MinKey(
                     left: 67 + i * 30,
                     top: 120,
                     k: ",.';-:?"[i],
-                    // sk "<>@+=#/"
+                    ks: "<>@+=*/"[i],
                   ),
                 // AZERTY first line
                 for (int i = 0; i < 10; i++)
@@ -371,6 +382,12 @@ class MinKeyboard extends StatelessWidget {
                     top: 173,
                     k: "QSDFGHJKLM"[i],
                   ),
+                MinKey(
+                  left: 20,
+                  top: 199,
+                  width: 25,
+                  k: "shift",
+                ),
                 // AZERTY third line
                 for (int i = 0; i < 6; i++)
                   MinKey(
@@ -379,11 +396,23 @@ class MinKeyboard extends StatelessWidget {
                     k: "WXCVBN"[i],
                   ),
                 MinKey(
+                  left: 221,
+                  top: 199,
+                  width: 25,
+                  k: "shift",
+                ),
+                MinKey(
                   left: 64,
                   top: 225,
                   width: 142,
                   k: " ",
-                )
+                ),
+                MinKey(
+                  left: 282,
+                  top: 226,
+                  width: 35,
+                  k: "\x0d",
+                ),
               ],
             ),
           ),
@@ -438,21 +467,31 @@ class MinKey extends StatelessWidget {
       width: width * scale,
       height: height * scale,
       child: InkWell(
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(width: 1, color: Colors.red),
-          ),
-        ),
+        child: kDebugMode
+            ? Container(
+                decoration: BoxDecoration(
+                  border: Border.all(width: 1, color: Colors.red),
+                ),
+              )
+            : null,
         onTap: () {
-          switch (k) {
-            case '':
-              debugPrint("Key with no action");
-              break;
+          final letters = RegExp('^[A-Z]\$');
+          final shifted = MinModel().isShifted;
+          final upMode = MinSettings().capslock;
+          var key = '';
+          if (letters.hasMatch(k)) {
+            key = (shifted && upMode) || (!shifted && !upMode)
+                ? k.toLowerCase()
+                : k;
+          } else {
+            key = shifted && ks.isNotEmpty ? ks : k;
+          }
+          switch (key) {
             case TMinitelKey.cxFin:
               MinModel().connectOrEnd();
               break;
             default:
-              MinModel().handleKeys(k);
+              MinModel().handleKeys(key);
               break;
           }
         },
