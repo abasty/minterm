@@ -832,11 +832,12 @@ class TMinitel {
       (screen[y][x + 1].lAttr & kDoublePart) != 0;
 
   String getStringAlphaNum(int x, int y) {
+    final alphaNum = RegExp(r'^[a-zA-Z0-9*]$');
     final buffer = StringBuffer();
     // Get characters to the left
     for (int i = x; i >= 0; i--) {
       final char = getChar(i, y);
-      if (RegExp(r'^[a-zA-Z0-9]$').hasMatch(char)) {
+      if (alphaNum.hasMatch(char)) {
         if (!isDoublePart(i, y)) buffer.write(char);
       } else {
         break;
@@ -847,7 +848,7 @@ class TMinitel {
     // Get characters to the right
     for (int i = x + 1; i < 40; i++) {
       final char = getChar(i, y);
-      if (RegExp(r'^[a-zA-Z0-9]$').hasMatch(char)) {
+      if (alphaNum.hasMatch(char)) {
         if (!isDoublePart(i, y)) buffer.write(char);
       } else {
         break;
