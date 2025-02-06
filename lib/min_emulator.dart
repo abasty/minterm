@@ -825,6 +825,36 @@ class TMinitel {
       state.needAttrSpace = true;
     }
   }
+
+  String getChar(int x, int y) => String.fromCharCode(screen[y][x + 1].code);
+
+  bool isDoublePart(int x, int y) =>
+      (screen[y][x + 1].lAttr & kDoublePart) != 0;
+
+  String getStringAlphaNum(int x, int y) {
+    final buffer = StringBuffer();
+    // Get characters to the left
+    for (int i = x; i >= 0; i--) {
+      final char = getChar(i, y);
+      if (RegExp(r'^[a-zA-Z0-9]$').hasMatch(char)) {
+        if (!isDoublePart(i, y)) buffer.write(char);
+      } else {
+        break;
+      }
+    }
+    final leftPart = buffer.toString().split('').reversed.join('');
+    buffer.clear();
+    // Get characters to the right
+    for (int i = x + 1; i < 40; i++) {
+      final char = getChar(i, y);
+      if (RegExp(r'^[a-zA-Z0-9]$').hasMatch(char)) {
+        if (!isDoublePart(i, y)) buffer.write(char);
+      } else {
+        break;
+      }
+    }
+    return leftPart + buffer.toString();
+  }
 }
 
 class TMinitelChar {

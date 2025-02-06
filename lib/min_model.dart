@@ -117,4 +117,36 @@ class MinModel extends ChangeNotifier {
       emulate(keys.codeUnits);
     }
   }
+
+  void handleTap(int x, int y) {
+    final c = minitel.getStringAlphaNum(x, y).toUpperCase();
+    switch (c) {
+      case 'ENVOI':
+        handleKeys(TMinitelKey.envoi);
+        break;
+      case 'CORRECTION':
+        handleKeys(TMinitelKey.correction);
+        break;
+      case 'ANNULATION':
+        handleKeys(TMinitelKey.annulation);
+        break;
+      case 'GUIDE':
+        handleKeys(TMinitelKey.guide);
+        break;
+      case 'RETOUR':
+        handleKeys(TMinitelKey.retour);
+        break;
+      case 'SOMMAIRE':
+        handleKeys(TMinitelKey.sommaire);
+        break;
+      case 'SUITE':
+        handleKeys(TMinitelKey.suite);
+        break;
+      default:
+        handleKeys(c);
+        handleKeys(TMinitelKey.envoi);
+        break;
+    }
+    // debugPrint('Handling tap at: x=$x, y=$y, str=$c');
+  }
 }

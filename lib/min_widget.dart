@@ -133,8 +133,20 @@ class MinScreen extends StatelessWidget {
               builder: (context, minmodel, child) => Transform.scale(
                 scale: MinSettings().scale,
                 alignment: Alignment.topLeft,
-                child: CustomPaint(
-                  painter: _MinPainter(minmodel),
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTapDown: (TapDownDetails details) {
+                        final tapPosition = details.localPosition;
+                        final x = (tapPosition.dx / 8.0).toInt();
+                        final y = (tapPosition.dy / 10.0).toInt();
+                        minmodel.handleTap(x, y);
+                      },
+                    ),
+                    CustomPaint(
+                      painter: _MinPainter(minmodel),
+                    ),
+                  ],
                 ),
               ),
             ),
