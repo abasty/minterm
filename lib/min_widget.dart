@@ -195,6 +195,14 @@ class _MinPainter extends CustomPainter {
       bgColor = tmp;
     }
 
+    if (minmodel.minitel.cursorOn &&
+        minmodel.minitel.state.c * 8 - 8 == x &&
+        minmodel.minitel.state.l * 10 == y) {
+      final tmp = fgColor;
+      fgColor = bgColor;
+      bgColor = tmp;
+    }
+
     // Draw the background color
     canvas.drawRect(Rect.fromLTWH(x, y, 8, 10), Paint()..color = bgColor);
 
@@ -278,8 +286,6 @@ class _MinPainter extends CustomPainter {
     //   TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
     //   " Flutter MinWidget ",
     // );
-
-    // TODO: Draw the cursor
   }
 
   @override
