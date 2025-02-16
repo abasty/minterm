@@ -37,9 +37,15 @@ void main() async {
 
   HardwareKeyboard.instance.addHandler((event) {
     if (event is KeyDownEvent) {
-      // If local (not connected)
-      // MinModel().emulate([event.logicalKey.keyId]);
-      // If connected
+      // debugPrint('event: $event');
+      // debugPrint('KeyDownEvent: ${event.logicalKey}');
+      if (event.logicalKey.keyLabel == '[') {
+        var shift = HardwareKeyboard.instance.isShiftPressed;
+        MinModel().handleKeys(
+          shift ? TMinitelKey.trema : TMinitelKey.circonflexe,
+        );
+        return true;
+      }
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
           // Suite
@@ -69,11 +75,62 @@ void main() async {
           // Annulation
           MinModel().handleKeys(TMinitelKey.annulation);
           break;
-
         default:
           // Other keys
           if (event.character != null) {
-            MinModel().handleKeys(event.character!);
+            switch (event.character) {
+              case 'à':
+                MinModel().handleKeys('${TMinitelKey.grave}a');
+                break;
+              case 'â':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}a');
+                break;
+              case 'ä':
+                MinModel().handleKeys('${TMinitelKey.trema}a');
+                break;
+              case 'é':
+                MinModel().handleKeys('${TMinitelKey.aigu}e');
+                break;
+              case 'è':
+                MinModel().handleKeys('${TMinitelKey.grave}e');
+                break;
+              case 'ê':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}e');
+                break;
+              case 'ë':
+                MinModel().handleKeys('${TMinitelKey.trema}e');
+                break;
+              case 'î':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}i');
+                break;
+              case 'ï':
+                MinModel().handleKeys('${TMinitelKey.trema}i');
+                break;
+              case 'ô':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}o');
+                break;
+              case 'ö':
+                MinModel().handleKeys('${TMinitelKey.trema}o');
+                break;
+              case 'ù':
+                MinModel().handleKeys('${TMinitelKey.grave}u');
+                break;
+              case 'û':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}u');
+                break;
+              case 'ü':
+                MinModel().handleKeys('${TMinitelKey.trema}u');
+                break;
+              case 'ç':
+                MinModel().handleKeys('${TMinitelKey.cedille}c');
+                break;
+              case 'Ç':
+                MinModel().handleKeys('${TMinitelKey.cedille}C');
+                break;
+              default:
+                MinModel().handleKeys(event.character!);
+                break;
+            }
           }
           break;
       }

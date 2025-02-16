@@ -46,6 +46,11 @@ class TMinitelKey {
   static const suite = '\x13H';
   static const repetition = '\x13C';
   static const envoi = '\x13A';
+  static const grave = '\x19A';
+  static const aigu = '\x19B';
+  static const circonflexe = '\x19C';
+  static const trema = '\x19H';
+  static const cedille = '\x19K';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);

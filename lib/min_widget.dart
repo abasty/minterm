@@ -188,6 +188,8 @@ class _MinPainter extends CustomPainter {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
 
+    // Manage the cursor.
+    // TODO: Add blinking
     if (minmodel.minitel.cursorOn &&
         minmodel.minitel.state.c * 8 - 8 == x &&
         minmodel.minitel.state.l * 10 == y) {
@@ -332,7 +334,13 @@ class MinKeyboard extends StatelessWidget {
                       TMinitelKey.retour,
                       TMinitelKey.repetition,
                     ][i],
-                    ks: "ê\\é{"[i],
+                    // ks: "\x15\\\x13{"[i],
+                    ks: [
+                      TMinitelKey.circonflexe,
+                      "\\",
+                      TMinitelKey.aigu,
+                      "{",
+                    ][i],
                   ),
                 for (int i = 0; i < 4; i++)
                   MinKey(
@@ -345,7 +353,12 @@ class MinKeyboard extends StatelessWidget {
                       TMinitelKey.suite,
                       TMinitelKey.envoi,
                     ][i],
-                    ks: "ë è}"[i],
+                    ks: [
+                      TMinitelKey.trema,
+                      "\x00",
+                      TMinitelKey.grave,
+                      "}",
+                    ][i],
                   ),
                 for (int i = 0; i < 3; i++)
                   MinKey(
