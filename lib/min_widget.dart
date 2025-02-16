@@ -520,6 +520,8 @@ class MinKey extends StatelessWidget {
       width: width * scale,
       height: height * scale,
       child: InkWell(
+        hoverColor: Colors.grey,
+        splashColor: const ui.Color.fromARGB(255, 107, 66, 0),
         child: kDebugMode
             ? Container(
                 decoration: BoxDecoration(
