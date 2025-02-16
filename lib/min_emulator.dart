@@ -46,6 +46,18 @@ class TMinitelKey {
   static const suite = '\x13H';
   static const repetition = '\x13C';
   static const envoi = '\x13A';
+  static const grave = '\x19A';
+  static const aigu = '\x19B';
+  static const circonflexe = '\x19C';
+  static const trema = '\x19H';
+  static const cedille = '\x19K';
+  static const flecheHaut = '\x19\x2d';
+  static const livre = '\x19\x23';
+  static const OE = '\x19\x6a';
+  static const oe = '\x19\x7a';
+  static const beta = '\x19\x7b';
+  static const paragraph = '\x19\x27';
+  static const degree = '\x19\x30';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
@@ -824,6 +836,37 @@ class TMinitel {
       state.underlined = underlinedFlag;
       state.needAttrSpace = true;
     }
+  }
+
+  String getChar(int x, int y) => String.fromCharCode(screen[y][x + 1].code);
+
+  bool isDoublePart(int x, int y) =>
+      (screen[y][x + 1].lAttr & kDoublePart) != 0;
+
+  String getStringAlphaNum(int x, int y) {
+    final alphaNum = RegExp(r'^[a-zA-Z0-9*]$');
+    final buffer = StringBuffer();
+    // Get characters to the left
+    for (int i = x; i >= 0; i--) {
+      final char = getChar(i, y);
+      if (alphaNum.hasMatch(char)) {
+        if (!isDoublePart(i, y)) buffer.write(char);
+      } else {
+        break;
+      }
+    }
+    final leftPart = buffer.toString().split('').reversed.join('');
+    buffer.clear();
+    // Get characters to the right
+    for (int i = x + 1; i < 40; i++) {
+      final char = getChar(i, y);
+      if (alphaNum.hasMatch(char)) {
+        if (!isDoublePart(i, y)) buffer.write(char);
+      } else {
+        break;
+      }
+    }
+    return leftPart + buffer.toString();
   }
 }
 

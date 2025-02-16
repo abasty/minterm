@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math; // Add this line to import the 'math' library
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:minterm/min_model.dart';
@@ -56,6 +57,7 @@ class MinSettings extends ChangeNotifier {
   var _colors = MinGrey;
   int _loaded = 0;
   bool _keyboard = false;
+  bool _capslock = true;
 
   factory MinSettings() {
     return _singleton;
@@ -88,6 +90,8 @@ class MinSettings extends ChangeNotifier {
 
   get keyboard => _keyboard;
 
+  get capslock => _capslock;
+
   static void setScale(double scale) {
     _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
@@ -103,6 +107,11 @@ class MinSettings extends ChangeNotifier {
   static void toggleKeyboard() {
     _singleton.duration = durationMax;
     _singleton._keyboard = !_singleton._keyboard;
+    _singleton.notifyListeners();
+  }
+
+  static void toggleCapslock() {
+    _singleton._capslock = !_singleton._capslock;
     _singleton.notifyListeners();
   }
 }
@@ -124,8 +133,20 @@ class MinScreen extends StatelessWidget {
               builder: (context, minmodel, child) => Transform.scale(
                 scale: MinSettings().scale,
                 alignment: Alignment.topLeft,
-                child: CustomPaint(
-                  painter: _MinPainter(minmodel),
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTapDown: (TapDownDetails details) {
+                        final tapPosition = details.localPosition;
+                        final x = (tapPosition.dx / 8.0).toInt();
+                        final y = (tapPosition.dy / 10.0).toInt();
+                        minmodel.handleTap(x, y);
+                      },
+                    ),
+                    CustomPaint(
+                      painter: _MinPainter(minmodel),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -156,12 +177,25 @@ class _MinPainter extends CustomPainter {
         );
       }
     }
+
+    final statusCode = minmodel.isConnected ? 0x43 : 0x46;
+    final statusChar = TMinitelChar(0, kAttrInverse + kColorWhite, statusCode);
+    drawChar(canvas, 36 * 8, 0, statusChar);
   }
 
   // Method to draw a character
   void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
+
+    // Manage the cursor.
+    // TODO: Add blinking
+    if (minmodel.minitel.cursorOn &&
+        minmodel.minitel.state.c * 8 - 8 == x &&
+        minmodel.minitel.state.l * 10 == y) {
+      fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
+      bgColor = MinSettings().colors[7 - (char.gAttr & kColorMask)];
+    }
 
     // Swap the foreground and background colors if the inverse attribute is set
     if ((char.lAttr & kAttrInverse) != 0) {
@@ -253,12 +287,275 @@ class _MinPainter extends CustomPainter {
     //   TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
     //   " Flutter MinWidget ",
     // );
-
-    // TODO: Draw the cursor
   }
 
   @override
   bool shouldRepaint(_MinPainter oldDelegate) {
     return minmodel.minitel.isDirty;
+  }
+}
+
+class MinKeyboard extends StatelessWidget {
+  const MinKeyboard({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => MinSettings(),
+      child: Consumer<MinSettings>(
+        builder: (context, settings, child) => ChangeNotifierProvider(
+          create: (context) => MinSettings(),
+          child: SizedBox(
+            width: 8 * 40 * MinSettings().scale,
+            height: 10 * 25 * MinSettings().scale,
+            child: Stack(
+              children: [
+                MinKeyboardImage(),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      width: 0.5,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                // Function keys
+                MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
+                for (int i = 0; i < 4; i++)
+                  MinKey(
+                    left: 66 + i * 40,
+                    top: 36,
+                    width: 35,
+                    k: [
+                      TMinitelKey.sommaire,
+                      TMinitelKey.annulation,
+                      TMinitelKey.retour,
+                      TMinitelKey.repetition,
+                    ][i],
+                    ks: [
+                      TMinitelKey.circonflexe,
+                      "\\",
+                      TMinitelKey.aigu,
+                      "{",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      TMinitelKey.livre,
+                      TMinitelKey.OE,
+                      TMinitelKey.oe,
+                    ][i],
+                  ),
+                for (int i = 0; i < 4; i++)
+                  MinKey(
+                    left: 66 + i * 40,
+                    top: 63,
+                    width: 35,
+                    k: [
+                      TMinitelKey.guide,
+                      TMinitelKey.correction,
+                      TMinitelKey.suite,
+                      TMinitelKey.envoi,
+                    ][i],
+                    ks: [
+                      TMinitelKey.trema,
+                      TMinitelKey.paragraph,
+                      TMinitelKey.grave,
+                      "}",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      "${TMinitelKey.cedille}c",
+                      TMinitelKey.beta,
+                      "\x00",
+                    ][i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 8,
+                    k: "123"[i],
+                    ks: "!\"#"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 34,
+                    k: "456"[i],
+                    ks: "\$%&"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 60,
+                    k: "789"[i],
+                    ks: "'()"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  MinKey(
+                    left: 237 + i * 29,
+                    top: 86,
+                    k: "*0#"[i],
+                    ks: [
+                      "[",
+                      TMinitelKey.flecheHaut,
+                      "]",
+                    ][i],
+                  ),
+                // ESC
+                MinKey(left: 37, top: 120), // TODO: What to do on ESC ?
+                // Special chars
+                for (int i = 0; i < 7; i++)
+                  MinKey(
+                    left: 67 + i * 30,
+                    top: 120,
+                    k: ",.';-:?"[i],
+                    ks: "<>@+=*/"[i],
+                  ),
+                // AZERTY first line
+                for (int i = 0; i < 10; i++)
+                  MinKey(
+                    left: 26 + i * 28.8,
+                    top: 147,
+                    k: "AZERTYUIOP"[i],
+                  ),
+                // AZERTY second line
+                MinKey(
+                  left: 6,
+                  top: 173,
+                  width: 25,
+                  k: "ctrl",
+                ),
+                for (int i = 0; i < 10; i++)
+                  MinKey(
+                    left: 34 + i * 28.8,
+                    top: 173,
+                    k: "QSDFGHJKLM"[i],
+                  ),
+                MinKey(
+                  left: 20,
+                  top: 199,
+                  width: 25,
+                  k: "shift",
+                ),
+                // AZERTY third line
+                for (int i = 0; i < 6; i++)
+                  MinKey(
+                    left: 49 + i * 28.8,
+                    top: 199,
+                    k: "WXCVBN"[i],
+                  ),
+                MinKey(
+                  left: 221,
+                  top: 199,
+                  width: 25,
+                  k: "shift",
+                ),
+                MinKey(
+                  left: 64,
+                  top: 225,
+                  width: 142,
+                  k: " ",
+                ),
+                MinKey(
+                  left: 282,
+                  top: 226,
+                  width: 35,
+                  k: "\x0d",
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MinKeyboardImage extends StatelessWidget {
+  const MinKeyboardImage({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage("assets/clavier.png"),
+          fit: BoxFit.fill,
+        ),
+      ),
+    );
+  }
+}
+
+class MinKey extends StatelessWidget {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final String k;
+  final String ks;
+  final String kc;
+
+  const MinKey({
+    super.key,
+    this.left = 0,
+    this.top = 0,
+    this.width = 25,
+    this.height = 20,
+    this.k = "",
+    this.ks = "",
+    this.kc = "",
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = MinSettings().scale;
+    return Positioned(
+      left: left * scale,
+      top: top * scale,
+      width: width * scale,
+      height: height * scale,
+      child: InkWell(
+        hoverColor: Colors.grey,
+        splashColor: const ui.Color.fromARGB(255, 107, 66, 0),
+        child: kDebugMode
+            ? Container(
+                decoration: BoxDecoration(
+                  border: Border.all(width: 1, color: Colors.red),
+                ),
+              )
+            : null,
+        onTap: () {
+          final letters = RegExp('^[A-Z]\$');
+          final shifted = MinModel().isShifted;
+          final ctrl = MinModel().isCtrl;
+          final upMode = MinSettings().capslock;
+          var key = '';
+          if (letters.hasMatch(k)) {
+            key = (shifted && upMode) || (!shifted && !upMode)
+                ? k.toLowerCase()
+                : k;
+          } else {
+            if (ctrl && kc.isNotEmpty) {
+              key = kc;
+            } else {
+              key = shifted && ks.isNotEmpty ? ks : k;
+            }
+          }
+          switch (key) {
+            case TMinitelKey.cxFin:
+              MinModel().connectOrEnd();
+              break;
+            default:
+              MinModel().handleKeys(key);
+              break;
+          }
+        },
+      ),
+    );
   }
 }

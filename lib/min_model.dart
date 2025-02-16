@@ -10,6 +10,8 @@ class MinModel extends ChangeNotifier {
   var _codes = <int>[];
   int _index = -1;
   int _bps = 1200;
+  bool _isShifted = false;
+  bool _isCtrl = false;
   Timer? _timer;
   String? _serverAddress;
   WebSocketChannel? _server;
@@ -19,6 +21,12 @@ class MinModel extends ChangeNotifier {
   }
 
   MinModel._internal();
+
+  bool get isConnected => _server != null;
+
+  bool get isShifted => _isShifted;
+
+  bool get isCtrl => _isCtrl;
 
   int get bps => _bps;
   set bps(int value) {
@@ -61,34 +69,94 @@ class MinModel extends ChangeNotifier {
     });
   }
 
-  void closeServer() {
-    if (_server != null) {
+  void end() {
+    if (isConnected) {
       _server!.sink.close();
       _server = null;
     }
-    _serverAddress = null;
   }
 
-  void setServer(String serverAddress) {
-    if (_serverAddress != null) _server!.sink.close();
+  void setServerAddress(String serverAddress) {
     _serverAddress = serverAddress;
-    _server = WebSocketChannel.connect(Uri.parse(serverAddress));
-    _server!.stream.listen((message) {
-      emulate(message.codeUnits);
-    }, onError: (error) {
-      debugPrint('WebSocket error: $error');
-      closeServer();
-    }, onDone: () {
-      debugPrint('WebSocket connection closed');
-      closeServer();
-    });
   }
 
-  void sendKeysToServer(String keys) {
-    if (_server != null) {
+  void connect() {
+    if (isConnected) end();
+    if (_serverAddress == null) return;
+
+    _server = WebSocketChannel.connect(Uri.parse(_serverAddress!));
+    _server!.stream.listen(
+      (message) {
+        emulate(message.codeUnits);
+      },
+      onError: (error) {
+        debugPrint('WebSocket error: $error');
+        end();
+      },
+      onDone: () {
+        debugPrint('WebSocket connection closed');
+        end();
+      },
+    );
+  }
+
+  void connectOrEnd() {
+    if (isConnected) {
+      end();
+    } else {
+      connect();
+    }
+  }
+
+  void handleKeys(String keys) {
+    if (keys == 'shift') {
+      _isShifted = !_isShifted;
+      return;
+    }
+    if (keys == 'ctrl') {
+      _isCtrl = !_isCtrl;
+      return;
+    }
+
+    _isCtrl = false;
+    _isShifted = false;
+
+    if (isConnected) {
       _server!.sink.add(keys);
     } else {
-      debugPrint('No server connection established.');
+      emulate(keys.codeUnits);
     }
+  }
+
+  void handleTap(int x, int y) {
+    final c = minitel.getStringAlphaNum(x, y).toUpperCase();
+    switch (c) {
+      case 'ENVOI':
+        handleKeys(TMinitelKey.envoi);
+        break;
+      case 'CORRECTION':
+        handleKeys(TMinitelKey.correction);
+        break;
+      case 'ANNULATION':
+        handleKeys(TMinitelKey.annulation);
+        break;
+      case 'GUIDE':
+        handleKeys(TMinitelKey.guide);
+        break;
+      case 'RETOUR':
+        handleKeys(TMinitelKey.retour);
+        break;
+      case 'SOMMAIRE':
+        handleKeys(TMinitelKey.sommaire);
+        break;
+      case 'SUITE':
+        handleKeys(TMinitelKey.suite);
+        break;
+      default:
+        handleKeys(c);
+        handleKeys(TMinitelKey.envoi);
+        break;
+    }
+    // debugPrint('Handling tap at: x=$x, y=$y, str=$c');
   }
 }

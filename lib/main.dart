@@ -2,12 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:minterm/min_emulator.dart';
-import 'package:provider/provider.dart';
 import 'package:path/path.dart';
-// import 'package:window_manager/window_manager.dart';
 
 import 'min_model.dart';
 import 'min_widget.dart';
@@ -35,52 +32,87 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
+  // MinModel().setServer('wss://3611.re/ws');
+  MinModel().setServerAddress('wss://3615co.de/ws');
+
   HardwareKeyboard.instance.addHandler((event) {
     if (event is KeyDownEvent) {
-      // If local (not connected)
-      // MinModel().emulate([event.logicalKey.keyId]);
-      // If connected
+      // debugPrint('event: $event');
+      // debugPrint('KeyDownEvent: ${event.logicalKey}');
+      if (event.logicalKey.keyLabel == '[') {
+        var shift = HardwareKeyboard.instance.isShiftPressed;
+        MinModel().handleKeys(
+          shift ? TMinitelKey.trema : TMinitelKey.circonflexe,
+        );
+        return true;
+      }
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
           // Suite
-          MinModel().sendKeysToServer(TMinitelKey.suite);
+          MinModel().handleKeys(TMinitelKey.suite);
           break;
         case LogicalKeyboardKey.pageUp:
           // Retour
-          MinModel().sendKeysToServer(TMinitelKey.retour);
+          MinModel().handleKeys(TMinitelKey.retour);
           break;
         case LogicalKeyboardKey.f1:
           // Guide
-          MinModel().sendKeysToServer(TMinitelKey.guide);
+          MinModel().handleKeys(TMinitelKey.guide);
           break;
         case LogicalKeyboardKey.backspace:
           // Correction
-          MinModel().sendKeysToServer(TMinitelKey.correction);
+          MinModel().handleKeys(TMinitelKey.correction);
           break;
         case LogicalKeyboardKey.enter:
           // Envoi
-          MinModel().sendKeysToServer(TMinitelKey.envoi);
+          MinModel().handleKeys(TMinitelKey.envoi);
           break;
         case LogicalKeyboardKey.home:
           // Sommaire
-          MinModel().sendKeysToServer(TMinitelKey.sommaire);
+          MinModel().handleKeys(TMinitelKey.sommaire);
           break;
         case LogicalKeyboardKey.escape:
           // Annulation
-          MinModel().sendKeysToServer(TMinitelKey.annulation);
+          MinModel().handleKeys(TMinitelKey.annulation);
           break;
-
         default:
           // Other keys
           if (event.character != null) {
-            MinModel().sendKeysToServer(event.character!);
+            switch (event.character) {
+              case 'à':
+                MinModel().handleKeys('${TMinitelKey.grave}a');
+                break;
+              case 'é':
+                MinModel().handleKeys('${TMinitelKey.aigu}e');
+                break;
+              case 'è':
+                MinModel().handleKeys('${TMinitelKey.grave}e');
+                break;
+              case 'ù':
+                MinModel().handleKeys('${TMinitelKey.grave}u');
+                break;
+              case 'ç':
+                MinModel().handleKeys('${TMinitelKey.cedille}c');
+                break;
+              case 'Ç':
+                MinModel().handleKeys('${TMinitelKey.cedille}C');
+                break;
+              case '£':
+                MinModel().handleKeys(TMinitelKey.livre);
+                break;
+              case '§':
+                MinModel().handleKeys(TMinitelKey.paragraph);
+                break;
+              case '°':
+                MinModel().handleKeys(TMinitelKey.degree);
+                break;
+              default:
+                MinModel().handleKeys(event.character!);
+                break;
+            }
           }
           break;
       }
-      // int code = event.character != null ? event.character!.codeUnitAt(0) : 0;
-      // debugPrint(
-      // 'char: #$code, label: ${event.logicalKey.keyLabel}, id: ${event.logicalKey.keyId}',
-      // );
       return true;
     }
     return false;
@@ -125,7 +157,6 @@ class MinTerm extends StatelessWidget {
             SendHOH(),
             SendFile(),
             Connection(),
-            SendKey(),
           ],
         ),
       ),
@@ -136,6 +167,7 @@ class MinTerm extends StatelessWidget {
             icon: const Icon(Icons.keyboard),
             onPressed: () => MinSettings.toggleKeyboard(),
           ),
+          CapsLock(),
           IconButton(
             icon: const Icon(Icons.color_lens),
             onPressed: () => MinSettings().toggleColors(),
@@ -154,40 +186,21 @@ class MinTerm extends StatelessWidget {
   }
 }
 
-class MinKeyboard extends StatelessWidget {
-  const MinKeyboard({
+class CapsLock extends StatefulWidget {
+  const CapsLock({
     super.key,
   });
 
   @override
+  State<CapsLock> createState() => _CapsLockState();
+}
+
+class _CapsLockState extends State<CapsLock> {
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MinSettings(),
-      child: Consumer<MinSettings>(
-        builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinSettings(),
-          child: Container(
-            width: 8 * 40 * MinSettings().scale,
-            color: Colors.grey[200],
-            child: AnimatedContainer(
-              height:
-                  MinSettings().keyboard ? 10 * 25 * MinSettings().scale : 0,
-              duration: Duration(milliseconds: MinSettings().duration),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage("assets/clavier.png"),
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    return IconButton(
+      icon: MinSettings().capslock ? const Text('A') : const Text('a'),
+      onPressed: () => setState(() => MinSettings.toggleCapslock()),
     );
   }
 }
@@ -261,6 +274,7 @@ class SendHOH extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
+        MinModel().end();
         MinModel()
             .emulate([0x48, 0x1B, 0x5D, 0x4F, 0x1B, 0x5C, 0x48, 0x20, 10]);
         Navigator.pop(context);
@@ -277,6 +291,7 @@ class Clear extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
+        MinModel().end();
         MinModel().emulate([0x0C]);
         Navigator.pop(context);
       },
@@ -352,7 +367,7 @@ class _SendFileState extends State<SendFile> {
       title: const Text('Load page...'),
       onTap: () async {
         if (!isLoaded) return;
-
+        MinModel().end();
         int? pageIndex = await showMenu(
             context: context,
             position: RelativeRect.fill,
@@ -368,7 +383,6 @@ class _SendFileState extends State<SendFile> {
           Uint8List codes = bytes.buffer.asUint8List();
           MinModel().emulate(codes);
         }
-        // FIXME: problem on context (async gap)
         Navigator.pop(context);
       },
     );
@@ -382,26 +396,10 @@ class Connection extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
-        // MinModel().setServer('wss://3611.re/ws');
-        MinModel().setServer('wss://3615co.de/ws');
+        MinModel().connectOrEnd();
         Navigator.pop(context);
       },
-      title: const Text('Connection'),
-    );
-  }
-}
-
-class SendKey extends StatelessWidget {
-  const SendKey({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        MinModel().sendKeysToServer('*SOS');
-        Navigator.pop(context);
-      },
-      title: Text('Send *SOS'),
+      title: const Text('Connection/End'),
     );
   }
 }
