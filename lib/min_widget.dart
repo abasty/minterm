@@ -188,16 +188,15 @@ class _MinPainter extends CustomPainter {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
 
-    // Swap the foreground and background colors if the inverse attribute is set
-    if ((char.lAttr & kAttrInverse) != 0) {
-      final tmp = fgColor;
-      fgColor = bgColor;
-      bgColor = tmp;
-    }
-
     if (minmodel.minitel.cursorOn &&
         minmodel.minitel.state.c * 8 - 8 == x &&
         minmodel.minitel.state.l * 10 == y) {
+      fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
+      bgColor = MinSettings().colors[7 - (char.gAttr & kColorMask)];
+    }
+
+    // Swap the foreground and background colors if the inverse attribute is set
+    if ((char.lAttr & kAttrInverse) != 0) {
       final tmp = fgColor;
       fgColor = bgColor;
       bgColor = tmp;
