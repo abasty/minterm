@@ -334,12 +334,17 @@ class MinKeyboard extends StatelessWidget {
                       TMinitelKey.retour,
                       TMinitelKey.repetition,
                     ][i],
-                    // ks: "\x15\\\x13{"[i],
                     ks: [
                       TMinitelKey.circonflexe,
                       "\\",
                       TMinitelKey.aigu,
                       "{",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      TMinitelKey.livre,
+                      TMinitelKey.OE,
+                      TMinitelKey.oe,
                     ][i],
                   ),
                 for (int i = 0; i < 4; i++)
@@ -355,9 +360,15 @@ class MinKeyboard extends StatelessWidget {
                     ][i],
                     ks: [
                       TMinitelKey.trema,
-                      "\x00",
+                      TMinitelKey.paragraph,
                       TMinitelKey.grave,
                       "}",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      "${TMinitelKey.cedille}c",
+                      TMinitelKey.beta,
+                      "\x00",
                     ][i],
                   ),
                 for (int i = 0; i < 3; i++)
@@ -386,7 +397,11 @@ class MinKeyboard extends StatelessWidget {
                     left: 237 + i * 29,
                     top: 86,
                     k: "*0#"[i],
-                    ks: "[ ]"[i], // TODO: Add top arrow
+                    ks: [
+                      "[",
+                      TMinitelKey.flecheHaut,
+                      "]",
+                    ][i],
                   ),
                 // ESC
                 MinKey(left: 37, top: 120), // TODO: What to do on ESC ?
@@ -406,6 +421,12 @@ class MinKeyboard extends StatelessWidget {
                     k: "AZERTYUIOP"[i],
                   ),
                 // AZERTY second line
+                MinKey(
+                  left: 6,
+                  top: 173,
+                  width: 25,
+                  k: "ctrl",
+                ),
                 for (int i = 0; i < 10; i++)
                   MinKey(
                     left: 34 + i * 28.8,
@@ -477,6 +498,7 @@ class MinKey extends StatelessWidget {
   final double height;
   final String k;
   final String ks;
+  final String kc;
 
   const MinKey({
     super.key,
@@ -486,6 +508,7 @@ class MinKey extends StatelessWidget {
     this.height = 20,
     this.k = "",
     this.ks = "",
+    this.kc = "",
   });
 
   @override
@@ -507,6 +530,7 @@ class MinKey extends StatelessWidget {
         onTap: () {
           final letters = RegExp('^[A-Z]\$');
           final shifted = MinModel().isShifted;
+          final ctrl = MinModel().isCtrl;
           final upMode = MinSettings().capslock;
           var key = '';
           if (letters.hasMatch(k)) {
@@ -514,7 +538,11 @@ class MinKey extends StatelessWidget {
                 ? k.toLowerCase()
                 : k;
           } else {
-            key = shifted && ks.isNotEmpty ? ks : k;
+            if (ctrl && kc.isNotEmpty) {
+              key = kc;
+            } else {
+              key = shifted && ks.isNotEmpty ? ks : k;
+            }
           }
           switch (key) {
             case TMinitelKey.cxFin:

@@ -51,6 +51,13 @@ class TMinitelKey {
   static const circonflexe = '\x19C';
   static const trema = '\x19H';
   static const cedille = '\x19K';
+  static const flecheHaut = '\x19\x2d';
+  static const livre = '\x19\x23';
+  static const OE = '\x19\x6a';
+  static const oe = '\x19\x7a';
+  static const beta = '\x19\x7b';
+  static const paragraph = '\x19\x27';
+  static const degree = '\x19\x30';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);

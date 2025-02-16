@@ -82,50 +82,29 @@ void main() async {
               case 'à':
                 MinModel().handleKeys('${TMinitelKey.grave}a');
                 break;
-              case 'â':
-                MinModel().handleKeys('${TMinitelKey.circonflexe}a');
-                break;
-              case 'ä':
-                MinModel().handleKeys('${TMinitelKey.trema}a');
-                break;
               case 'é':
                 MinModel().handleKeys('${TMinitelKey.aigu}e');
                 break;
               case 'è':
                 MinModel().handleKeys('${TMinitelKey.grave}e');
                 break;
-              case 'ê':
-                MinModel().handleKeys('${TMinitelKey.circonflexe}e');
-                break;
-              case 'ë':
-                MinModel().handleKeys('${TMinitelKey.trema}e');
-                break;
-              case 'î':
-                MinModel().handleKeys('${TMinitelKey.circonflexe}i');
-                break;
-              case 'ï':
-                MinModel().handleKeys('${TMinitelKey.trema}i');
-                break;
-              case 'ô':
-                MinModel().handleKeys('${TMinitelKey.circonflexe}o');
-                break;
-              case 'ö':
-                MinModel().handleKeys('${TMinitelKey.trema}o');
-                break;
               case 'ù':
                 MinModel().handleKeys('${TMinitelKey.grave}u');
-                break;
-              case 'û':
-                MinModel().handleKeys('${TMinitelKey.circonflexe}u');
-                break;
-              case 'ü':
-                MinModel().handleKeys('${TMinitelKey.trema}u');
                 break;
               case 'ç':
                 MinModel().handleKeys('${TMinitelKey.cedille}c');
                 break;
               case 'Ç':
                 MinModel().handleKeys('${TMinitelKey.cedille}C');
+                break;
+              case '£':
+                MinModel().handleKeys(TMinitelKey.livre);
+                break;
+              case '§':
+                MinModel().handleKeys(TMinitelKey.paragraph);
+                break;
+              case '°':
+                MinModel().handleKeys(TMinitelKey.degree);
                 break;
               default:
                 MinModel().handleKeys(event.character!);

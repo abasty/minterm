@@ -11,6 +11,7 @@ class MinModel extends ChangeNotifier {
   int _index = -1;
   int _bps = 1200;
   bool _isShifted = false;
+  bool _isCtrl = false;
   Timer? _timer;
   String? _serverAddress;
   WebSocketChannel? _server;
@@ -24,6 +25,8 @@ class MinModel extends ChangeNotifier {
   bool get isConnected => _server != null;
 
   bool get isShifted => _isShifted;
+
+  bool get isCtrl => _isCtrl;
 
   int get bps => _bps;
   set bps(int value) {
@@ -110,7 +113,14 @@ class MinModel extends ChangeNotifier {
       _isShifted = !_isShifted;
       return;
     }
+    if (keys == 'ctrl') {
+      _isCtrl = !_isCtrl;
+      return;
+    }
+
+    _isCtrl = false;
     _isShifted = false;
+
     if (isConnected) {
       _server!.sink.add(keys);
     } else {
