@@ -188,9 +188,9 @@ class _MinPainter extends CustomPainter {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
 
-    // Manage the cursor.
-    // TODO: Add blinking
+    // Manage the cursor
     if (minmodel.minitel.cursorOn &&
+        minmodel.showBlink &&
         minmodel.minitel.state.c * 8 - 8 == x &&
         minmodel.minitel.state.l * 10 == y) {
       fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
@@ -199,9 +199,17 @@ class _MinPainter extends CustomPainter {
 
     // Swap the foreground and background colors if the inverse attribute is set
     if ((char.lAttr & kAttrInverse) != 0) {
+      // If blinking attribute is set, set foreground color to background color
+      if ((char.lAttr & kAttrBlink) != 0 && !minmodel.showBlink) {
+        bgColor = fgColor;
+      }
       final tmp = fgColor;
       fgColor = bgColor;
       bgColor = tmp;
+    } else {
+      if ((char.lAttr & kAttrBlink) != 0 && minmodel.showBlink) {
+        fgColor = bgColor;
+      }
     }
 
     // Draw the background color

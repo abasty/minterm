@@ -16,12 +16,19 @@ class MinModel extends ChangeNotifier {
   Timer? _timer;
   String? _serverAddress;
   dynamic _server;
+  bool showBlink = true;
 
   factory MinModel() {
     return _singleton;
   }
 
-  MinModel._internal();
+  MinModel._internal() {
+    Timer.periodic(Duration(milliseconds: 1000), (Timer timer) {
+      _singleton.showBlink = !_singleton.showBlink;
+      _singleton.minitel.isDirty = true;
+      _singleton.notifyListeners();
+    });
+  }
 
   bool get isConnected => _server != null;
 

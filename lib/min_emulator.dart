@@ -12,7 +12,7 @@ const int kAttrDoubleHeightWidth = kAttrDoubleHeight | kAttrDoubleWidth;
 const int kAttrDoubleWidth = 0x40;
 // Local attributes
 // fgcolor (3), flash (1), inverse (1), taille(2), double part (1)
-const int kAttrFlash = 0x08;
+const int kAttrBlink = 0x08;
 const int kAttrInverse = 0x10;
 
 const int kAttrNone = 0x00;
@@ -88,6 +88,14 @@ class TMinitel {
 
   bool get isDirty {
     return (screen[0][41].code & kIsDirty) != 0;
+  }
+
+  set isDirty(bool value) {
+    if (value) {
+      screen[0][41].code |= kIsDirty;
+    } else {
+      screen[0][41].code &= ~kIsDirty;
+    }
   }
 
   void clearScreen() {
@@ -781,7 +789,7 @@ class TMinitel {
   }
 
   void setFlashAttr(int code) {
-    state.blink = code == $H ? kAttrFlash : kAttrNone;
+    state.blink = code == $H ? kAttrBlink : kAttrNone;
   }
 
   void setForegroundColor(int code) {

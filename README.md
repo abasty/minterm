@@ -6,9 +6,11 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 
 * [ ] Connexion serial to ttl
 * [ ] Ajouter BASTOS
-* [ ] Implémenter clavier clavier zx81 étendu et clavier minitel 1b
-* [ ] Mode vidéo inverse
-* [ ] Implémenter blink
+* [ ] Mode vidéo inverse (bof, pour BASTO / VP100)
+* [ ] Implémenter clavier clavier zx81 étendu
+* [x] Implémenter blink et curdor blinking
+* [x] Support ws et tcp
+* [x] Clavier minitel 1b
 * [x] Version Android
 * [x] Ajouter websockets et services connus
 * [x] `_MinPainter.drawChar()` : Utilise un `TMinitelChar`
