@@ -25,12 +25,12 @@ final MinColors = <Color>[
 // ignore: non_constant_identifier_names
 final MinGrey = <Color>[
   Colors.black,
+  Colors.grey[700]!,
+  Colors.grey[500]!,
+  Colors.grey[350]!,
   Colors.grey[800]!,
   Colors.grey[600]!,
   Colors.grey[400]!,
-  Colors.grey[850]!,
-  Colors.grey[700]!,
-  Colors.grey[500]!,
   Colors.white,
 ];
 
