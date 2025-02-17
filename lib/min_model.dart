@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -14,7 +15,7 @@ class MinModel extends ChangeNotifier {
   bool _isCtrl = false;
   Timer? _timer;
   String? _serverAddress;
-  WebSocketChannel? _server;
+  dynamic _server;
 
   factory MinModel() {
     return _singleton;
@@ -32,6 +33,10 @@ class MinModel extends ChangeNotifier {
   set bps(int value) {
     _bps = value;
     notifyListeners();
+  }
+
+  set serverAddress(String? value) {
+    _serverAddress = value;
   }
 
   void emulate(List<int> codes) {
@@ -70,34 +75,74 @@ class MinModel extends ChangeNotifier {
   }
 
   void end() {
-    if (isConnected) {
-      _server!.sink.close();
-      _server = null;
-    }
-  }
+    debugPrint('End connection');
 
-  void setServerAddress(String serverAddress) {
-    _serverAddress = serverAddress;
+    if (_timer != null) {
+      _timer!.cancel();
+      _timer = null;
+    }
+
+    _index = -1;
+    _codes.clear();
+
+    if (isConnected) {
+      if (_server is WebSocketChannel) {
+        _server!.sink.close();
+      } else if (_server is Socket) {
+        _server.destroy();
+      }
+    }
+    _server = null;
   }
 
   void connect() {
     if (isConnected) end();
     if (_serverAddress == null) return;
 
-    _server = WebSocketChannel.connect(Uri.parse(_serverAddress!));
-    _server!.stream.listen(
-      (message) {
-        emulate(message.codeUnits);
-      },
-      onError: (error) {
-        debugPrint('WebSocket error: $error');
-        end();
-      },
-      onDone: () {
-        debugPrint('WebSocket connection closed');
-        end();
-      },
-    );
+    var uri = Uri.parse(_serverAddress!);
+    debugPrint('Connect to: $uri');
+
+    if (uri.scheme == 'ws' || uri.scheme == 'wss') {
+      _server = WebSocketChannel.connect(uri);
+      _server!.stream.listen(
+        (data) {
+          emulate(data.codeUnits);
+        },
+        onError: (error) {
+          debugPrint('WebSocket error: $error');
+          end();
+        },
+        onDone: () {
+          debugPrint('WebSocket connection closed');
+          end();
+        },
+      );
+    } else {
+      Socket.connect(uri.host, uri.port).then(
+        (Socket socket) {
+          _server = socket;
+          (_server as Socket).listen(
+            (data) {
+              debugPrint('Socket data: ${data.length}');
+              emulate(data);
+            },
+            onDone: () {
+              debugPrint('Socket connection closed');
+              end();
+            },
+            onError: (error) {
+              debugPrint('Socket error: $error');
+              end();
+            },
+          );
+        },
+      ).onError(
+        (error, stackTrace) {
+          debugPrint('Socket error: $error');
+          end();
+        },
+      );
+    }
   }
 
   void connectOrEnd() {
@@ -122,7 +167,11 @@ class MinModel extends ChangeNotifier {
     _isShifted = false;
 
     if (isConnected) {
-      _server!.sink.add(keys);
+      if (_server is WebSocketChannel) {
+        _server!.sink.add(keys);
+      } else if (_server is Socket) {
+        _server.write(keys);
+      }
     } else {
       emulate(keys.codeUnits);
     }

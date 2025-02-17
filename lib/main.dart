@@ -32,13 +32,8 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  // MinModel().setServer('wss://3611.re/ws');
-  MinModel().setServerAddress('wss://3615co.de/ws');
-
   HardwareKeyboard.instance.addHandler((event) {
     if (event is KeyDownEvent) {
-      // debugPrint('event: $event');
-      // debugPrint('KeyDownEvent: ${event.logicalKey}');
       if (event.logicalKey.keyLabel == '[') {
         var shift = HardwareKeyboard.instance.isShiftPressed;
         MinModel().handleKeys(
@@ -156,7 +151,9 @@ class MinTerm extends StatelessWidget {
             Clear(),
             SendHOH(),
             SendFile(),
-            Connection(),
+            Connection('3615', 'wss://3615co.de/ws'),
+            Connection('3611', 'wss://3611.re/ws'),
+            Connection('Zboub', 'tcp://localhost:1967'),
           ],
         ),
       ),
@@ -390,16 +387,19 @@ class _SendFileState extends State<SendFile> {
 }
 
 class Connection extends StatelessWidget {
-  const Connection({super.key});
+  final String uri;
+  final String text;
+  const Connection(this.text, this.uri, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
-        MinModel().connectOrEnd();
+        MinModel().serverAddress = uri;
+        MinModel().connect();
         Navigator.pop(context);
       },
-      title: const Text('Connection/End'),
+      title: Text(text),
     );
   }
 }

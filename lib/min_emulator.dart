@@ -53,6 +53,7 @@ class TMinitelKey {
   static const cedille = '\x19K';
   static const flecheHaut = '\x19\x2d';
   static const livre = '\x19\x23';
+  // ignore: constant_identifier_names
   static const OE = '\x19\x6a';
   static const oe = '\x19\x7a';
   static const beta = '\x19\x7b';
