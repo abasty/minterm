@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:minterm/min_emulator.dart';
 import 'package:path/path.dart';
+import 'package:audioplayers/audioplayers.dart';
 
+import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_widget.dart';
 
@@ -153,7 +154,7 @@ class MinTerm extends StatelessWidget {
             SendFile(),
             Connection('3615', 'wss://3615co.de/ws'),
             Connection('3611', 'wss://3611.re/ws'),
-            Connection('Zboub', 'tcp://localhost:1967'),
+            Connection('Zboub', 'tcp://217.154.8.76:1967'),
           ],
         ),
       ),
@@ -290,6 +291,8 @@ class Clear extends StatelessWidget {
       onTap: () {
         MinModel().end();
         MinModel().emulate([0x0C]);
+        final player = AudioPlayer();
+        player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
         Navigator.pop(context);
       },
       title: const Text('Clear'),

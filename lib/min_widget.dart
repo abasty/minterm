@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math; // Add this line to import the 'math' library
 import 'dart:ui' as ui;
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -52,7 +53,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
   static const durationMax = 400;
-  var scale = 1.0;
+  var scale = 2.5;
   var duration = durationMax;
   var _colors = MinGrey;
   int _loaded = 0;
@@ -538,6 +539,9 @@ class MinKey extends StatelessWidget {
               )
             : null,
         onTap: () {
+          final player = AudioPlayer();
+          player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+
           final letters = RegExp('^[A-Z]\$');
           final shifted = MinModel().isShifted;
           final ctrl = MinModel().isCtrl;
