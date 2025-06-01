@@ -141,30 +141,29 @@ class MinTerm extends StatelessWidget {
             SetBps(),
             Scale(),
             SetColors(),
-            ListTile(
-              title: const Text('Keyboard'),
-              onTap: () {
-                MinSettings.toggleKeyboard();
-                Navigator.pop(context);
-              },
-            ),
+            // ListTile(
+            //   title: const Text('Keyboard'),
+            //   onTap: () {
+            //     MinSettings.toggleKeyboard();
+            //     Navigator.pop(context);
+            //   },
+            // ),
             Divider(),
             Clear(),
-            SendHOH(),
-            SendFile(),
             Connection('3615', 'wss://3615co.de/ws'),
             Connection('3611', 'wss://3611.re/ws'),
             Connection('Zboub', 'tcp://217.154.8.76:1967'),
+            Connection('localhost:1967', 'tcp://127.0.0.1:1967'),
           ],
         ),
       ),
       appBar: AppBar(
         title: const Text('Minterm'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.keyboard),
-            onPressed: () => MinSettings.toggleKeyboard(),
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.keyboard),
+          //   onPressed: () => MinSettings.toggleKeyboard(),
+          // ),
           CapsLock(),
           IconButton(
             icon: const Icon(Icons.color_lens),
@@ -265,23 +264,6 @@ class SetColors extends StatelessWidget {
   }
 }
 
-class SendHOH extends StatelessWidget {
-  const SendHOH({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        MinModel().end();
-        MinModel()
-            .emulate([0x48, 0x1B, 0x5D, 0x4F, 0x1B, 0x5C, 0x48, 0x20, 10]);
-        Navigator.pop(context);
-      },
-      title: const Text('Send HOH'),
-    );
-  }
-}
-
 class Clear extends StatelessWidget {
   const Clear({super.key});
 
@@ -334,57 +316,6 @@ class _ScaleState extends State<Scale> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class SendFile extends StatefulWidget {
-  const SendFile({super.key});
-
-  @override
-  State<SendFile> createState() => _SendFileState();
-}
-
-class _SendFileState extends State<SendFile> {
-  late final List<String> pages;
-  bool isLoaded = false;
-
-  @override
-  initState() {
-    super.initState();
-    AssetManifest.loadFromAssetBundle(rootBundle).then((manifest) {
-      pages = manifest
-          .listAssets()
-          .where((string) => string.endsWith("tel"))
-          .toList();
-      isLoaded = true;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: const Text('Load page...'),
-      onTap: () async {
-        if (!isLoaded) return;
-        MinModel().end();
-        int? pageIndex = await showMenu(
-            context: context,
-            position: RelativeRect.fill,
-            items: [
-              for (int idx = 0; idx < pages.length; idx++)
-                PopupMenuItem<int>(
-                  value: idx,
-                  child: Text(basenameWithoutExtension(pages[idx])),
-                )
-            ]);
-        if (pageIndex != null) {
-          final ByteData bytes = await rootBundle.load(pages[pageIndex]);
-          Uint8List codes = bytes.buffer.asUint8List();
-          MinModel().emulate(codes);
-        }
-        Navigator.pop(context);
-      },
     );
   }
 }

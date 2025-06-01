@@ -130,7 +130,6 @@ class MinModel extends ChangeNotifier {
           _server = socket;
           (_server as Socket).listen(
             (data) {
-              debugPrint('Socket data: ${data.length}');
               emulate(data);
             },
             onDone: () {
