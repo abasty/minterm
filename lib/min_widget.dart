@@ -412,8 +412,7 @@ class MinKeyboard extends StatelessWidget {
                       "]",
                     ][i],
                   ),
-                // ESC
-                MinKey(left: 37, top: 120), // TODO: What to do on ESC ?
+                MinKey(left: 37, top: 120, k: '\x1b'), // Escape key
                 // Special chars
                 for (int i = 0; i < 7; i++)
                   MinKey(
