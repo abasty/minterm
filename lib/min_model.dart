@@ -185,6 +185,7 @@ class MinModel extends ChangeNotifier {
 
   void handleTap(int x, int y) {
     final c = minitel.getStringAlphaNum(x, y).toUpperCase();
+    // TODO: Handle "space" as a special case
     switch (c) {
       case 'ENVOI':
         handleKeys(TMinitelKey.envoi);
