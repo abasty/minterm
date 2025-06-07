@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'min_emulator.dart';
@@ -15,6 +16,7 @@ class MinModel extends ChangeNotifier {
   bool _isCtrl = false;
   Timer? _timer;
   String? _serverAddress;
+  // TODO: add a setter and use real type to dispose things on null
   dynamic _server;
   bool showBlink = true;
 
@@ -100,6 +102,17 @@ class MinModel extends ChangeNotifier {
       }
     }
     _server = null;
+  }
+
+  void connectSerial(SerialPort port) {
+    if (isConnected) end();
+
+    debugPrint('Connect to serial device: ${port.name}');
+    if (!port.openReadWrite()) {
+      // Open the port for reading and writing
+      debugPrint('Failed to open serial port: ${port.name}');
+      return;
+    }
   }
 
   void connect() {

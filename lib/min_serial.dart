@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
 
+import 'min_model.dart';
+
 class MinSerial extends StatefulWidget {
   const MinSerial({super.key});
 
@@ -50,20 +52,22 @@ class MinSerialState extends State<MinSerial> {
             for (final address in availablePorts)
               Builder(builder: (context) {
                 final port = SerialPort(address);
-                return ExpansionTile(
+                return ListTile(
                   title: Text(address),
-                  children: [
-                    CardListTile('Description', port.description),
-                    CardListTile('Transport', port.transport.toTransport()),
-                    CardListTile('USB Bus', port.busNumber?.toPadded()),
-                    CardListTile('USB Device', port.deviceNumber?.toPadded()),
-                    CardListTile('Vendor ID', port.vendorId?.toHex()),
-                    CardListTile('Product ID', port.productId?.toHex()),
-                    CardListTile('Manufacturer', port.manufacturer),
-                    CardListTile('Product Name', port.productName),
-                    CardListTile('Serial Number', port.serialNumber),
-                    CardListTile('MAC Address', port.macAddress),
-                  ],
+                  subtitle: Text('Description: ${port.description ?? "N/A"}'
+                      '\nTransport: ${port.transport.toTransport()}'
+                      '\nUSB Bus: ${port.busNumber?.toPadded()}'
+                      '\nUSB Device: ${port.deviceNumber?.toPadded()}'
+                      '\nVendor ID: ${port.vendorId?.toHex()}'
+                      '\nProduct ID: ${port.productId?.toHex()}'
+                      '\nManufacturer: ${port.manufacturer ?? "N/A"}'
+                      '\nProduct Name: ${port.productName ?? "N/A"}'
+                      '\nSerial Number: ${port.serialNumber ?? "N/A"}'
+                      '\nMAC Address: ${port.macAddress ?? "N/A"}'),
+                  onTap: () {
+                    MinModel().connectSerial(port);
+                    Navigator.pop(context);
+                  },
                 );
               }),
           ],
