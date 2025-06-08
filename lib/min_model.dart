@@ -56,10 +56,14 @@ class MinModel extends ChangeNotifier {
     _codes += codes;
 
     // If the speed is 0, send all the codes at once
-    if (_bps == 0) {
+    if (_bps == 0 || _serialReader != null) {
       // Send all the codes at once
       minitel.emulate(_codes);
       _codes.clear();
+      if (minitel.socketSpeedChanged) {
+        setSerialSpeed(minitel.socketSpeed);
+        minitel.socketSpeedChanged = false;
+      }
       if (minitel.isDirty) notifyListeners();
       return;
     }
@@ -81,6 +85,20 @@ class MinModel extends ChangeNotifier {
         _codes.clear();
       }
     });
+  }
+
+  void setSerialSpeed(int speed) {
+    if (_server is SerialPort) {
+      final port = _server as SerialPort;
+      if (port.isOpen) {
+        port.config = SerialPortConfig()
+          ..baudRate = speed
+          ..bits = 7
+          ..parity = SerialPortParity.even
+          ..stopBits = 1
+          ..setFlowControl(SerialPortFlowControl.none);
+      }
+    }
   }
 
   void end() {
@@ -150,16 +168,11 @@ class MinModel extends ChangeNotifier {
       debugPrint('Failed to open serial port: ${port.name}');
       return;
     }
-    port.config = SerialPortConfig()
-      ..baudRate = 1200
-      ..bits = 7
-      ..parity = SerialPortParity.even
-      ..stopBits = 1
-      ..setFlowControl(SerialPortFlowControl.none);
 
     _server = port;
-    _serialReader = SerialPortReader(port);
+    setSerialSpeed(1200);
 
+    _serialReader = SerialPortReader(port);
     _serialReader!.stream.listen(
       (data) {
         emulate(data);
