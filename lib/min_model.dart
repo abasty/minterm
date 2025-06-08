@@ -150,9 +150,16 @@ class MinModel extends ChangeNotifier {
       debugPrint('Failed to open serial port: ${port.name}');
       return;
     }
+    port.config = SerialPortConfig()
+      ..baudRate = 1200
+      ..bits = 7
+      ..parity = SerialPortParity.even
+      ..stopBits = 1
+      ..setFlowControl(SerialPortFlowControl.none);
+
     _server = port;
-    debugPrint('Serial port opened: ${port.name}');
     _serialReader = SerialPortReader(port);
+
     _serialReader!.stream.listen(
       (data) {
         emulate(data);
@@ -166,7 +173,10 @@ class MinModel extends ChangeNotifier {
         end();
       },
     );
-    port.write(Uint8List.fromList('cls\r'.codeUnits)); // Clear screen
+    debugPrint('Serial port opened: ${port.name}');
+
+    // Clear screen with BASTOS. TODO: run `bastos`
+    port.write(Uint8List.fromList('cls\r'.codeUnits));
   }
 
   void connectSocket(Uri uri) {
