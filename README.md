@@ -4,8 +4,8 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 
 ## Bugs
 
-* [ ] **Série : Ajouter configuration par défaut (1200)**
-* [ ] **Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max**
+* [x] **Série : Ajouter configuration par défaut (1200)**
+* [x] **Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max**
 * [ ] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
 
 ## TODO
