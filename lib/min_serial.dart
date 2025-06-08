@@ -52,7 +52,7 @@ class MinSerialState extends State<MinSerial> {
             for (final address in availablePorts)
               Builder(builder: (context) {
                 final port = SerialPort(address);
-                return ListTile(
+                Widget portStatus = ListTile(
                   title: Text(address),
                   subtitle: Text('Description: ${port.description ?? "N/A"}'
                       '\nTransport: ${port.transport.toTransport()}'
@@ -65,10 +65,12 @@ class MinSerialState extends State<MinSerial> {
                       '\nSerial Number: ${port.serialNumber ?? "N/A"}'
                       '\nMAC Address: ${port.macAddress ?? "N/A"}'),
                   onTap: () {
-                    MinModel().connectSerial(port);
+                    MinModel().connectSerial(address);
                     Navigator.pop(context);
                   },
                 );
+                port.dispose();
+                return portStatus;
               }),
           ],
         ),

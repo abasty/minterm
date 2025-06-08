@@ -16,7 +16,6 @@ class MinModel extends ChangeNotifier {
   bool _isCtrl = false;
   Timer? _timer;
   String? _serverAddress;
-  // TODO: add a setter and use real type to dispose things on null
   dynamic _server;
   bool showBlink = true;
 
@@ -99,20 +98,32 @@ class MinModel extends ChangeNotifier {
         _server!.sink.close();
       } else if (_server is Socket) {
         _server.destroy();
+      } else if (_server is SerialPort) {
+        final port = _server as SerialPort;
+        debugPrint('Closing serial port: ${port.name}');
+        if (port.isOpen) {
+          port.close();
+          debugPrint('Serial port closed: ${port.name}');
+        }
+        port.dispose();
       }
     }
     _server = null;
   }
 
-  void connectSerial(SerialPort port) {
+  void connectSerial(String portName) {
     if (isConnected) end();
 
-    debugPrint('Connect to serial device: ${port.name}');
+    final port = SerialPort(portName);
+    debugPrint('Opening serial port: $portName');
     if (!port.openReadWrite()) {
       // Open the port for reading and writing
       debugPrint('Failed to open serial port: ${port.name}');
       return;
     }
+    _server = port;
+    _serverAddress = port.name;
+    debugPrint('Serial port opened: ${port.name}');
   }
 
   void connect() {
