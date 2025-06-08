@@ -2,10 +2,17 @@
 
 Encore un émulateur Minitel ! En Flutter & Dart.
 
+## Bugs
+
+* [ ] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
+* [ ] Série : Ajouter configuration par défaut (1200)
+* [ ] Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max
+
 ## TODO
 
-* [ ] Connexion serial to ttl
-* [ ] Ajouter BASTOS
+* [ ] Émulation mode 80 colonnes et mode mixte
+* [ ] Connexion serial to Minitel (output)
+* [ ] Ajouter BASTOS (à priori non)
 * [ ] Mode vidéo inverse (bof, pour BASTO / VP100)
 * [ ] Implémenter clavier zx81 étendu
 * [x] Implémenter blink et curdor blinking
