@@ -125,7 +125,6 @@ class TMinitel {
     }
   }
 
-  // TODO: Use a list of uint8_t instead of List<int>
   void emulate(List<int> codes) {
     final fadr = <FHandleCode>[
       handleNull,

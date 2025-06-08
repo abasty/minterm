@@ -188,8 +188,7 @@ class MinModel extends ChangeNotifier {
     );
     debugPrint('Serial port opened: ${port.name}');
 
-    // Clear screen with BASTOS. TODO: run `bastos`
-    port.write(Uint8List.fromList('bastos\r'.codeUnits));
+    port.write(Uint8List.fromList('BASTOS\r'.codeUnits));
   }
 
   void connectSocket(Uri uri) {
@@ -277,8 +276,10 @@ class MinModel extends ChangeNotifier {
 
   void handleTap(int x, int y) {
     final c = minitel.getStringAlphaNum(x, y).toUpperCase();
-    // TODO: Handle "space" as a special case
     switch (c) {
+      case '':
+        // Ignore empty string
+        break;
       case 'ENVOI':
         handleKeys(TMinitelKey.envoi);
         break;
