@@ -189,7 +189,7 @@ class MinModel extends ChangeNotifier {
     debugPrint('Serial port opened: ${port.name}');
 
     // Clear screen with BASTOS. TODO: run `bastos`
-    port.write(Uint8List.fromList('cls\r'.codeUnits));
+    port.write(Uint8List.fromList('bastos\r'.codeUnits));
   }
 
   void connectSocket(Uri uri) {
