@@ -232,7 +232,7 @@ class ConnectionSerial extends StatelessWidget {
           MaterialPageRoute(builder: (context) => MinSerial()),
         );
       },
-      title: const Text('Port série'),
+      title: const Text('ESP8266 / USB série'),
     );
   }
 }
