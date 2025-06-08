@@ -17,6 +17,7 @@ class MinModel extends ChangeNotifier {
   Timer? _timer;
   String? _serverAddress;
   dynamic _server;
+  SerialPortReader? _serialReader;
   bool showBlink = true;
 
   factory MinModel() {
@@ -100,6 +101,11 @@ class MinModel extends ChangeNotifier {
         _server.destroy();
       } else if (_server is SerialPort) {
         final port = _server as SerialPort;
+        debugPrint('Closing serial port reader');
+        if (_serialReader != null) {
+          _serialReader!.close();
+          _serialReader = null;
+        }
         debugPrint('Closing serial port: ${port.name}');
         if (port.isOpen) {
           port.close();
@@ -109,6 +115,29 @@ class MinModel extends ChangeNotifier {
       }
     }
     _server = null;
+  }
+
+  void connect() {
+    if (isConnected) end();
+    if (_serverAddress == null) return;
+
+    var uri = Uri.parse(_serverAddress!);
+    debugPrint('Connect to: $uri');
+
+    if (uri.scheme == 'serial') {
+      connectSerial(uri.path);
+      return;
+    }
+
+    if (uri.scheme == 'ws' || uri.scheme == 'wss') {
+      connectWebSocket(uri);
+      return;
+    }
+
+    if (uri.scheme == 'tcp' || uri.scheme == 'udp') {
+      connectSocket(uri);
+      return;
+    }
   }
 
   void connectSerial(String portName) {
@@ -122,57 +151,65 @@ class MinModel extends ChangeNotifier {
       return;
     }
     _server = port;
-    _serverAddress = port.name;
     debugPrint('Serial port opened: ${port.name}');
+    _serialReader = SerialPortReader(port);
+    _serialReader!.stream.listen(
+      (data) {
+        emulate(data);
+      },
+      onError: (error) {
+        debugPrint('Serial port error: $error');
+        end();
+      },
+      onDone: () {
+        debugPrint('Serial port connection closed');
+        end();
+      },
+    );
+    port.write(Uint8List.fromList('cls\r'.codeUnits)); // Clear screen
   }
 
-  void connect() {
-    if (isConnected) end();
-    if (_serverAddress == null) return;
+  void connectSocket(Uri uri) {
+    Socket.connect(uri.host, uri.port).then(
+      (Socket socket) {
+        _server = socket;
+        (_server as Socket).listen(
+          (data) {
+            emulate(data);
+          },
+          onDone: () {
+            debugPrint('Socket connection closed');
+            end();
+          },
+          onError: (error) {
+            debugPrint('Socket error: $error');
+            end();
+          },
+        );
+      },
+    ).onError(
+      (error, stackTrace) {
+        debugPrint('Socket error: $error');
+        end();
+      },
+    );
+  }
 
-    var uri = Uri.parse(_serverAddress!);
-    debugPrint('Connect to: $uri');
-
-    if (uri.scheme == 'ws' || uri.scheme == 'wss') {
-      _server = WebSocketChannel.connect(uri);
-      _server!.stream.listen(
-        (data) {
-          emulate(data.codeUnits);
-        },
-        onError: (error) {
-          debugPrint('WebSocket error: $error');
-          end();
-        },
-        onDone: () {
-          debugPrint('WebSocket connection closed');
-          end();
-        },
-      );
-    } else {
-      Socket.connect(uri.host, uri.port).then(
-        (Socket socket) {
-          _server = socket;
-          (_server as Socket).listen(
-            (data) {
-              emulate(data);
-            },
-            onDone: () {
-              debugPrint('Socket connection closed');
-              end();
-            },
-            onError: (error) {
-              debugPrint('Socket error: $error');
-              end();
-            },
-          );
-        },
-      ).onError(
-        (error, stackTrace) {
-          debugPrint('Socket error: $error');
-          end();
-        },
-      );
-    }
+  void connectWebSocket(Uri uri) {
+    _server = WebSocketChannel.connect(uri);
+    _server!.stream.listen(
+      (data) {
+        emulate(data.codeUnits);
+      },
+      onError: (error) {
+        debugPrint('WebSocket error: $error');
+        end();
+      },
+      onDone: () {
+        debugPrint('WebSocket connection closed');
+        end();
+      },
+    );
   }
 
   void connectOrEnd() {
@@ -201,6 +238,14 @@ class MinModel extends ChangeNotifier {
         _server!.sink.add(keys);
       } else if (_server is Socket) {
         _server.write(keys);
+      } else if (_server is SerialPort) {
+        final port = _server as SerialPort;
+        if (port.isOpen) {
+          final keysU8 = Uint8List.fromList(keys.codeUnits);
+          port.write(keysU8);
+        } else {
+          debugPrint('Serial port is not open: ${port.name}');
+        }
       }
     } else {
       emulate(keys.codeUnits);

@@ -65,7 +65,8 @@ class MinSerialState extends State<MinSerial> {
                       '\nSerial Number: ${port.serialNumber ?? "N/A"}'
                       '\nMAC Address: ${port.macAddress ?? "N/A"}'),
                   onTap: () {
-                    MinModel().connectSerial(address);
+                    MinModel().serverAddress = 'serial://$address';
+                    MinModel().connect();
                     Navigator.pop(context);
                   },
                 );
