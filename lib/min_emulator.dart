@@ -76,8 +76,8 @@ class TMinitel {
   int lastCharset = kG0Charset;
   bool scrollOn = false;
   bool cursorOn = false;
-  bool socketSpeedChanged = false;
-  int socketSpeed = 1200;
+  bool speedChanged = false;
+  int speed = 1200;
 
   TMinitelState state = TMinitelState(l: 1, c: 1);
   TMinitelState savedState = TMinitelState();
@@ -382,11 +382,11 @@ class TMinitel {
       scrollOn = (y & 0x02) == 0x02;
     } else if (x == 0x6b) {
       if (y == 0x76) {
-        socketSpeedChanged = true;
-        socketSpeed = 4800;
+        speedChanged = true;
+        speed = 4800;
       } else if (y == 0x64) {
-        socketSpeedChanged = true;
-        socketSpeed = 1200;
+        speedChanged = true;
+        speed = 1200;
       }
     }
     stateCode = 0;

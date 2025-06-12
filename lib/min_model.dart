@@ -60,9 +60,9 @@ class MinModel extends ChangeNotifier {
       // Send all the codes at once
       minitel.emulate(_codes);
       _codes.clear();
-      if (minitel.socketSpeedChanged) {
-        setSerialSpeed(minitel.socketSpeed);
-        minitel.socketSpeedChanged = false;
+      if (minitel.speedChanged) {
+        setSerialSpeed(minitel.speed);
+        minitel.speedChanged = false;
       }
       if (minitel.isDirty) notifyListeners();
       return;
@@ -83,6 +83,10 @@ class MinModel extends ChangeNotifier {
         _timer = null;
         _index = -1;
         _codes.clear();
+        if (minitel.speedChanged) {
+          _bps = minitel.speed;
+          minitel.speedChanged = false;
+        }
       }
     });
   }
