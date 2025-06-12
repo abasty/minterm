@@ -352,7 +352,7 @@ class TMinitel {
 
   void handleLineFeed() {
     if (state.l == 0) {
-      state = savedState;
+      state = TMinitelState.from(savedState);
     } else if (state.l < 24) {
       state.l++;
     } else if (scrollOn) {
@@ -779,7 +779,7 @@ class TMinitel {
   void setCursorPosition(int line, int column) {
     if ((line >= 64) && (line <= 88) && (column >= 65) && (column <= 105)) {
       if ((state.l != 0) && (line == 64)) {
-        savedState = state;
+        savedState = TMinitelState.from(state);
       }
       state.l = line - 64;
       state.c = column - 64;
@@ -789,7 +789,7 @@ class TMinitel {
         (column >= 48) &&
         (column <= 57)) {
       if ((state.l != 0) && (line == 48) && (column == 48)) {
-        savedState = state;
+        savedState = TMinitelState.from(state);
       }
       state.l = ((line & 15) * 10) + (column & 15);
       state.c = 1;
@@ -914,6 +914,18 @@ class TMinitelState {
   int c = 0;
 
   TMinitelState({this.l = 0, this.c = 0});
+  TMinitelState.from(TMinitelState state)
+      : needAttrSpace = state.needAttrSpace,
+        bgColor = state.bgColor,
+        underlined = state.underlined,
+        disjointed = state.disjointed,
+        fgColor = state.fgColor,
+        blink = state.blink,
+        size = state.size,
+        inverse = state.inverse,
+        charset = state.charset,
+        l = state.l,
+        c = state.c;
 
   void resetAttr() {
     needAttrSpace = false;
