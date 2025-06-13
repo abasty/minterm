@@ -2,6 +2,36 @@
 
 Encore un émulateur Minitel ! En Flutter & Dart.
 
+## Build Android
+
+Il faut commenter la ligne faisant référence à `Registar` dans
+`~/.pub-cache/hosted/pub.dev/flutter_libserialport-0.5.0/android/src/main/kotlin/org/sigrok/flutter_libserialport/FlutterLibserialportPlugin.kt`.
+
+"/** import io.flutter.plugin.common.PluginRegistry.Registrar */"
+
+Ensuite on peut suivre la doc ici :
+<https://docs.flutter.dev/deployment/android#build-the-app-for-release>
+
+Pour téléphone et tablette arm64, on peut ne construire que l'APK approprié :
+
+```
+$ flutter build apk --split-per-abi
+...
+✓ Built build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk (7.3MB)
+✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (7.8MB)
+✓ Built build/app/outputs/flutter-apk/app-x86_64-release.apk (7.9MB)
+```
+
+On installe avec `flutter install`. On peut créer un lien vers le bon APK ou
+utiliser `--use-application-binary` :
+
+```
+$ flutter install --use-application-binary=build/app/outputs/flutter-apk/app-x86_64-release.apk
+Installing app-x86_64-release.apk to sdk gphone64 x86 64...
+Uninstalling old version...
+Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
+```
+
 ## Bugs
 
 * [x] **Série : Ajouter configuration par défaut (1200)**
