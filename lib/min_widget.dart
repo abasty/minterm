@@ -165,6 +165,11 @@ class _MinPainter extends CustomPainter {
 
   void draw(Canvas canvas) {
     var screen = minmodel.minitel.screen;
+    if (minmodel.minitel.bip) {
+      final player = AudioPlayer();
+      player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
+      minmodel.minitel.bip = false;
+    }
     screen[0][41].code &= ~kIsDirty;
     for (int line = 0; line <= 24; ++line) {
       screen[line][0].code &= ~kIsDirty;

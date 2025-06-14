@@ -78,6 +78,7 @@ class TMinitel {
   bool cursorOn = false;
   bool speedChanged = false;
   int speed = 1200;
+  bool bip = false;
 
   TMinitelState state = TMinitelState(l: 1, c: 1);
   TMinitelState savedState = TMinitelState();
@@ -249,6 +250,7 @@ class TMinitel {
   }
 
   void handleBell() {
+    bip = true;
     stateCode = 0;
   }
 
