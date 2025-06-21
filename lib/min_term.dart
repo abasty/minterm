@@ -12,52 +12,55 @@ class MinTerm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            CloseMenu(),
-            Divider(),
-            SetBps(),
-            Scale(),
-            SetColors(),
-            // ListTile(
-            //   title: const Text('Keyboard'),
-            //   onTap: () {
-            //     MinSettings.toggleKeyboard();
-            //     Navigator.pop(context);
-            //   },
+    return ExcludeFocus(
+      excluding: true,
+      child: Scaffold(
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              CloseMenu(),
+              Divider(),
+              SetBps(),
+              Scale(),
+              SetColors(),
+              // ListTile(
+              //   title: const Text('Keyboard'),
+              //   onTap: () {
+              //     MinSettings.toggleKeyboard();
+              //     Navigator.pop(context);
+              //   },
+              // ),
+              Divider(),
+              Clear(),
+              Connection('3615', 'wss://3615co.de/ws'),
+              Connection('3611', 'wss://3611.re/ws'),
+              Connection('Zboub', 'tcp://217.154.8.76:1967'),
+              Connection('localhost:1967', 'tcp://127.0.0.1:1967'),
+              ConnectionSerial(),
+            ],
+          ),
+        ),
+        appBar: AppBar(
+          title: const Text('Minterm'),
+          actions: [
+            // IconButton(
+            //   icon: const Icon(Icons.keyboard),
+            //   onPressed: () => MinSettings.toggleKeyboard(),
             // ),
-            Divider(),
-            Clear(),
-            Connection('3615', 'wss://3615co.de/ws'),
-            Connection('3611', 'wss://3611.re/ws'),
-            Connection('Zboub', 'tcp://217.154.8.76:1967'),
-            Connection('localhost:1967', 'tcp://127.0.0.1:1967'),
-            ConnectionSerial(),
+            CapsLock(),
+            IconButton(
+              icon: const Icon(Icons.color_lens),
+              onPressed: () => MinSettings().toggleColors(),
+            ),
           ],
         ),
-      ),
-      appBar: AppBar(
-        title: const Text('Minterm'),
-        actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.keyboard),
-          //   onPressed: () => MinSettings.toggleKeyboard(),
-          // ),
-          CapsLock(),
-          IconButton(
-            icon: const Icon(Icons.color_lens),
-            onPressed: () => MinSettings().toggleColors(),
+        body: Center(
+          child: Column(
+            children: [
+              MinScreen(),
+              MinKeyboard(),
+            ],
           ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          children: [
-            MinScreen(),
-            MinKeyboard(),
-          ],
         ),
       ),
     );
