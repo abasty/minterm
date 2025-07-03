@@ -89,9 +89,9 @@ class MinSettings extends ChangeNotifier {
 
   bool get isLoaded => _loaded == 2;
 
-  get keyboard => _keyboard;
+  bool get keyboard => _keyboard;
 
-  get capslock => _capslock;
+  bool get capslock => _capslock;
 
   static void setScale(double scale) {
     _singleton.duration = 0;
@@ -562,14 +562,7 @@ class MinKey extends StatelessWidget {
               key = shifted && ks.isNotEmpty ? ks : k;
             }
           }
-          switch (key) {
-            case TMinitelKey.cxFin:
-              MinModel().connectOrEnd();
-              break;
-            default:
-              MinModel().handleKeys(key);
-              break;
-          }
+          MinModel().handleKeys(key);
         },
       ),
     );

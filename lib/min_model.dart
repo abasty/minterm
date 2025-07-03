@@ -19,6 +19,7 @@ class MinModel extends ChangeNotifier {
   dynamic _server;
   SerialPortReader? _serialReader;
   bool showBlink = true;
+  int endKeyTap = 0;
 
   factory MinModel() {
     return _singleton;
@@ -259,6 +260,19 @@ class MinModel extends ChangeNotifier {
     _isCtrl = false;
     _isShifted = false;
 
+    // Manage CX/Fin key
+    if (keys == TMinitelKey.cxFin) {
+      endKeyTap++;
+      if (!isConnected || endKeyTap >= 2) {
+        endKeyTap = 0;
+        connectOrEnd();
+        return;
+      }
+    } else {
+      endKeyTap = 0;
+    }
+
+    // Manage other keys
     if (isConnected) {
       if (_server is WebSocketChannel) {
         _server!.sink.add(keys);
