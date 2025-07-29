@@ -37,7 +37,7 @@ const int kIsDirty = 0x80;
 const int kSizeMask = 0x60;
 
 class TMinitelKey {
-  static const cxFin = '\x13I';
+  static const cxFin = '\x13Y';
   static const sommaire = '\x13F';
   static const guide = '\x13D';
   static const annulation = '\x13E';
