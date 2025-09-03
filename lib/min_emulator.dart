@@ -6,6 +6,10 @@ const int $rep = 0x12;
 const int $sep = 0x13;
 const int $ss2 = 0x19;
 
+const int $pro1 = 0x39;
+const int $pro2 = 0x3A;
+const int $pro3 = 0x3B;
+
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
 const int kAttrDoubleHeightWidth = kAttrDoubleHeight | kAttrDoubleWidth;
@@ -70,6 +74,8 @@ typedef TMinitelScreen = List<List<TMinitelChar>>;
 
 class TMinitel {
   int stateCode = 0;
+  bool _isPro3On = false;
+  bool _isPro3StatusEcho = false;
   int currentCode = 0;
   int prevCode = 0;
   int lastCode = 0;
@@ -79,6 +85,16 @@ class TMinitel {
   bool speedChanged = false;
   int speed = 1200;
   bool bip = false;
+  bool echoChanged = false;
+  bool _isEchoed = true;
+
+  bool get isEchoed => _isEchoed;
+  set isEchoed(bool value) {
+    if (_isEchoed != value) {
+      _isEchoed = value;
+      echoChanged = true;
+    }
+  }
 
   TMinitelState state = TMinitelState(l: 1, c: 1);
   TMinitelState savedState = TMinitelState();
@@ -219,12 +235,24 @@ class TMinitel {
             handleProtocol2(prevCode, currentCode);
             break;
           case 130:
+            // PRO3 / ON/OFF
+            _isPro3StatusEcho = currentCode == 0x61 || currentCode == 0x60;
+            _isPro3On = currentCode == 0x61;
             stateCode = 131;
             break;
           case 131:
+            // PRO3 / ON/OFF / MODEM
+            _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x5a;
             stateCode = 132;
             break;
           case 132:
+            // PRO3 / ON/OFF / MODEM / CLAVIER
+            // ECHO OFF: "\x1b\x3b\x60\x5a\x51"
+            // ECHO ON:  "\x1b\x3b\x61\x5a\x51"
+            _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x51;
+            if (_isPro3StatusEcho) {
+              isEchoed = _isPro3On;
+            }
             stateCode = 0;
             break;
         }
@@ -330,15 +358,15 @@ class TMinitel {
           break;
       }
       stateCode = 0;
-    } else if (currentCode >= 0x39 && currentCode <= 0x3B) {
+    } else if (currentCode >= $pro1 && currentCode <= $pro3) {
       switch (currentCode) {
-        case 0x39:
+        case $pro1:
           stateCode = 110;
           break;
-        case 0x3A:
+        case $pro2:
           stateCode = 120;
           break;
-        case 0x3B:
+        case $pro3:
           stateCode = 130;
           break;
         default:

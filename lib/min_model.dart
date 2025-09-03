@@ -35,6 +35,14 @@ class MinModel extends ChangeNotifier {
 
   bool get isConnected => _server != null;
 
+  bool get isEchoed => minitel.isEchoed;
+  set isEchoed(bool value) {
+    if (isEchoed != value) {
+      minitel.isEchoed = value;
+      notifyListeners();
+    }
+  }
+
   bool get isShifted => _isShifted;
 
   bool get isCtrl => _isCtrl;
@@ -107,6 +115,7 @@ class MinModel extends ChangeNotifier {
   }
 
   void end() {
+    isEchoed = true;
     debugPrint('End connection');
 
     if (_timer != null) {
@@ -149,18 +158,17 @@ class MinModel extends ChangeNotifier {
 
     if (uri.scheme == 'serial') {
       connectSerial(uri.path);
-      return;
     }
 
     if (uri.scheme == 'ws' || uri.scheme == 'wss') {
       connectWebSocket(uri);
-      return;
     }
 
     if (uri.scheme == 'tcp' || uri.scheme == 'udp') {
       connectSocket(uri);
-      return;
     }
+
+    isEchoed = false;
   }
 
   void connectSerial(String portName) {
@@ -274,6 +282,7 @@ class MinModel extends ChangeNotifier {
 
     // Manage other keys
     if (isConnected) {
+      // Send key to server
       if (_server is WebSocketChannel) {
         _server!.sink.add(keys);
       } else if (_server is Socket) {
@@ -287,7 +296,9 @@ class MinModel extends ChangeNotifier {
           debugPrint('Serial port is not open: ${port.name}');
         }
       }
-    } else {
+    }
+    if (isEchoed) {
+      // Send key to screen
       emulate(keys.codeUnits);
     }
   }
