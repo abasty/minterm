@@ -35,7 +35,14 @@ class MinTerm extends StatelessWidget {
               Connection('3615', 'wss://3615co.de/ws'),
               Connection('3611', 'wss://3611.re/ws'),
               Connection('Zboub', 'tcp://217.154.8.76:1967'),
-              Connection('localhost:1967', 'tcp://127.0.0.1:1967'),
+              Connection(
+                'BASTOS (localhost:1967)',
+                'tcp://127.0.0.1:1967',
+              ),
+              Connection(
+                'WS/WSS Gateway (localhost:1963)',
+                'tcp://127.0.0.1:1963',
+              ),
               ConnectionSerial(),
             ],
           ),
