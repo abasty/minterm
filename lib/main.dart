@@ -65,9 +65,14 @@ void main() async {
           // Sommaire
           MinModel().handleKeys(TMinitelKey.sommaire);
           break;
-        case LogicalKeyboardKey.escape:
-          // Annulation
-          MinModel().handleKeys(TMinitelKey.annulation);
+        case LogicalKeyboardKey.keyA:
+          // Annulation (Ctrl+A)
+          var ctrl = HardwareKeyboard.instance.isControlPressed;
+          if (ctrl) {
+            MinModel().handleKeys(TMinitelKey.annulation);
+          } else {
+            MinModel().handleKeys(event.character!);
+          }
           break;
         case LogicalKeyboardKey.keyC:
           // CX/Fin
