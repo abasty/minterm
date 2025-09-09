@@ -552,9 +552,13 @@ class MinKey extends StatelessWidget {
           final upMode = MinSettings().capslock;
           var key = '';
           if (letters.hasMatch(k)) {
-            key = (shifted && upMode) || (!shifted && !upMode)
-                ? k.toLowerCase()
-                : k;
+            if (k.toUpperCase() == 'G' && ctrl) {
+              key = '\x07';
+            } else {
+              key = (shifted && upMode) || (!shifted && !upMode)
+                  ? k.toLowerCase()
+                  : k;
+            }
           } else {
             if (ctrl && kc.isNotEmpty) {
               key = kc;

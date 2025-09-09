@@ -83,6 +83,15 @@ void main() async {
             MinModel().handleKeys(event.character!);
           }
           break;
+        case LogicalKeyboardKey.keyG:
+          // Ctrl+G (Graphic mode)
+          var ctrl = HardwareKeyboard.instance.isControlPressed;
+          if (ctrl) {
+            MinModel().handleKeys('\x07');
+          } else {
+            MinModel().handleKeys(event.character!);
+          }
+          break;
         default:
           // Other keys
           if (event.character != null) {
