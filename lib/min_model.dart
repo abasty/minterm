@@ -70,7 +70,8 @@ class MinModel extends ChangeNotifier {
       minitel.emulate(_codes);
       _codes.clear();
       if (minitel.speedChanged) {
-        setSerialSpeed(minitel.speed);
+        bps = minitel.speed;
+        setSerialSpeed(bps);
         minitel.speedChanged = false;
       }
       if (minitel.isDirty) notifyListeners();
@@ -183,7 +184,7 @@ class MinModel extends ChangeNotifier {
     }
 
     _server = port;
-    setSerialSpeed(1200);
+    setSerialSpeed(bps);
 
     _serialReader = SerialPortReader(port);
     _serialReader!.stream.listen(
@@ -192,6 +193,7 @@ class MinModel extends ChangeNotifier {
       },
       onError: (error) {
         debugPrint('Serial port error: $error');
+        bps = 1200;
         end();
       },
       onDone: () {
