@@ -40,12 +40,14 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
+* [ ] Touche de direction (ESC + 2 chars)
+* [ ] Support codes INSL, DELL, DELC, DINSC, FINSC
 * [ ] Émulation mode 80 colonnes et mode mixte
 * [ ] Connexion serial to Minitel (output)
-* [ ] Ajouter BASTOS (à priori non)
-* [ ] Mode vidéo inverse (bof, pour BASTO / VP100)
+* [ ] Ajouter BASTOS
+* [ ] Mode vidéo inverse (bof, pour BASTOS / VP100)
 * [ ] Implémenter clavier zx81 étendu
-* [x] Implémenter blink et curdor blinking
+* [x] Implémenter blink et cursor blinking
 * [x] Support ws et tcp
 * [x] Clavier minitel 1b
 * [x] Version Android
