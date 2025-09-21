@@ -63,6 +63,10 @@ class TMinitelKey {
   static const beta = '\x19\x7b';
   static const paragraph = '\x19\x27';
   static const degree = '\x19\x30';
+  static const arrowUp = '\x1b[A';
+  static const arrowDown = '\x1b[B';
+  static const arrowRight = '\x1b[C';
+  static const arrowLeft = '\x1b[D';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);

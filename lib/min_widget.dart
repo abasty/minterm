@@ -466,10 +466,34 @@ class MinKeyboard extends StatelessWidget {
                   k: "shift",
                 ),
                 MinKey(
+                  left: 6,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowUp,
+                ),
+                MinKey(
+                  left: 35,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowDown,
+                ),
+                MinKey(
                   left: 64,
                   top: 225,
                   width: 142,
                   k: " ",
+                ),
+                MinKey(
+                  left: 210,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowLeft,
+                ),
+                MinKey(
+                  left: 239,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowRight,
                 ),
                 MinKey(
                   left: 282,

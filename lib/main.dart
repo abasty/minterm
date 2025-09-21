@@ -65,6 +65,18 @@ void main() async {
           // Sommaire
           MinModel().handleKeys(TMinitelKey.sommaire);
           break;
+        case LogicalKeyboardKey.arrowLeft:
+          MinModel().handleKeys(TMinitelKey.arrowLeft);
+          break;
+        case LogicalKeyboardKey.arrowRight:
+          MinModel().handleKeys(TMinitelKey.arrowRight);
+          break;
+        case LogicalKeyboardKey.arrowDown:
+          MinModel().handleKeys(TMinitelKey.arrowDown);
+          break;
+        case LogicalKeyboardKey.arrowUp:
+          MinModel().handleKeys(TMinitelKey.arrowUp);
+          break;
         case LogicalKeyboardKey.keyA:
           // Annulation (Ctrl+A)
           var ctrl = HardwareKeyboard.instance.isControlPressed;
