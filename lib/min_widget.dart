@@ -500,6 +500,8 @@ class MinKeyboard extends StatelessWidget {
                   top: 226,
                   width: 35,
                   k: "\x0d",
+                  ks: "\x1e",
+                  kc: "\x0c",
                 ),
               ],
             ),

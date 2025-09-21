@@ -40,6 +40,8 @@ void main() async {
         );
         return true;
       }
+      var ctrl = HardwareKeyboard.instance.isControlPressed;
+      var shift = HardwareKeyboard.instance.isShiftPressed;
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
           // Suite
@@ -59,7 +61,13 @@ void main() async {
           break;
         case LogicalKeyboardKey.enter:
           // Envoi
-          MinModel().handleKeys(TMinitelKey.envoi);
+          if (shift) {
+            MinModel().handleKeys('\x1e');
+          } else if (ctrl) {
+            MinModel().handleKeys('\x0c');
+          } else {
+            MinModel().handleKeys(TMinitelKey.envoi);
+          }
           break;
         case LogicalKeyboardKey.home:
           // Sommaire
@@ -79,7 +87,6 @@ void main() async {
           break;
         case LogicalKeyboardKey.keyA:
           // Annulation (Ctrl+A)
-          var ctrl = HardwareKeyboard.instance.isControlPressed;
           if (ctrl) {
             MinModel().handleKeys(TMinitelKey.annulation);
           } else {
@@ -88,7 +95,6 @@ void main() async {
           break;
         case LogicalKeyboardKey.keyC:
           // CX/Fin
-          var ctrl = HardwareKeyboard.instance.isControlPressed;
           if (ctrl) {
             MinModel().handleKeys(TMinitelKey.cxFin);
           } else {
@@ -97,7 +103,6 @@ void main() async {
           break;
         case LogicalKeyboardKey.keyG:
           // Ctrl+G (Graphic mode)
-          var ctrl = HardwareKeyboard.instance.isControlPressed;
           if (ctrl) {
             MinModel().handleKeys('\x07');
           } else {

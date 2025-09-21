@@ -40,8 +40,8 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
-* [ ] Touche de direction (ESC + 2 chars)
-* [ ] Support codes INSL, DELL, DELC, DINSC, FINSC
+* [x] Touche de direction (ESC + 2 chars)
+* [ ] Support codes et touches INSL, DELL, DELC, DINSC, FINSC
 * [ ] Émulation mode 80 colonnes et mode mixte
 * [ ] Connexion serial to Minitel (output)
 * [ ] Ajouter BASTOS
