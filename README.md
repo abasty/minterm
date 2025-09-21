@@ -40,8 +40,14 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
-* [x] Touche de direction (ESC + 2 chars)
-* [ ] Support codes et touches INSL, DELL, DELC, DINSC, FINSC
+* [ ] Touches de direction : génère un ESC + 2 caractères ([Touches en mode
+  clavier étendu](#touches-en-mode-clavier-%C3%A9tendu))
+  * [x] Implémenter dans minterm (clavier virtuel et physique)
+  * [x] Implémenter dans `os_get_key()`
+  * [x] Touches Enter + Ctrl et Shift (CLS, HOME)
+  * [x] Touche flèche gauche + Ctrl (DEL)
+  * [ ] Touches de direction + Shift (SUPL, INSL, SUPC, INSC)
+  * [ ] Support pour SUPL, INSL, SUPC, INSC
 * [ ] Émulation mode 80 colonnes et mode mixte
 * [ ] Connexion serial to Minitel (output)
 * [ ] Ajouter BASTOS

@@ -74,7 +74,11 @@ void main() async {
           MinModel().handleKeys(TMinitelKey.sommaire);
           break;
         case LogicalKeyboardKey.arrowLeft:
-          MinModel().handleKeys(TMinitelKey.arrowLeft);
+          if (ctrl) {
+            MinModel().handleKeys('\x7f');
+          } else {
+            MinModel().handleKeys(TMinitelKey.arrowLeft);
+          }
           break;
         case LogicalKeyboardKey.arrowRight:
           MinModel().handleKeys(TMinitelKey.arrowRight);
