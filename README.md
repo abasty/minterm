@@ -2,6 +2,13 @@
 
 Encore un émulateur Minitel ! En Flutter & Dart.
 
+## Build/launch Linux en release
+
+```
+$ flutter build linux
+$ build/linux/x64/release/bundle/minterm
+```
+
 ## Build Android
 
 Il faut commenter la ligne faisant référence à `Registar` dans
@@ -46,8 +53,12 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
   * [x] Implémenter dans `os_get_key()`
   * [x] Touches Enter + Ctrl et Shift (CLS, HOME)
   * [x] Touche flèche gauche + Ctrl (DEL)
+  * [ ] En mode local (sans connexion à BASTOS) les touches de direction ne
+    marchent pas : à voir comment ça fait sur un Minitel avec clavier en mode
+    étendu
   * [ ] Touches de direction + Shift (SUPL, INSL, SUPC, INSC)
   * [ ] Support pour SUPL, INSL, SUPC, INSC
+* [ ] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
 * [ ] Émulation mode 80 colonnes et mode mixte
 * [ ] Connexion serial to Minitel (output)
 * [ ] Ajouter BASTOS
