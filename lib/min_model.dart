@@ -74,6 +74,7 @@ class MinModel extends ChangeNotifier {
         setSerialSpeed(bps);
         minitel.speedChanged = false;
       }
+      sendReplyToServer();
       if (minitel.isDirty) notifyListeners();
       return;
     }
@@ -97,6 +98,7 @@ class MinModel extends ChangeNotifier {
           _bps = minitel.speed;
           minitel.speedChanged = false;
         }
+        sendReplyToServer();
       }
     });
   }
@@ -112,6 +114,27 @@ class MinModel extends ChangeNotifier {
           ..stopBits = 1
           ..setFlowControl(SerialPortFlowControl.none);
       }
+    }
+  }
+
+  void sendReplyToServer() {
+    if (minitel.reply.isNotEmpty) {
+      if (isConnected) {
+        final replyU8 = Uint8List.fromList(minitel.reply);
+        if (_server is WebSocketChannel) {
+          _server!.sink.add(replyU8);
+        } else if (_server is Socket) {
+          _server.add(replyU8);
+        } else if (_server is SerialPort) {
+          final port = _server as SerialPort;
+          if (port.isOpen) {
+            port.write(replyU8);
+          } else {
+            debugPrint('Serial port is not open: ${port.name}');
+          }
+        }
+      }
+      minitel.reply.clear();
     }
   }
 
@@ -184,6 +207,7 @@ class MinModel extends ChangeNotifier {
     }
 
     _server = port;
+    minitel.speed = bps;
     setSerialSpeed(bps);
 
     _serialReader = SerialPortReader(port);
@@ -193,7 +217,6 @@ class MinModel extends ChangeNotifier {
       },
       onError: (error) {
         debugPrint('Serial port error: $error');
-        bps = 1200;
         end();
       },
       onDone: () {
@@ -202,8 +225,6 @@ class MinModel extends ChangeNotifier {
       },
     );
     debugPrint('Serial port opened: ${port.name}');
-
-    port.write(Uint8List.fromList('BASTOS\r'.codeUnits));
   }
 
   void connectSocket(Uri uri) {

@@ -47,6 +47,7 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
+* [x] Répondre à demande vitesse (PRO1 74 (t))
 * [ ] Touches de direction : génère un ESC + 2 caractères ([Touches en mode
   clavier étendu](#touches-en-mode-clavier-%C3%A9tendu))
   * [x] Implémenter dans minterm (clavier virtuel et physique)

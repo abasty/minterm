@@ -10,6 +10,10 @@ const int $pro1 = 0x39;
 const int $pro2 = 0x3A;
 const int $pro3 = 0x3B;
 
+const int kStatePro1 = 110;
+const int kStatePro2 = 120;
+const int kStatePro3 = 130;
+
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
 const int kAttrDoubleHeightWidth = kAttrDoubleHeight | kAttrDoubleWidth;
@@ -91,6 +95,7 @@ class TMinitel {
   bool bip = false;
   bool echoChanged = false;
   bool _isEchoed = true;
+  List<int> reply = [];
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -228,28 +233,28 @@ class TMinitel {
           case const ($esc + 2):
             if (!(currentCode >= 0x20 && currentCode <= 0x2F)) stateCode = 0;
             break;
-          case 110:
-            stateCode = 0;
+          case kStatePro1:
+            handleProtocol1(currentCode);
             break;
-          case 120:
-            stateCode = 121;
+          case kStatePro2:
+            stateCode++;
             prevCode = currentCode;
             break;
-          case 121:
+          case const (kStatePro2 + 1):
             handleProtocol2(prevCode, currentCode);
             break;
-          case 130:
+          case kStatePro3:
             // PRO3 / ON/OFF
             _isPro3StatusEcho = currentCode == 0x61 || currentCode == 0x60;
             _isPro3On = currentCode == 0x61;
-            stateCode = 131;
+            stateCode++;
             break;
-          case 131:
+          case const (kStatePro3 + 1):
             // PRO3 / ON/OFF / MODEM
             _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x5a;
-            stateCode = 132;
+            stateCode++;
             break;
-          case 132:
+          case const (kStatePro3 + 2):
             // PRO3 / ON/OFF / MODEM / CLAVIER
             // ECHO OFF: "\x1b\x3b\x60\x5a\x51"
             // ECHO ON:  "\x1b\x3b\x61\x5a\x51"
@@ -365,13 +370,13 @@ class TMinitel {
     } else if (currentCode >= $pro1 && currentCode <= $pro3) {
       switch (currentCode) {
         case $pro1:
-          stateCode = 110;
+          stateCode = kStatePro1;
           break;
         case $pro2:
-          stateCode = 120;
+          stateCode = kStatePro2;
           break;
         case $pro3:
-          stateCode = 130;
+          stateCode = kStatePro3;
           break;
         default:
           stateCode = 0;
@@ -399,6 +404,25 @@ class TMinitel {
   }
 
   void handleNull() {
+    stateCode = 0;
+  }
+
+  void handleProtocol1(int x) {
+    if (x == 0x74) {
+      // 4 = 100 = 1200
+      // 6 = 110 = 4800 (M1B)
+      // 7 = 111 = 9600 (M2)
+      int speedReply = 0x40;
+      if (speed == 9600) {
+        speedReply |= (7 << 3) + 7;
+      } else if (speed == 4800) {
+        speedReply |= (6 << 3) + 6;
+      } else {
+        speedReply |= (4 << 3) + 4;
+      }
+      print('speed: $speed');
+      reply.addAll([0x1b, 0x3a, 0x75, speedReply]);
+    }
     stateCode = 0;
   }
 
