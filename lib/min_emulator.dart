@@ -13,6 +13,7 @@ const int $pro3 = 0x3B;
 const int kStatePro1 = 110;
 const int kStatePro2 = 120;
 const int kStatePro3 = 130;
+const int kStateSequence = 150;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -95,6 +96,7 @@ class TMinitel {
   bool bip = false;
   bool echoChanged = false;
   bool _isEchoed = true;
+  List<int> currentSequence = [];
   List<int> reply = [];
 
   bool get isEchoed => _isEchoed;
@@ -264,6 +266,9 @@ class TMinitel {
             }
             stateCode = 0;
             break;
+          case kStateSequence:
+            stateCode = handleSequence(currentCode);
+            break;
         }
       }
       ++codeIndex;
@@ -366,7 +371,12 @@ class TMinitel {
           }
           break;
       }
-      stateCode = 0;
+      if (currentCode == 0x5b) {
+        currentSequence = [0x1b, 0x5b];
+        stateCode = kStateSequence;
+      } else {
+        stateCode = 0;
+      }
     } else if (currentCode >= $pro1 && currentCode <= $pro3) {
       switch (currentCode) {
         case $pro1:
@@ -383,9 +393,9 @@ class TMinitel {
           break;
       }
     } else if (currentCode >= 0x35 && currentCode <= 0x37) {
-      stateCode = 28;
+      stateCode = $esc + 1;
     } else if (currentCode >= 0x20 && currentCode <= 0x2F) {
-      stateCode = 29;
+      stateCode = $esc + 2;
     }
   }
 
@@ -448,6 +458,48 @@ class TMinitel {
       }
     }
     stateCode = 0;
+  }
+
+  int handleSequence(int code) {
+    // TODO: Add more sequences as needed (ins, del, etc.)
+    var knownSequences = {
+      [0x1b, 0x5b, 0x32, 0x4a]: clearScreen,
+      [0x1b, 0x5b, 0x41]: handleVerticalTab,
+      [0x1b, 0x5b, 0x42]: handleLineFeed,
+      [0x1b, 0x5b, 0x43]: handleTabulation,
+      [0x1b, 0x5b, 0x44]: handleBackSpace,
+      [0x1b, 0x5b, 0x48]: setCursorHome,
+    };
+
+    // Add the new code to the current sequence
+    currentSequence.add(code);
+
+    // Search for currentSequence in knownSequences
+    for (var seq in knownSequences.entries) {
+      var sequence = seq.key;
+      var handler = seq.value;
+      if (currentSequence.length <= sequence.length) {
+        // Count matching characters
+        int matchCount = 0;
+        for (int i = 0; i < currentSequence.length; i++) {
+          if (currentSequence[i] == sequence[i]) {
+            matchCount++;
+          }
+        }
+        if (matchCount == sequence.length) {
+          // Full match
+          handler();
+          return 0;
+        } else if (matchCount == currentSequence.length) {
+          // Partial match
+          return kStateSequence;
+        }
+      }
+    }
+
+    currentSequence.clear();
+    // If not found: return 0
+    return 0;
   }
 
   void handleRepeat() {
