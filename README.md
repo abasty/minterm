@@ -47,6 +47,13 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
+* [ ] LIST : il faut print les caractères graphiques et envoyer G0 / G1 à
+  l'écran
+* [ ] Bug scolling up qui déborde sur ligne 0 en cas de caractères double
+  hauteur (à voir ce que ça fait sur un vrai Minitel)
+* [ ] Voir ce que font insl, dell, insc, delc en ligne 0 sur un M1B et corriger
+  l'émulateur
+* [ ] Support touches Ctrl + A-Z
 * [x] Répondre à demande vitesse (PRO1 74 (t))
 * [ ] Touches de direction : génère un ESC + 2 caractères ([Touches en mode
   clavier étendu](#touches-en-mode-clavier-%C3%A9tendu))
@@ -58,11 +65,11 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
     marchent pas dans l'émulateur : à voir comment ça fait sur un Minitel avec
     clavier en mode étendu => les touches de direction fonctionnent sans cx à
     BASTOS si clavier en mode étendu
-  * [ ] En mode clavier étendu (mode unique de l'émulateur), les touches doivent
+  * [x] En mode clavier étendu (mode unique de l'émulateur), les touches doivent
     faire des déplacements attendus : Ajouter support à l'émulateur
-  * [ ] Touches de direction + Shift (SUPL: 1b5b4d, INSL: 1b5b4c, SUPC: 1b5b50)
+  * [x] Touches de direction + Shift (SUPL: 1b5b4d, INSL: 1b5b4c, SUPC: 1b5b50)
+  * [x] Support pour SUPL, INSL, SUPC : Même codes que les touches
   * [ ] Touches de direction + Shift (INSC_ON: 1b5b3468, INSC_OFF: 1b5b346c)
-  * [ ] Support pour SUPL, INSL, SUPC, INSC: Même codes que les touches à
     supporter au niveau de l'émulateur
 * [ ] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
 * [ ] Émulation mode 80 colonnes et mode mixte

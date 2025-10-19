@@ -477,6 +477,7 @@ class MinKeyboard extends StatelessWidget {
                   top: 225,
                   width: 25,
                   k: TMinitelKey.arrowDown,
+                  ks: TMinitelKey.insL,
                 ),
                 MinKey(
                   left: 64,
@@ -490,6 +491,7 @@ class MinKeyboard extends StatelessWidget {
                   width: 25,
                   k: TMinitelKey.arrowLeft,
                   kc: "\x7f",
+                  ks: TMinitelKey.delC,
                 ),
                 MinKey(
                   left: 239,

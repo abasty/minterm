@@ -75,6 +75,8 @@ class TMinitelKey {
   static const ePage = '\x1b\x5b\x32\x4a';
   static const home = "\x1b\x5b\x48";
   static const supL = '\x1b\x5b\x4d';
+  static const insL = '\x1b\x5b\x4c';
+  static const delC = '\x1b\x5b\x50';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
@@ -473,6 +475,8 @@ class TMinitel {
       TMinitelKey.arrowLeft.codeUnits: handleBackSpace,
       TMinitelKey.home.codeUnits: setCursorHome,
       TMinitelKey.supL.codeUnits: handleSupL,
+      TMinitelKey.insL.codeUnits: handleInsL,
+      TMinitelKey.delC.codeUnits: handleDelC,
     };
 
     // Add the new code to the current sequence
@@ -814,14 +818,14 @@ class TMinitel {
     }
   }
 
-  void scrollDown() {
-    for (int line = 23; line >= 1; --line) {
+  void scrollDown({int fromLine = 1}) {
+    for (int line = 23; line >= fromLine; --line) {
       for (int column = 1; column <= 40; ++column) {
         screen[line + 1][column] = screen[line][column];
       }
     }
     for (int column = 1; column <= 40; ++column) {
-      screen[1][column] = TMinitelChar.from(kEmptyChar);
+      screen[fromLine][column] = TMinitelChar.from(kEmptyChar);
     }
     screen[0][41] = TMinitelChar.from(kEmptyChar);
   }
@@ -840,6 +844,20 @@ class TMinitel {
 
   void handleSupL() {
     scrollUp(fromLine: state.l);
+  }
+
+  void handleInsL() {
+    scrollDown(fromLine: state.l);
+  }
+
+  void handleDelC() {
+    final l = state.l;
+    final c = state.c;
+    for (int column = c; column < 40; ++column) {
+      screen[l][column] = screen[l][column + 1];
+    }
+    screen[l][40] = TMinitelChar.from(kEmptyChar);
+    propagateAndMakeDirty(l, c);
   }
 
   void setBackgroundColor(int code) {
