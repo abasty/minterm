@@ -53,7 +53,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
   static const durationMax = 400;
-  var scale = 1.0;
+  var scale = 2.5;
   var duration = durationMax;
   var _colors = MinGrey;
   int _loaded = 0;
@@ -470,6 +470,7 @@ class MinKeyboard extends StatelessWidget {
                   top: 225,
                   width: 25,
                   k: TMinitelKey.arrowUp,
+                  ks: TMinitelKey.supL,
                 ),
                 MinKey(
                   left: 35,

@@ -87,7 +87,11 @@ void main() async {
           MinModel().handleKeys(TMinitelKey.arrowDown);
           break;
         case LogicalKeyboardKey.arrowUp:
-          MinModel().handleKeys(TMinitelKey.arrowUp);
+          if (shift) {
+            MinModel().handleKeys(TMinitelKey.supL);
+          } else {
+            MinModel().handleKeys(TMinitelKey.arrowUp);
+          }
           break;
         case LogicalKeyboardKey.keyA:
           // Annulation (Ctrl+A)

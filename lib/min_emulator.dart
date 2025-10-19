@@ -472,6 +472,7 @@ class TMinitel {
       TMinitelKey.arrowRight.codeUnits: handleTabulation,
       TMinitelKey.arrowLeft.codeUnits: handleBackSpace,
       TMinitelKey.home.codeUnits: setCursorHome,
+      TMinitelKey.supL.codeUnits: handleSupL,
     };
 
     // Add the new code to the current sequence
@@ -825,8 +826,8 @@ class TMinitel {
     screen[0][41] = TMinitelChar.from(kEmptyChar);
   }
 
-  void scrollUp() {
-    for (int line = 1; line <= 23; ++line) {
+  void scrollUp({int fromLine = 1}) {
+    for (int line = fromLine; line <= 23; ++line) {
       for (int column = 1; column <= 40; ++column) {
         screen[line][column] = screen[line + 1][column];
       }
@@ -835,6 +836,10 @@ class TMinitel {
       screen[24][column] = TMinitelChar.from(kEmptyChar);
     }
     screen[0][41] = TMinitelChar.from(kEmptyChar);
+  }
+
+  void handleSupL() {
+    scrollUp(fromLine: state.l);
   }
 
   void setBackgroundColor(int code) {
