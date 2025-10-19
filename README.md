@@ -49,7 +49,8 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 * [ ] LIST : il faut print les caractères graphiques et envoyer G0 / G1 à
   l'écran
-* [ ] Bug scolling up qui déborde sur ligne 0 en cas de caractères double
+* Penser à Ctrl+X pour CX/Fin
+* [ ] Bug scrolling up qui déborde sur ligne 0 en cas de caractères double
   hauteur (à voir ce que ça fait sur un vrai Minitel)
 * [ ] Voir ce que font insl, dell, insc, delc en ligne 0 sur un M1B et corriger
   l'émulateur
