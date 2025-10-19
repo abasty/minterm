@@ -60,8 +60,8 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
     BASTOS si clavier en mode étendu
   * [ ] En mode clavier étendu (mode unique de l'émulateur), les touches doivent
     faire des déplacements attendus : Ajouter support à l'émulateur
-  * [ ] Touches de direction + Shift (SUPL: 1b5b4d, INSL: 1b5b4c, SUPC: 1b5b50,
-    INSC_ON: 1b5b3468, INSC_OFF: 1b5b346c)
+  * [ ] Touches de direction + Shift (SUPL: 1b5b4d, INSL: 1b5b4c, SUPC: 1b5b50)
+  * [ ] Touches de direction + Shift (INSC_ON: 1b5b3468, INSC_OFF: 1b5b346c)
   * [ ] Support pour SUPL, INSL, SUPC, INSC: Même codes que les touches à
     supporter au niveau de l'émulateur
 * [ ] Mode minuscules/majuscules : support au niveau proto dans l'emulateur

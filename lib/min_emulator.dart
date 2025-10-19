@@ -72,6 +72,9 @@ class TMinitelKey {
   static const arrowDown = '\x1b[B';
   static const arrowRight = '\x1b[C';
   static const arrowLeft = '\x1b[D';
+  static const ePage = '\x1b\x5b\x32\x4a';
+  static const home = "\x1b\x5b\x48";
+  static const supL = '\x1b\x5b\x4d';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
@@ -463,12 +466,12 @@ class TMinitel {
   int handleSequence(int code) {
     // TODO: Add more sequences as needed (ins, del, etc.)
     var knownSequences = {
-      [0x1b, 0x5b, 0x32, 0x4a]: clearScreen,
-      [0x1b, 0x5b, 0x41]: handleVerticalTab,
-      [0x1b, 0x5b, 0x42]: handleLineFeed,
-      [0x1b, 0x5b, 0x43]: handleTabulation,
-      [0x1b, 0x5b, 0x44]: handleBackSpace,
-      [0x1b, 0x5b, 0x48]: setCursorHome,
+      TMinitelKey.ePage.codeUnits: clearScreen,
+      TMinitelKey.arrowUp.codeUnits: handleVerticalTab,
+      TMinitelKey.arrowDown.codeUnits: handleLineFeed,
+      TMinitelKey.arrowRight.codeUnits: handleTabulation,
+      TMinitelKey.arrowLeft.codeUnits: handleBackSpace,
+      TMinitelKey.home.codeUnits: setCursorHome,
     };
 
     // Add the new code to the current sequence

@@ -62,9 +62,9 @@ void main() async {
         case LogicalKeyboardKey.enter:
           // Envoi
           if (shift) {
-            MinModel().handleKeys('\x1b\x5b\x48');
+            MinModel().handleKeys(TMinitelKey.home);
           } else if (ctrl) {
-            MinModel().handleKeys('\x1b\x5b\x32\x4a');
+            MinModel().handleKeys(TMinitelKey.ePage);
           } else {
             MinModel().handleKeys(TMinitelKey.envoi);
           }
