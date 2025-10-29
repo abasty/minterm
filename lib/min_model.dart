@@ -226,8 +226,12 @@ class MinModel extends ChangeNotifier {
     setSerialSpeed(bps);
 
     _serialReader = SerialPortReader(port);
+    final t0 = DateTime.now();
     _serialReader!.stream.listen(
       (data) {
+        // Drop data in the first 0.5 second to avoid garbage
+        final t1 = DateTime.now();
+        if (t1.difference(t0).inMilliseconds < 500) return;
         emulate(data);
       },
       onError: (error) {
