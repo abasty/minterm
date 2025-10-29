@@ -427,16 +427,18 @@ class TMinitel {
       // 4 = 100 = 1200
       // 6 = 110 = 4800 (M1B)
       // 7 = 111 = 9600 (M2)
-      int speedReply = 0x40;
+      int speedReply = 0;
       if (speed == 9600) {
-        speedReply |= (7 << 3) + 7;
+        speedReply = 0x7f;
       } else if (speed == 4800) {
-        speedReply |= (6 << 3) + 6;
+        speedReply = 0x76;
       } else {
-        speedReply |= (4 << 3) + 4;
+        speedReply = 0x64;
       }
-      print('speed: $speed');
-      reply.addAll([0x1b, 0x3a, 0x75, speedReply]);
+      if (speed != 0) {
+        print('Protocol 1: speed reply $speedReply');
+        reply.addAll([0x1b, 0x3a, 0x75, speedReply]);
+      }
     }
     stateCode = 0;
   }
@@ -454,7 +456,10 @@ class TMinitel {
     } else if (x == 0x73) {
       scrollOn = (y & 0x02) == 0x02;
     } else if (x == 0x6b) {
-      if (y == 0x76) {
+      if (y == 0x7f) {
+        speedChanged = true;
+        speed = 9600;
+      } else if (y == 0x76) {
         speedChanged = true;
         speed = 4800;
       } else if (y == 0x64) {

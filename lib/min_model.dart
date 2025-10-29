@@ -129,6 +129,21 @@ class MinModel extends ChangeNotifier {
           final port = _server as SerialPort;
           if (port.isOpen) {
             port.write(replyU8);
+            var last = replyU8.isNotEmpty ? replyU8.last : 0;
+            var sentSpeed = 0;
+            switch (last) {
+              case 0x64:
+                sentSpeed = 1200;
+                break;
+              case 0x76:
+                sentSpeed = 4800;
+                break;
+              case 0x7f:
+                sentSpeed = 9600;
+                break;
+            }
+            debugPrint(
+                'Sent ${replyU8.length} bytes (speed: $sentSpeed) to ${port.name}');
           } else {
             debugPrint('Serial port is not open: ${port.name}');
           }
