@@ -47,9 +47,8 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
-* [ ] LIST : il faut print les caractères graphiques et envoyer G0 / G1 à
-  l'écran
 * Penser à Ctrl+X pour CX/Fin
+* [ ] Bug rendu des caractères disjoints (en x2.5 et x3.5 pas en x3 ou x4)
 * [ ] Bug scrolling up qui déborde sur ligne 0 en cas de caractères double
   hauteur (à voir ce que ça fait sur un vrai Minitel)
 * [ ] Voir ce que font insl, dell, insc, delc en ligne 0 sur un M1B et corriger
@@ -72,6 +71,8 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
   * [x] Support pour SUPL, INSL, SUPC : Même codes que les touches
   * [ ] Touches de direction + Shift (INSC_ON: 1b5b3468, INSC_OFF: 1b5b346c)
     supporter au niveau de l'émulateur
+* [x] LIST : il faut print les caractères graphiques et envoyer G0 / G1 à
+  l'écran
 * [ ] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
 * [ ] Émulation mode 80 colonnes et mode mixte
 * [ ] Connexion serial to Minitel (output)
