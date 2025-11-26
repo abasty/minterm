@@ -48,7 +48,9 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 ## TODO
 
 * Penser à Ctrl+X pour CX/Fin
-* [ ] Bug rendu des caractères disjoints (en x2.5 et x3.5 pas en x3 ou x4)
+* [ ] Bug rendu des caractères disjoints (en x2.5 et x3.5 pas en x3 ou x4).
+  Éventuellement voir code JS ici (clip avant de dessiner):
+  <https://github.com/Zigazou/miedit/blob/fad284ce2b3a91fbf03d6aebcb94107f64de3bf3/library/minitel/font-sprite.js#L181>
 * [ ] Bug scrolling up qui déborde sur ligne 0 en cas de caractères double
   hauteur (à voir ce que ça fait sur un vrai Minitel)
 * [ ] Voir ce que font insl, dell, insc, delc en ligne 0 sur un M1B et corriger
