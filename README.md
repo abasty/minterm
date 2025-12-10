@@ -120,3 +120,11 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 * <https://fr.wikipedia.org/wiki/Micro-serveur_Minitel>
 * <https://archive.org/details/minitel-stum1b/page/n39/mode/1up?view=theater>
+
+# URLs
+
+* 3611 : `ws:3611.re:80:/ws`
+* 3615 : `wss://3615co.de/ws`
+* hacker : `ws:mntl.joher.com:2018:/?echo`
+* minipavi : `tcp:go.minipavi.fr:516`
+* retrocampus : `tcp:bbs.retrocampus.com:1651`
