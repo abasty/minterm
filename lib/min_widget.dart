@@ -197,6 +197,14 @@ class _MinPainter extends CustomPainter {
 
   _MinPainter(this.minmodel);
 
+  Rect _snapRect(double x, double y, double width, double height, double dpr) {
+    final left = (x * dpr).floorToDouble() / dpr;
+    final top = (y * dpr).floorToDouble() / dpr;
+    final right = ((x + width) * dpr).ceilToDouble() / dpr;
+    final bottom = ((y + height) * dpr).ceilToDouble() / dpr;
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
+
   void _drawDisjointMask(
     Canvas canvas,
     double x,
@@ -204,6 +212,7 @@ class _MinPainter extends CustomPainter {
     double scaleWidth,
     double scaleHeight,
     Color bgColor,
+    double dpr,
   ) {
     final paint = Paint()
       ..color = bgColor
@@ -215,11 +224,12 @@ class _MinPainter extends CustomPainter {
         final bit = 1 << (7 - col);
         if ((mask & bit) == 0) continue;
         canvas.drawRect(
-          Rect.fromLTWH(
+          _snapRect(
             x + col * scaleWidth,
             y + row * scaleHeight,
             scaleWidth,
             scaleHeight,
+            dpr,
           ),
           paint,
         );
@@ -233,6 +243,8 @@ class _MinPainter extends CustomPainter {
     final lastLine = minmodel.minitel.lastLine;
     const displayWidth = 8.0 * 80.0;
     const displayHeight = displayWidth * 3.0 / 4.0;
+    final dpr =
+        ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
     final cellWidth = displayWidth / columns;
     final cellHeight = displayHeight / minmodel.minitel.rows;
     if (minmodel.minitel.bip) {
@@ -252,6 +264,7 @@ class _MinPainter extends CustomPainter {
           screen[line][column],
           cellWidth: cellWidth,
           cellHeight: cellHeight,
+          dpr: dpr,
         );
       }
     }
@@ -268,6 +281,7 @@ class _MinPainter extends CustomPainter {
       statusChar,
       cellWidth: cellWidth,
       cellHeight: cellHeight,
+      dpr: dpr,
     );
   }
 
@@ -279,6 +293,7 @@ class _MinPainter extends CustomPainter {
     TMinitelChar char, {
     double cellWidth = 8.0,
     double cellHeight = 10.0,
+    double dpr = 1.0,
   }) {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
@@ -308,8 +323,9 @@ class _MinPainter extends CustomPainter {
     }
 
     // Draw the background color
+    final bgRect = _snapRect(x, y, cellWidth, cellHeight, dpr);
     canvas.drawRect(
-      Rect.fromLTWH(x, y, cellWidth, cellHeight),
+      bgRect,
       Paint()
         ..color = bgColor
         ..isAntiAlias = false,
@@ -333,6 +349,14 @@ class _MinPainter extends CustomPainter {
     final charRect = Rect.fromLTWH(
         8 * (code ~/ 16).toDouble(), 10 * (code % 16).toDouble(), 8, 10);
 
+    final glyphRect = _snapRect(
+      x,
+      y,
+      8.0 * scaleWidth,
+      10.0 * scaleHeight,
+      dpr,
+    );
+
     // Draw the character in the foreground color
     final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
         ? MinSettings().fontG0G2
@@ -340,7 +364,7 @@ class _MinPainter extends CustomPainter {
     canvas.drawImageRect(
       font,
       charRect,
-      Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
+      glyphRect,
       Paint()
         ..isAntiAlias = false
         ..filterQuality = FilterQuality.none
@@ -352,7 +376,13 @@ class _MinPainter extends CustomPainter {
         (char.gAttr & kCharsetMask) != kG1Charset &&
         (char.gAttr & kAttrSpace) == 0) {
       canvas.drawRect(
-        Rect.fromLTWH(x, y + 9.0 * scaleHeight, 8.0 * scaleWidth, scaleHeight),
+        _snapRect(
+          x,
+          y + 9.0 * scaleHeight,
+          8.0 * scaleWidth,
+          scaleHeight,
+          dpr,
+        ),
         Paint()
           ..color = fgColor
           ..isAntiAlias = false,
@@ -362,7 +392,15 @@ class _MinPainter extends CustomPainter {
     // Draw disjointed if applicable (only for G1 charset)
     if ((char.gAttr & kAttrDisjointed) != 0 &&
         (char.gAttr & kCharsetMask) == kG1Charset) {
-      _drawDisjointMask(canvas, x, y, scaleWidth, scaleHeight, bgColor);
+      _drawDisjointMask(
+        canvas,
+        x,
+        y,
+        scaleWidth,
+        scaleHeight,
+        bgColor,
+        dpr,
+      );
     }
   }
 
@@ -375,6 +413,7 @@ class _MinPainter extends CustomPainter {
     String str, {
     double cellWidth = 8.0,
     double cellHeight = 10.0,
+    double dpr = 1.0,
   }) {
     double stepX =
         (attr.lAttr & kAttrDoubleWidth) != 0 ? 2 * cellWidth : cellWidth;
@@ -386,6 +425,7 @@ class _MinPainter extends CustomPainter {
         TMinitelChar(attr.gAttr, attr.lAttr, str.codeUnitAt(i)),
         cellWidth: cellWidth,
         cellHeight: cellHeight,
+        dpr: dpr,
       );
     }
   }
