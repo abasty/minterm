@@ -180,7 +180,52 @@ class MinScreen extends StatelessWidget {
 class _MinPainter extends CustomPainter {
   final MinModel minmodel;
 
+  // Disjoint G1 mask from tools/g18x10.bdf (glyph C000, 8x10).
+  // Drawing this mask explicitly avoids sprite sampling artifacts.
+  static const List<int> _g1DisjointMaskRows = <int>[
+    0x88,
+    0x88,
+    0xFF,
+    0x88,
+    0x88,
+    0x88,
+    0xFF,
+    0x88,
+    0x88,
+    0xFF,
+  ];
+
   _MinPainter(this.minmodel);
+
+  void _drawDisjointMask(
+    Canvas canvas,
+    double x,
+    double y,
+    double scaleWidth,
+    double scaleHeight,
+    Color bgColor,
+  ) {
+    final paint = Paint()
+      ..color = bgColor
+      ..isAntiAlias = false;
+
+    for (int row = 0; row < _g1DisjointMaskRows.length; row++) {
+      final mask = _g1DisjointMaskRows[row];
+      for (int col = 0; col < 8; col++) {
+        final bit = 1 << (7 - col);
+        if ((mask & bit) == 0) continue;
+        canvas.drawRect(
+          Rect.fromLTWH(
+            x + col * scaleWidth,
+            y + row * scaleHeight,
+            scaleWidth,
+            scaleHeight,
+          ),
+          paint,
+        );
+      }
+    }
+  }
 
   void draw(Canvas canvas) {
     var screen = minmodel.minitel.screen;
@@ -317,18 +362,7 @@ class _MinPainter extends CustomPainter {
     // Draw disjointed if applicable (only for G1 charset)
     if ((char.gAttr & kAttrDisjointed) != 0 &&
         (char.gAttr & kCharsetMask) == kG1Charset) {
-      // Get the disjoint mask
-      const maskRect = Rect.fromLTWH(0, 0, 8, 10);
-      // Apply disjoint mask on character
-      canvas.drawImageRect(
-        font,
-        maskRect,
-        Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-        Paint()
-          ..isAntiAlias = false
-          ..filterQuality = FilterQuality.none
-          ..colorFilter = ColorFilter.mode(bgColor, BlendMode.srcIn),
-      );
+      _drawDisjointMask(canvas, x, y, scaleWidth, scaleHeight, bgColor);
     }
   }
 
