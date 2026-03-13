@@ -122,11 +122,11 @@ class MinScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MinSettings(),
+    return ChangeNotifierProvider.value(
+      value: MinSettings(),
       child: Consumer<MinSettings>(
-        builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinModel(),
+        builder: (context, settings, child) => ChangeNotifierProvider.value(
+          value: MinModel(),
           child: Consumer<MinModel>(
             builder: (context, minmodel, child) => SizedBox(
               width: 8 * minmodel.minitel.columns * settings.scale,
@@ -321,202 +321,210 @@ class MinKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MinSettings(),
-      child: Consumer<MinSettings>(
-        builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinSettings(),
-          child: SizedBox(
-            width: 8 * 40 * MinSettings().scale,
-            height: 10 * 25 * MinSettings().scale,
-            child: Stack(
-              children: [
-                MinKeyboardImage(),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 0.5,
-                      color: Colors.black,
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, child) {
+        if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
+          return const SizedBox.shrink();
+        }
+        return ChangeNotifierProvider.value(
+          value: MinSettings(),
+          child: Consumer<MinSettings>(
+            builder: (context, settings, child) => ChangeNotifierProvider.value(
+              value: MinSettings(),
+              child: SizedBox(
+                width: 8 * 40 * MinSettings().scale,
+                height: 10 * 25 * MinSettings().scale,
+                child: Stack(
+                  children: [
+                    MinKeyboardImage(),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          width: 0.5,
+                          color: Colors.black,
+                        ),
+                      ),
                     ),
-                  ),
+                    // Function keys
+                    MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
+                    for (int i = 0; i < 4; i++)
+                      MinKey(
+                        left: 66 + i * 40,
+                        top: 36,
+                        width: 35,
+                        k: [
+                          TMinitelKey.sommaire,
+                          TMinitelKey.annulation,
+                          TMinitelKey.retour,
+                          TMinitelKey.repetition,
+                        ][i],
+                        ks: [
+                          TMinitelKey.circonflexe,
+                          "\\",
+                          TMinitelKey.aigu,
+                          "{",
+                        ][i],
+                        kc: [
+                          "\x00",
+                          TMinitelKey.livre,
+                          TMinitelKey.OE,
+                          TMinitelKey.oe,
+                        ][i],
+                      ),
+                    for (int i = 0; i < 4; i++)
+                      MinKey(
+                        left: 66 + i * 40,
+                        top: 63,
+                        width: 35,
+                        k: [
+                          TMinitelKey.guide,
+                          TMinitelKey.correction,
+                          TMinitelKey.suite,
+                          TMinitelKey.envoi,
+                        ][i],
+                        ks: [
+                          TMinitelKey.trema,
+                          TMinitelKey.paragraph,
+                          TMinitelKey.grave,
+                          "}",
+                        ][i],
+                        kc: [
+                          "\x00",
+                          "${TMinitelKey.cedille}c",
+                          TMinitelKey.beta,
+                          "\x00",
+                        ][i],
+                      ),
+                    for (int i = 0; i < 3; i++)
+                      MinKey(
+                        left: 237 + i * 29,
+                        top: 8,
+                        k: "123"[i],
+                        ks: "!\"#"[i],
+                      ),
+                    for (int i = 0; i < 3; i++)
+                      MinKey(
+                        left: 237 + i * 29,
+                        top: 34,
+                        k: "456"[i],
+                        ks: "\$%&"[i],
+                      ),
+                    for (int i = 0; i < 3; i++)
+                      MinKey(
+                        left: 237 + i * 29,
+                        top: 60,
+                        k: "789"[i],
+                        ks: "'()"[i],
+                      ),
+                    for (int i = 0; i < 3; i++)
+                      MinKey(
+                        left: 237 + i * 29,
+                        top: 86,
+                        k: "*0#"[i],
+                        ks: [
+                          "[",
+                          TMinitelKey.flecheHaut,
+                          "]",
+                        ][i],
+                      ),
+                    MinKey(left: 37, top: 120, k: '\x1b'), // Escape key
+                    // Special chars
+                    for (int i = 0; i < 7; i++)
+                      MinKey(
+                        left: 67 + i * 30,
+                        top: 120,
+                        k: ",.';-:?"[i],
+                        ks: "<>@+=*/"[i],
+                      ),
+                    // AZERTY first line
+                    for (int i = 0; i < 10; i++)
+                      MinKey(
+                        left: 26 + i * 28.8,
+                        top: 147,
+                        k: "AZERTYUIOP"[i],
+                      ),
+                    // AZERTY second line
+                    MinKey(
+                      left: 6,
+                      top: 173,
+                      width: 25,
+                      k: "ctrl",
+                    ),
+                    for (int i = 0; i < 10; i++)
+                      MinKey(
+                        left: 34 + i * 28.8,
+                        top: 173,
+                        k: "QSDFGHJKLM"[i],
+                      ),
+                    MinKey(
+                      left: 20,
+                      top: 199,
+                      width: 25,
+                      k: "shift",
+                    ),
+                    // AZERTY third line
+                    for (int i = 0; i < 6; i++)
+                      MinKey(
+                        left: 49 + i * 28.8,
+                        top: 199,
+                        k: "WXCVBN"[i],
+                      ),
+                    MinKey(
+                      left: 221,
+                      top: 199,
+                      width: 25,
+                      k: "shift",
+                    ),
+                    MinKey(
+                      left: 6,
+                      top: 225,
+                      width: 25,
+                      k: TMinitelKey.arrowUp,
+                      ks: TMinitelKey.supL,
+                    ),
+                    MinKey(
+                      left: 35,
+                      top: 225,
+                      width: 25,
+                      k: TMinitelKey.arrowDown,
+                      ks: TMinitelKey.insL,
+                    ),
+                    MinKey(
+                      left: 64,
+                      top: 225,
+                      width: 142,
+                      k: " ",
+                    ),
+                    MinKey(
+                      left: 210,
+                      top: 225,
+                      width: 25,
+                      k: TMinitelKey.arrowLeft,
+                      kc: "\x7f",
+                      ks: TMinitelKey.delC,
+                    ),
+                    MinKey(
+                      left: 239,
+                      top: 225,
+                      width: 25,
+                      k: TMinitelKey.arrowRight,
+                    ),
+                    MinKey(
+                      left: 282,
+                      top: 226,
+                      width: 35,
+                      k: "\x0d",
+                      ks: TMinitelKey.home,
+                      kc: TMinitelKey.ePage,
+                    ),
+                  ],
                 ),
-                // Function keys
-                MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
-                for (int i = 0; i < 4; i++)
-                  MinKey(
-                    left: 66 + i * 40,
-                    top: 36,
-                    width: 35,
-                    k: [
-                      TMinitelKey.sommaire,
-                      TMinitelKey.annulation,
-                      TMinitelKey.retour,
-                      TMinitelKey.repetition,
-                    ][i],
-                    ks: [
-                      TMinitelKey.circonflexe,
-                      "\\",
-                      TMinitelKey.aigu,
-                      "{",
-                    ][i],
-                    kc: [
-                      "\x00",
-                      TMinitelKey.livre,
-                      TMinitelKey.OE,
-                      TMinitelKey.oe,
-                    ][i],
-                  ),
-                for (int i = 0; i < 4; i++)
-                  MinKey(
-                    left: 66 + i * 40,
-                    top: 63,
-                    width: 35,
-                    k: [
-                      TMinitelKey.guide,
-                      TMinitelKey.correction,
-                      TMinitelKey.suite,
-                      TMinitelKey.envoi,
-                    ][i],
-                    ks: [
-                      TMinitelKey.trema,
-                      TMinitelKey.paragraph,
-                      TMinitelKey.grave,
-                      "}",
-                    ][i],
-                    kc: [
-                      "\x00",
-                      "${TMinitelKey.cedille}c",
-                      TMinitelKey.beta,
-                      "\x00",
-                    ][i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 8,
-                    k: "123"[i],
-                    ks: "!\"#"[i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 34,
-                    k: "456"[i],
-                    ks: "\$%&"[i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 60,
-                    k: "789"[i],
-                    ks: "'()"[i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 86,
-                    k: "*0#"[i],
-                    ks: [
-                      "[",
-                      TMinitelKey.flecheHaut,
-                      "]",
-                    ][i],
-                  ),
-                MinKey(left: 37, top: 120, k: '\x1b'), // Escape key
-                // Special chars
-                for (int i = 0; i < 7; i++)
-                  MinKey(
-                    left: 67 + i * 30,
-                    top: 120,
-                    k: ",.';-:?"[i],
-                    ks: "<>@+=*/"[i],
-                  ),
-                // AZERTY first line
-                for (int i = 0; i < 10; i++)
-                  MinKey(
-                    left: 26 + i * 28.8,
-                    top: 147,
-                    k: "AZERTYUIOP"[i],
-                  ),
-                // AZERTY second line
-                MinKey(
-                  left: 6,
-                  top: 173,
-                  width: 25,
-                  k: "ctrl",
-                ),
-                for (int i = 0; i < 10; i++)
-                  MinKey(
-                    left: 34 + i * 28.8,
-                    top: 173,
-                    k: "QSDFGHJKLM"[i],
-                  ),
-                MinKey(
-                  left: 20,
-                  top: 199,
-                  width: 25,
-                  k: "shift",
-                ),
-                // AZERTY third line
-                for (int i = 0; i < 6; i++)
-                  MinKey(
-                    left: 49 + i * 28.8,
-                    top: 199,
-                    k: "WXCVBN"[i],
-                  ),
-                MinKey(
-                  left: 221,
-                  top: 199,
-                  width: 25,
-                  k: "shift",
-                ),
-                MinKey(
-                  left: 6,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowUp,
-                  ks: TMinitelKey.supL,
-                ),
-                MinKey(
-                  left: 35,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowDown,
-                  ks: TMinitelKey.insL,
-                ),
-                MinKey(
-                  left: 64,
-                  top: 225,
-                  width: 142,
-                  k: " ",
-                ),
-                MinKey(
-                  left: 210,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowLeft,
-                  kc: "\x7f",
-                  ks: TMinitelKey.delC,
-                ),
-                MinKey(
-                  left: 239,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowRight,
-                ),
-                MinKey(
-                  left: 282,
-                  top: 226,
-                  width: 35,
-                  k: "\x0d",
-                  ks: TMinitelKey.home,
-                  kc: TMinitelKey.ePage,
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
