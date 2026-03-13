@@ -265,7 +265,9 @@ class _MinPainter extends CustomPainter {
     // Draw the background color
     canvas.drawRect(
       Rect.fromLTWH(x, y, cellWidth, cellHeight),
-      Paint()..color = bgColor,
+      Paint()
+        ..color = bgColor
+        ..isAntiAlias = false,
     );
 
     // If the character is a part of a double character stop rendering here
@@ -294,7 +296,10 @@ class _MinPainter extends CustomPainter {
       font,
       charRect,
       Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-      Paint()..colorFilter = ColorFilter.mode(fgColor, BlendMode.srcIn),
+      Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none
+        ..colorFilter = ColorFilter.mode(fgColor, BlendMode.srcIn),
     );
 
     // Draw underline if applicable (only for G0/G2 charset, not espsep)
@@ -303,7 +308,9 @@ class _MinPainter extends CustomPainter {
         (char.gAttr & kAttrSpace) == 0) {
       canvas.drawRect(
         Rect.fromLTWH(x, y + 9.0 * scaleHeight, 8.0 * scaleWidth, scaleHeight),
-        Paint()..color = fgColor,
+        Paint()
+          ..color = fgColor
+          ..isAntiAlias = false,
       );
     }
 
@@ -317,7 +324,10 @@ class _MinPainter extends CustomPainter {
         font,
         maskRect,
         Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-        Paint()..colorFilter = ColorFilter.mode(bgColor, BlendMode.srcIn),
+        Paint()
+          ..isAntiAlias = false
+          ..filterQuality = FilterQuality.none
+          ..colorFilter = ColorFilter.mode(bgColor, BlendMode.srcIn),
       );
     }
   }
