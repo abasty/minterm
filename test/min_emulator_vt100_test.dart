@@ -13,6 +13,30 @@ String readChar(TMinitel minitel, int x, int y) {
 }
 
 void main() {
+  group('TMinitel mode switching sequences', () {
+    test('ESC : 2 } switches to VT100 80 columns', () {
+      final minitel = TMinitel();
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+      expect(minitel.columns, 40);
+
+      minitel.emulate([0x1B, 0x3A, 0x32, 0x7D]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.vt10080);
+      expect(minitel.columns, 80);
+    });
+
+    test('ESC : 2 ~ switches back to Videotex 40 columns', () {
+      final minitel = TMinitel();
+      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      expect(minitel.columns, 80);
+
+      minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+      expect(minitel.columns, 40);
+    });
+  });
+
   group('TMinitel VT100', () {
     late TMinitel minitel;
 

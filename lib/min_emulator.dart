@@ -16,6 +16,7 @@ const int kStatePro3 = 130;
 const int kStateSequence = 150;
 const int kStateVtEsc = 200;
 const int kStateVtCsi = 201;
+const int kStateVtPro2 = 202;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -116,6 +117,7 @@ class TMinitel {
   int _columns = 40;
   StringBuffer _vtCsiBuffer = StringBuffer();
   bool _vtCsiPrivate = false;
+  int _vtPro2Prefix = -1;
   int _vtSavedRow = 1;
   int _vtSavedColumn = 1;
 
@@ -268,6 +270,10 @@ class TMinitel {
     line = state.l;
     codeIndex = 0;
     while (codeIndex < codes.length) {
+      if (isVt100Mode) {
+        emulateVt100(codes.sublist(codeIndex));
+        break;
+      }
       currentCode = codes[codeIndex];
       if (currentCode < $space) {
         fadr[currentCode]();
@@ -356,9 +362,17 @@ class TMinitel {
     int column = state.c;
     bool cursor = cursorOn;
 
-    for (final code in codes) {
+    for (int i = 0; i < codes.length; i++) {
+      if (!isVt100Mode) {
+        emulate(codes.sublist(i));
+        break;
+      }
+
+      final code = codes[i];
       currentCode = code;
-      if (stateCode == kStateVtEsc) {
+      if (stateCode == kStateVtPro2) {
+        _handleVtPro2(code);
+      } else if (stateCode == kStateVtEsc) {
         _handleVtEscape(code);
       } else if (stateCode == kStateVtCsi) {
         _handleVtCsi(code);
@@ -413,6 +427,12 @@ class TMinitel {
   }
 
   void _handleVtEscape(int code) {
+    if (code == $pro2) {
+      _vtPro2Prefix = -1;
+      stateCode = kStateVtPro2;
+      return;
+    }
+
     if (code == 0x5B) {
       _vtCsiBuffer = StringBuffer();
       _vtCsiPrivate = false;
@@ -448,6 +468,25 @@ class TMinitel {
       default:
         break;
     }
+    stateCode = 0;
+  }
+
+  void _handleVtPro2(int code) {
+    if (_vtPro2Prefix < 0) {
+      _vtPro2Prefix = code;
+      stateCode = kStateVtPro2;
+      return;
+    }
+
+    if (_vtPro2Prefix == 0x32) {
+      if (code == 0x7D) {
+        setScreenMode(TMinitelScreenMode.vt10080);
+      } else if (code == 0x7E) {
+        setScreenMode(TMinitelScreenMode.videotex40);
+      }
+    }
+
+    _vtPro2Prefix = -1;
     stateCode = 0;
   }
 
@@ -843,6 +882,12 @@ class TMinitel {
       } else if (y == 0x64) {
         speedChanged = true;
         speed = 1200;
+      }
+    } else if (x == 0x32) {
+      if (y == 0x7D) {
+        setScreenMode(TMinitelScreenMode.vt10080);
+      } else if (y == 0x7E) {
+        setScreenMode(TMinitelScreenMode.videotex40);
       }
     }
     stateCode = 0;
