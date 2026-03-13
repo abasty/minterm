@@ -128,29 +128,48 @@ class MinScreen extends StatelessWidget {
         builder: (context, settings, child) => ChangeNotifierProvider.value(
           value: MinModel(),
           child: Consumer<MinModel>(
-            builder: (context, minmodel, child) => SizedBox(
-              width: 8 * minmodel.minitel.columns * settings.scale,
-              height: 10 * minmodel.minitel.rows * settings.scale,
-              child: Transform.scale(
-                scale: settings.scale,
-                alignment: Alignment.topLeft,
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTapDown: (TapDownDetails details) {
-                        final tapPosition = details.localPosition;
-                        final x = (tapPosition.dx / 8.0).toInt();
-                        final y = (tapPosition.dy / 10.0).toInt();
-                        minmodel.handleTap(x, y);
-                      },
-                    ),
-                    CustomPaint(
-                      painter: _MinPainter(minmodel),
-                    ),
-                  ],
+            builder: (context, minmodel, child) {
+              final displayColumns = 80;
+              final displayWidth = 8.0 * displayColumns;
+              final displayHeight = displayWidth * 3.0 / 4.0;
+              final cellWidth = displayWidth / minmodel.minitel.columns;
+              final cellHeight = displayHeight / minmodel.minitel.rows;
+              return SizedBox(
+                width: displayWidth * settings.scale,
+                height: displayHeight * settings.scale,
+                child: Transform.scale(
+                  scale: settings.scale,
+                  alignment: Alignment.topLeft,
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTapDown: (TapDownDetails details) {
+                          final tapPosition = details.localPosition;
+                          final x = math.max(
+                            0,
+                            math.min(
+                              minmodel.minitel.columns - 1,
+                              (tapPosition.dx / cellWidth).toInt(),
+                            ),
+                          );
+                          final y = math.max(
+                            0,
+                            math.min(
+                              minmodel.minitel.rows - 1,
+                              (tapPosition.dy / cellHeight).toInt(),
+                            ),
+                          );
+                          minmodel.handleTap(x, y);
+                        },
+                      ),
+                      CustomPaint(
+                        painter: _MinPainter(minmodel),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -167,6 +186,10 @@ class _MinPainter extends CustomPainter {
     var screen = minmodel.minitel.screen;
     final columns = minmodel.minitel.columns;
     final lastLine = minmodel.minitel.lastLine;
+    const displayWidth = 8.0 * 80.0;
+    const displayHeight = displayWidth * 3.0 / 4.0;
+    final cellWidth = displayWidth / columns;
+    final cellHeight = displayHeight / minmodel.minitel.rows;
     if (minmodel.minitel.bip) {
       final player = AudioPlayer();
       player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
@@ -179,9 +202,11 @@ class _MinPainter extends CustomPainter {
         screen[line][column].code &= ~kIsDirty;
         drawChar(
           canvas,
-          (column - 1) * 8.0,
-          line * 10.0,
+          (column - 1) * cellWidth,
+          line * cellHeight,
           screen[line][column],
+          cellWidth: cellWidth,
+          cellHeight: cellHeight,
         );
       }
     }
@@ -191,19 +216,33 @@ class _MinPainter extends CustomPainter {
     final statusColumn = minmodel.minitel.columns >= 40
         ? minmodel.minitel.columns - 3
         : minmodel.minitel.columns;
-    drawChar(canvas, (statusColumn - 1) * 8.0, 0, statusChar);
+    drawChar(
+      canvas,
+      (statusColumn - 1) * cellWidth,
+      0,
+      statusChar,
+      cellWidth: cellWidth,
+      cellHeight: cellHeight,
+    );
   }
 
   // Method to draw a character
-  void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
+  void drawChar(
+    Canvas canvas,
+    double x,
+    double y,
+    TMinitelChar char, {
+    double cellWidth = 8.0,
+    double cellHeight = 10.0,
+  }) {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
 
     // Manage the cursor
     if (minmodel.minitel.cursorOn &&
         minmodel.showBlink &&
-        minmodel.minitel.state.c * 8 - 8 == x &&
-        minmodel.minitel.state.l * 10 == y) {
+        (minmodel.minitel.state.c - 1) * cellWidth == x &&
+        minmodel.minitel.state.l * cellHeight == y) {
       fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
       bgColor = MinSettings().colors[7 - (char.gAttr & kColorMask)];
     }
@@ -224,18 +263,23 @@ class _MinPainter extends CustomPainter {
     }
 
     // Draw the background color
-    canvas.drawRect(Rect.fromLTWH(x, y, 8, 10), Paint()..color = bgColor);
+    canvas.drawRect(
+      Rect.fromLTWH(x, y, cellWidth, cellHeight),
+      Paint()..color = bgColor,
+    );
 
     // If the character is a part of a double character stop rendering here
     if ((char.lAttr & kDoublePart) != 0) return;
 
     // Compute scale factors and adjust y position given the size attributes
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
+    scaleWidth *= cellWidth / 8.0;
     double scaleHeight = 1.0;
-    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= 10) {
-      y -= 10.0;
+    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= cellHeight) {
+      y -= cellHeight;
       scaleHeight = 2.0;
     }
+    scaleHeight *= cellHeight / 10.0;
 
     // Get the character image from the font image
     final code = char.code;
@@ -280,14 +324,24 @@ class _MinPainter extends CustomPainter {
 
   // Method to draw a string
   void drawString(
-      Canvas canvas, double x, double y, TMinitelChar attr, String str) {
-    double stepX = (attr.lAttr & kAttrDoubleWidth) != 0 ? 16.0 : 8.0;
+    Canvas canvas,
+    double x,
+    double y,
+    TMinitelChar attr,
+    String str, {
+    double cellWidth = 8.0,
+    double cellHeight = 10.0,
+  }) {
+    double stepX =
+        (attr.lAttr & kAttrDoubleWidth) != 0 ? 2 * cellWidth : cellWidth;
     for (var i = 0; i < str.length; i++) {
       drawChar(
         canvas,
         x + i * stepX,
         y,
         TMinitelChar(attr.gAttr, attr.lAttr, str.codeUnitAt(i)),
+        cellWidth: cellWidth,
+        cellHeight: cellHeight,
       );
     }
   }
