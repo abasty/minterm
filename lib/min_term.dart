@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_serial.dart';
 import 'min_widget.dart';
@@ -22,6 +23,7 @@ class MinTerm extends StatelessWidget {
               Divider(),
               SetBps(),
               Scale(),
+              SetScreenMode(),
               SetColors(),
               // ListTile(
               //   title: const Text('Keyboard'),
@@ -153,6 +155,36 @@ class SetColors extends StatelessWidget {
         Navigator.pop(context);
       },
       title: const Text('Colors'),
+    );
+  }
+}
+
+class SetScreenMode extends StatefulWidget {
+  const SetScreenMode({super.key});
+
+  @override
+  State<SetScreenMode> createState() => _SetScreenModeState();
+}
+
+class _SetScreenModeState extends State<SetScreenMode> {
+  @override
+  Widget build(BuildContext context) {
+    final mode = MinModel().screenMode;
+    final label = mode == TMinitelScreenMode.vt10080
+        ? 'VT100 80 colonnes'
+        : 'Minitel 40 colonnes';
+    return ListTile(
+      onTap: () {
+        setState(() => MinModel().toggleScreenMode());
+        Navigator.pop(context);
+      },
+      title: Row(
+        children: [
+          const Text('Mode écran'),
+          Expanded(child: Container()),
+          Text(label),
+        ],
+      ),
     );
   }
 }

@@ -14,6 +14,8 @@ const int kStatePro1 = 110;
 const int kStatePro2 = 120;
 const int kStatePro3 = 130;
 const int kStateSequence = 150;
+const int kStateVtEsc = 200;
+const int kStateVtCsi = 201;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -86,7 +88,14 @@ typedef FHandleCode = void Function();
 
 typedef TMinitelScreen = List<List<TMinitelChar>>;
 
+enum TMinitelScreenMode {
+  videotex40,
+  vt10080,
+}
+
 class TMinitel {
+  static const int kRows = 25;
+
   int stateCode = 0;
   bool _isPro3On = false;
   bool _isPro3StatusEcho = false;
@@ -103,6 +112,12 @@ class TMinitel {
   bool _isEchoed = true;
   List<int> currentSequence = [];
   List<int> reply = [];
+  TMinitelScreenMode _screenMode = TMinitelScreenMode.videotex40;
+  int _columns = 40;
+  StringBuffer _vtCsiBuffer = StringBuffer();
+  bool _vtCsiPrivate = false;
+  int _vtSavedRow = 1;
+  int _vtSavedColumn = 1;
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -112,38 +127,83 @@ class TMinitel {
     }
   }
 
+  TMinitelScreenMode get screenMode => _screenMode;
+
+  int get columns => _columns;
+
+  int get rows => kRows;
+
+  int get lastColumn => _columns;
+
+  int get lastLine => rows - 1;
+
+  int get _dirtyColumn => _columns + 1;
+
+  bool get isVt100Mode => _screenMode == TMinitelScreenMode.vt10080;
+
+  void setScreenMode(TMinitelScreenMode mode) {
+    if (_screenMode == mode) return;
+    _screenMode = mode;
+    _columns = mode == TMinitelScreenMode.vt10080 ? 80 : 40;
+    _initScreen();
+    clearScreen();
+  }
+
+  void toggleScreenMode() {
+    setScreenMode(
+      _screenMode == TMinitelScreenMode.videotex40
+          ? TMinitelScreenMode.vt10080
+          : TMinitelScreenMode.videotex40,
+    );
+  }
+
   TMinitelState state = TMinitelState(l: 1, c: 1);
   TMinitelState savedState = TMinitelState();
-  TMinitelScreen screen = List.generate(
-    25,
-    (_) => List.generate(
-      42,
-      (_) => TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space),
-    ),
-  );
+  TMinitelScreen screen = [];
+
+  TMinitel() {
+    _initScreen();
+    clearScreen();
+  }
+
+  void _initScreen() {
+    screen = List.generate(
+      rows,
+      (_) => List.generate(
+        _columns + 2,
+        (_) => TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space),
+      ),
+    );
+  }
 
   bool get isDirty {
-    return (screen[0][41].code & kIsDirty) != 0;
+    return (screen[0][_dirtyColumn].code & kIsDirty) != 0;
   }
 
   set isDirty(bool value) {
     if (value) {
-      screen[0][41].code |= kIsDirty;
+      screen[0][_dirtyColumn].code |= kIsDirty;
     } else {
-      screen[0][41].code &= ~kIsDirty;
+      screen[0][_dirtyColumn].code &= ~kIsDirty;
     }
   }
 
   void clearScreen() {
     state.resetAttr();
+    if (isVt100Mode) {
+      scrollOn = true;
+      cursorOn = true;
+    }
     state.l = 1;
     state.c = 1;
-    for (int line = 1; line <= 24; ++line) {
-      for (int column = 0; column <= 41; ++column) {
+    for (int line = 1; line <= lastLine; ++line) {
+      for (int column = 0; column <= _dirtyColumn; ++column) {
         screen[line][column] = TMinitelChar.from(kEmptyChar);
       }
     }
-    screen[0][41] = TMinitelChar.from(kEmptyChar);
+    for (int column = 0; column <= _dirtyColumn; ++column) {
+      screen[0][column] = TMinitelChar.from(kEmptyChar);
+    }
     stateCode = 0;
   }
 
@@ -159,6 +219,11 @@ class TMinitel {
   }
 
   void emulate(List<int> codes) {
+    if (isVt100Mode) {
+      emulateVt100(codes);
+      return;
+    }
+
     final fadr = <FHandleCode>[
       handleNull,
       handleNull,
@@ -286,12 +351,325 @@ class TMinitel {
     }
   }
 
+  void emulateVt100(List<int> codes) {
+    int line = state.l;
+    int column = state.c;
+    bool cursor = cursorOn;
+
+    for (final code in codes) {
+      currentCode = code;
+      if (stateCode == kStateVtEsc) {
+        _handleVtEscape(code);
+      } else if (stateCode == kStateVtCsi) {
+        _handleVtCsi(code);
+      } else if (code == $esc) {
+        stateCode = kStateVtEsc;
+      } else if (code < $space) {
+        _handleVtControl(code);
+      } else if (code != 0x7F) {
+        _putCharVt100(code);
+        _setCursorForwardVt100();
+      }
+
+      if (cursor != cursorOn) {
+        markCharAsDirty(line, column);
+      } else if (cursorOn && (column != state.c || line != state.l)) {
+        markCharAsDirty(line, column);
+        markCharAsDirty(state.l, state.c);
+      }
+
+      line = state.l;
+      column = state.c;
+      cursor = cursorOn;
+    }
+  }
+
+  void _handleVtControl(int code) {
+    switch (code) {
+      case 0x07:
+        handleBell();
+        break;
+      case 0x08:
+        if (state.c > 1) {
+          state.c--;
+        }
+        break;
+      case $tab:
+        final nextTab = (((state.c - 1) ~/ 8) + 1) * 8 + 1;
+        state.c = nextTab > lastColumn ? lastColumn : nextTab;
+        break;
+      case 0x0A:
+      case 0x0B:
+      case 0x0C:
+        _vtLineFeed();
+        break;
+      case 0x0D:
+        state.c = 1;
+        break;
+      default:
+        break;
+    }
+    stateCode = 0;
+  }
+
+  void _handleVtEscape(int code) {
+    if (code == 0x5B) {
+      _vtCsiBuffer = StringBuffer();
+      _vtCsiPrivate = false;
+      stateCode = kStateVtCsi;
+      return;
+    }
+
+    switch (code) {
+      case 0x37: // DECSC
+        _vtSavedRow = state.l;
+        _vtSavedColumn = state.c;
+        break;
+      case 0x38: // DECRC
+        _setCursorClamped(_vtSavedRow, _vtSavedColumn);
+        break;
+      case 0x44: // IND
+        _vtLineFeed();
+        break;
+      case 0x45: // NEL
+        state.c = 1;
+        _vtLineFeed();
+        break;
+      case 0x4D: // RI
+        if (state.l > 1) {
+          state.l--;
+        } else {
+          scrollDown();
+        }
+        break;
+      case 0x63: // RIS
+        clearScreen();
+        break;
+      default:
+        break;
+    }
+    stateCode = 0;
+  }
+
+  void _handleVtCsi(int code) {
+    if ((code >= 0x30 && code <= 0x39) || code == 0x3B) {
+      _vtCsiBuffer.writeCharCode(code);
+      return;
+    }
+    if (code == 0x3F && _vtCsiBuffer.isEmpty) {
+      _vtCsiPrivate = true;
+      return;
+    }
+    if (code >= 0x40 && code <= 0x7E) {
+      _executeVtCsi(code, _vtParseParams(_vtCsiBuffer.toString()));
+      _vtCsiBuffer = StringBuffer();
+      _vtCsiPrivate = false;
+      stateCode = 0;
+      return;
+    }
+
+    // Unsupported CSI fragment: reset state to avoid getting stuck.
+    _vtCsiBuffer = StringBuffer();
+    _vtCsiPrivate = false;
+    stateCode = 0;
+  }
+
+  List<int> _vtParseParams(String raw) {
+    if (raw.isEmpty) return [];
+    return raw.split(';').map((s) {
+      if (s.isEmpty) return 0;
+      return int.tryParse(s) ?? 0;
+    }).toList();
+  }
+
+  int _vtParam(List<int> params, int index, int fallback) {
+    if (index >= params.length || params[index] == 0) return fallback;
+    return params[index];
+  }
+
+  void _executeVtCsi(int finalCode, List<int> params) {
+    switch (finalCode) {
+      case 0x41: // CUU
+        _setCursorClamped(state.l - _vtParam(params, 0, 1), state.c);
+        break;
+      case 0x42: // CUD
+        _setCursorClamped(state.l + _vtParam(params, 0, 1), state.c);
+        break;
+      case 0x43: // CUF
+        _setCursorClamped(state.l, state.c + _vtParam(params, 0, 1));
+        break;
+      case 0x44: // CUB
+        _setCursorClamped(state.l, state.c - _vtParam(params, 0, 1));
+        break;
+      case 0x47: // CHA
+        _setCursorClamped(state.l, _vtParam(params, 0, 1));
+        break;
+      case 0x48: // CUP
+      case 0x66: // HVP
+        _setCursorClamped(_vtParam(params, 0, 1), _vtParam(params, 1, 1));
+        break;
+      case 0x64: // VPA
+        _setCursorClamped(_vtParam(params, 0, 1), state.c);
+        break;
+      case 0x4A: // ED
+        _vtEraseDisplay(_vtParam(params, 0, 0));
+        break;
+      case 0x4B: // EL
+        _vtEraseLine(_vtParam(params, 0, 0));
+        break;
+      case 0x6D: // SGR
+        _vtSetSgr(params);
+        break;
+      case 0x73: // SCP
+        _vtSavedRow = state.l;
+        _vtSavedColumn = state.c;
+        break;
+      case 0x75: // RCP
+        _setCursorClamped(_vtSavedRow, _vtSavedColumn);
+        break;
+      case 0x68: // SM
+      case 0x6C: // RM
+        if (_vtCsiPrivate && params.isNotEmpty && params.first == 3) {
+          // Keep 80 columns in VT100 mode (ignore 132-column requests).
+          setScreenMode(TMinitelScreenMode.vt10080);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _vtSetSgr(List<int> params) {
+    final effective = params.isEmpty ? [0] : params;
+    for (final param in effective) {
+      switch (param) {
+        case 0:
+          state.resetAttr();
+          break;
+        case 4:
+          state.underlined = kAttrUnderline;
+          break;
+        case 5:
+          state.blink = kAttrBlink;
+          break;
+        case 7:
+          state.inverse = kAttrInverse;
+          break;
+        case 24:
+          state.underlined = kAttrNone;
+          break;
+        case 25:
+          state.blink = kAttrNone;
+          break;
+        case 27:
+          state.inverse = kAttrNone;
+          break;
+        case >= 30 && <= 37:
+          state.fgColor = param - 30;
+          break;
+        case 39:
+          state.fgColor = kColorWhite;
+          break;
+        case >= 40 && <= 47:
+          state.bgColor = param - 40;
+          break;
+        case 49:
+          state.bgColor = kColorBlack;
+          break;
+      }
+    }
+    state.charset = kG0Charset;
+    state.size = kAttrNone;
+    state.needAttrSpace = false;
+  }
+
+  void _vtEraseDisplay(int mode) {
+    switch (mode) {
+      case 1:
+        for (int line = 1; line < state.l; ++line) {
+          _vtClearLine(line, 1, lastColumn);
+        }
+        _vtClearLine(state.l, 1, state.c);
+        break;
+      case 2:
+        for (int line = 1; line <= lastLine; ++line) {
+          _vtClearLine(line, 1, lastColumn);
+        }
+        break;
+      case 0:
+      default:
+        _vtClearLine(state.l, state.c, lastColumn);
+        for (int line = state.l + 1; line <= lastLine; ++line) {
+          _vtClearLine(line, 1, lastColumn);
+        }
+        break;
+    }
+  }
+
+  void _vtEraseLine(int mode) {
+    switch (mode) {
+      case 1:
+        _vtClearLine(state.l, 1, state.c);
+        break;
+      case 2:
+        _vtClearLine(state.l, 1, lastColumn);
+        break;
+      case 0:
+      default:
+        _vtClearLine(state.l, state.c, lastColumn);
+        break;
+    }
+  }
+
+  void _vtClearLine(int line, int fromColumn, int toColumn) {
+    final start = fromColumn < 1 ? 1 : fromColumn;
+    final end = toColumn > lastColumn ? lastColumn : toColumn;
+    for (int column = start; column <= end; ++column) {
+      final char = screen[line][column];
+      char.code = $space;
+      char.gAttr = state.bgColor | state.underlined;
+      char.lAttr = state.fgColor | state.blink | state.inverse;
+      markCharAsDirty(line, column);
+    }
+  }
+
+  void _putCharVt100(int code) {
+    final l = state.l;
+    final c = state.c;
+    final char = screen[l][c];
+    char.code = code;
+    char.gAttr = state.bgColor | state.underlined;
+    char.lAttr = state.fgColor | state.blink | state.inverse;
+    markCharAsDirty(l, c);
+  }
+
+  void _setCursorForwardVt100() {
+    state.c++;
+    if (state.c > lastColumn) {
+      state.c = 1;
+      _vtLineFeed();
+    }
+  }
+
+  void _vtLineFeed() {
+    if (state.l < lastLine) {
+      state.l++;
+    } else {
+      scrollUp();
+    }
+  }
+
+  void _setCursorClamped(int line, int column) {
+    state.l = line < 1 ? 1 : (line > lastLine ? lastLine : line);
+    state.c = column < 1 ? 1 : (column > lastColumn ? lastColumn : column);
+  }
+
   void handleBackSpace() {
     if (state.c > 1) {
       state.c--;
       stateCode = 0;
     } else {
-      state.c = 40;
+      state.c = lastColumn;
       handleVerticalTab();
     }
   }
@@ -307,7 +685,7 @@ class TMinitel {
     int column, line;
     bool scroll;
 
-    n = 41 - state.c;
+    n = lastColumn + 1 - state.c;
     currentCode = $space;
     size = state.size;
     column = state.c;
@@ -407,10 +785,10 @@ class TMinitel {
   void handleLineFeed() {
     if (state.l == 0) {
       state = TMinitelState.from(savedState);
-    } else if (state.l < 24) {
+    } else if (state.l < lastLine) {
       state.l++;
     } else if (scrollOn) {
-      state.l = 24;
+      state.l = lastLine;
       scrollUp();
     } else {
       state.l = 1;
@@ -715,7 +1093,7 @@ class TMinitel {
   }
 
   void handleTabulation() {
-    if (state.c < 40) {
+    if (state.c < lastColumn) {
       state.c++;
       stateCode = 0;
     } else {
@@ -732,7 +1110,7 @@ class TMinitel {
         state.l = 1;
         scrollDown();
       } else {
-        state.l = 24;
+        state.l = lastLine;
       }
     }
     stateCode = 0;
@@ -752,14 +1130,14 @@ class TMinitel {
   void markCharAsDirty(int l, int c) {
     screen[l][c].code |= kIsDirty;
     screen[l][0].code |= kIsDirty;
-    screen[0][41].code |= kIsDirty;
+    screen[0][_dirtyColumn].code |= kIsDirty;
   }
 
   // Propagates global attributes and dirty flag to the right
   void propagateAndMakeDirty(int l, int c) {
     var first = screen[l][c];
     markCharAsDirty(l, c);
-    for (int col = c + 1; col < 40; ++col) {
+    for (int col = c + 1; col < lastColumn; ++col) {
       var char = screen[l][col];
       if ((char.gAttr & (kG1Charset | kAttrSpace)) != 0) {
         break;
@@ -809,11 +1187,13 @@ class TMinitel {
       setPartAttr(l - 1, c, char, kAttrDoubleHeight);
     }
     // Handle bottom right if applicable
-    if ((char.lAttr & kAttrDoubleWidth) != 0 && c < 40) {
+    if ((char.lAttr & kAttrDoubleWidth) != 0 && c < lastColumn) {
       setPartAttr(l, c + 1, char, kAttrDoubleWidth);
     }
     // Handle top right if applicable
-    if ((char.lAttr & kSizeMask) == kAttrDoubleHeightWidth && l > 0 && c < 40) {
+    if ((char.lAttr & kSizeMask) == kAttrDoubleHeightWidth &&
+        l > 0 &&
+        c < lastColumn) {
       setPartAttr(l - 1, c + 1, char, kAttrDoubleHeightWidth);
     }
     // Propagate global attributes to the right and update dirty flag
@@ -824,27 +1204,27 @@ class TMinitel {
   }
 
   void scrollDown({int fromLine = 1}) {
-    for (int line = 23; line >= fromLine; --line) {
-      for (int column = 1; column <= 40; ++column) {
+    for (int line = lastLine - 1; line >= fromLine; --line) {
+      for (int column = 1; column <= lastColumn; ++column) {
         screen[line + 1][column] = screen[line][column];
       }
     }
-    for (int column = 1; column <= 40; ++column) {
+    for (int column = 1; column <= lastColumn; ++column) {
       screen[fromLine][column] = TMinitelChar.from(kEmptyChar);
     }
-    screen[0][41] = TMinitelChar.from(kEmptyChar);
+    screen[0][_dirtyColumn] = TMinitelChar.from(kEmptyChar);
   }
 
   void scrollUp({int fromLine = 1}) {
-    for (int line = fromLine; line <= 23; ++line) {
-      for (int column = 1; column <= 40; ++column) {
+    for (int line = fromLine; line <= lastLine - 1; ++line) {
+      for (int column = 1; column <= lastColumn; ++column) {
         screen[line][column] = screen[line + 1][column];
       }
     }
-    for (int column = 1; column <= 40; ++column) {
-      screen[24][column] = TMinitelChar.from(kEmptyChar);
+    for (int column = 1; column <= lastColumn; ++column) {
+      screen[lastLine][column] = TMinitelChar.from(kEmptyChar);
     }
-    screen[0][41] = TMinitelChar.from(kEmptyChar);
+    screen[0][_dirtyColumn] = TMinitelChar.from(kEmptyChar);
   }
 
   void handleSupL() {
@@ -858,10 +1238,10 @@ class TMinitel {
   void handleDelC() {
     final l = state.l;
     final c = state.c;
-    for (int column = c; column < 40; ++column) {
+    for (int column = c; column < lastColumn; ++column) {
       screen[l][column] = screen[l][column + 1];
     }
-    screen[l][40] = TMinitelChar.from(kEmptyChar);
+    screen[l][lastColumn] = TMinitelChar.from(kEmptyChar);
     propagateAndMakeDirty(l, c);
   }
 
@@ -877,22 +1257,22 @@ class TMinitel {
     if ((state.size & kAttrDoubleWidth) != 0) {
       state.c++;
     }
-    if (state.c > 40) {
+    if (state.c > lastColumn) {
       if (state.l == 0) {
-        state.c = 40;
+        state.c = lastColumn;
       } else {
-        state.c = state.c - 40;
+        state.c = state.c - lastColumn;
         state.l++;
         if ((state.size & kAttrDoubleHeight) != 0) {
           state.l++;
         }
         if (scrollOn) {
-          while (state.l > 24) {
+          while (state.l > lastLine) {
             scrollUp();
             state.l--;
           }
-        } else if (state.l > 24) {
-          state.l = state.l - 24;
+        } else if (state.l > lastLine) {
+          state.l = state.l - lastLine;
           if (state.l == 1 && (state.size & kAttrDoubleHeight) != 0) {
             state.l = 2;
           }
@@ -1018,7 +1398,7 @@ class TMinitel {
     final leftPart = buffer.toString().split('').reversed.join('');
     buffer.clear();
     // Get characters to the right
-    for (int i = x + 1; i < 40; i++) {
+    for (int i = x + 1; i < lastColumn; i++) {
       final char = getChar(i, y);
       if (alphaNum.hasMatch(char)) {
         if (!isDoublePart(i, y)) buffer.write(char);

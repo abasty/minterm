@@ -57,6 +57,18 @@ class MinModel extends ChangeNotifier {
     _serverAddress = value;
   }
 
+  TMinitelScreenMode get screenMode => minitel.screenMode;
+
+  void setScreenMode(TMinitelScreenMode mode) {
+    minitel.setScreenMode(mode);
+    notifyListeners();
+  }
+
+  void toggleScreenMode() {
+    minitel.toggleScreenMode();
+    notifyListeners();
+  }
+
   void emulate(List<int> codes) {
     // Manage the timer to send the codes at the right speed
     if (_timer != null) _timer!.cancel();

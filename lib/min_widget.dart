@@ -127,12 +127,12 @@ class MinScreen extends StatelessWidget {
       child: Consumer<MinSettings>(
         builder: (context, settings, child) => ChangeNotifierProvider(
           create: (context) => MinModel(),
-          child: SizedBox(
-            width: 8 * 40 * MinSettings().scale,
-            height: 10 * 25 * MinSettings().scale,
-            child: Consumer<MinModel>(
-              builder: (context, minmodel, child) => Transform.scale(
-                scale: MinSettings().scale,
+          child: Consumer<MinModel>(
+            builder: (context, minmodel, child) => SizedBox(
+              width: 8 * minmodel.minitel.columns * settings.scale,
+              height: 10 * minmodel.minitel.rows * settings.scale,
+              child: Transform.scale(
+                scale: settings.scale,
                 alignment: Alignment.topLeft,
                 child: Stack(
                   children: [
@@ -165,15 +165,17 @@ class _MinPainter extends CustomPainter {
 
   void draw(Canvas canvas) {
     var screen = minmodel.minitel.screen;
+    final columns = minmodel.minitel.columns;
+    final lastLine = minmodel.minitel.lastLine;
     if (minmodel.minitel.bip) {
       final player = AudioPlayer();
       player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
       minmodel.minitel.bip = false;
     }
-    screen[0][41].code &= ~kIsDirty;
-    for (int line = 0; line <= 24; ++line) {
+    screen[0][columns + 1].code &= ~kIsDirty;
+    for (int line = 0; line <= lastLine; ++line) {
       screen[line][0].code &= ~kIsDirty;
-      for (int column = 40; column >= 1; --column) {
+      for (int column = columns; column >= 1; --column) {
         screen[line][column].code &= ~kIsDirty;
         drawChar(
           canvas,
@@ -186,7 +188,10 @@ class _MinPainter extends CustomPainter {
 
     final statusCode = minmodel.isConnected ? 0x43 : 0x46;
     final statusChar = TMinitelChar(0, kAttrInverse + kColorWhite, statusCode);
-    drawChar(canvas, 36 * 8, 0, statusChar);
+    final statusColumn = minmodel.minitel.columns >= 40
+        ? minmodel.minitel.columns - 3
+        : minmodel.minitel.columns;
+    drawChar(canvas, (statusColumn - 1) * 8.0, 0, statusChar);
   }
 
   // Method to draw a character
