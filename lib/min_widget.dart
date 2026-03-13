@@ -381,205 +381,96 @@ class MinKeyboard extends StatelessWidget {
         if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
           return const MinVt100Keyboard();
         }
-        return ChangeNotifierProvider.value(
-          value: MinSettings(),
-          child: Consumer<MinSettings>(
-            builder: (context, settings, child) => ChangeNotifierProvider.value(
-              value: MinSettings(),
-              child: SizedBox(
-                width: 8 * 40 * MinSettings().scale,
-                height: 10 * 25 * MinSettings().scale,
-                child: Stack(
-                  children: [
-                    MinKeyboardImage(),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 0.5,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    // Function keys
-                    MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
-                    for (int i = 0; i < 4; i++)
-                      MinKey(
-                        left: 66 + i * 40,
-                        top: 36,
-                        width: 35,
-                        k: [
-                          TMinitelKey.sommaire,
-                          TMinitelKey.annulation,
-                          TMinitelKey.retour,
-                          TMinitelKey.repetition,
-                        ][i],
-                        ks: [
-                          TMinitelKey.circonflexe,
-                          "\\",
-                          TMinitelKey.aigu,
-                          "{",
-                        ][i],
-                        kc: [
-                          "\x00",
-                          TMinitelKey.livre,
-                          TMinitelKey.OE,
-                          TMinitelKey.oe,
-                        ][i],
-                      ),
-                    for (int i = 0; i < 4; i++)
-                      MinKey(
-                        left: 66 + i * 40,
-                        top: 63,
-                        width: 35,
-                        k: [
-                          TMinitelKey.guide,
-                          TMinitelKey.correction,
-                          TMinitelKey.suite,
-                          TMinitelKey.envoi,
-                        ][i],
-                        ks: [
-                          TMinitelKey.trema,
-                          TMinitelKey.paragraph,
-                          TMinitelKey.grave,
-                          "}",
-                        ][i],
-                        kc: [
-                          "\x00",
-                          "${TMinitelKey.cedille}c",
-                          TMinitelKey.beta,
-                          "\x00",
-                        ][i],
-                      ),
-                    for (int i = 0; i < 3; i++)
-                      MinKey(
-                        left: 237 + i * 29,
-                        top: 8,
-                        k: "123"[i],
-                        ks: "!\"#"[i],
-                      ),
-                    for (int i = 0; i < 3; i++)
-                      MinKey(
-                        left: 237 + i * 29,
-                        top: 34,
-                        k: "456"[i],
-                        ks: "\$%&"[i],
-                      ),
-                    for (int i = 0; i < 3; i++)
-                      MinKey(
-                        left: 237 + i * 29,
-                        top: 60,
-                        k: "789"[i],
-                        ks: "'()"[i],
-                      ),
-                    for (int i = 0; i < 3; i++)
-                      MinKey(
-                        left: 237 + i * 29,
-                        top: 86,
-                        k: "*0#"[i],
-                        ks: [
-                          "[",
-                          TMinitelKey.flecheHaut,
-                          "]",
-                        ][i],
-                      ),
-                    MinKey(left: 37, top: 120, k: '\x1b'), // Escape key
-                    // Special chars
-                    for (int i = 0; i < 7; i++)
-                      MinKey(
-                        left: 67 + i * 30,
-                        top: 120,
-                        k: ",.';-:?"[i],
-                        ks: "<>@+=*/"[i],
-                      ),
-                    // AZERTY first line
-                    for (int i = 0; i < 10; i++)
-                      MinKey(
-                        left: 26 + i * 28.8,
-                        top: 147,
-                        k: "AZERTYUIOP"[i],
-                      ),
-                    // AZERTY second line
-                    MinKey(
-                      left: 6,
-                      top: 173,
-                      width: 25,
-                      k: "ctrl",
-                    ),
-                    for (int i = 0; i < 10; i++)
-                      MinKey(
-                        left: 34 + i * 28.8,
-                        top: 173,
-                        k: "QSDFGHJKLM"[i],
-                      ),
-                    MinKey(
-                      left: 20,
-                      top: 199,
-                      width: 25,
-                      k: "shift",
-                    ),
-                    // AZERTY third line
-                    for (int i = 0; i < 6; i++)
-                      MinKey(
-                        left: 49 + i * 28.8,
-                        top: 199,
-                        k: "WXCVBN"[i],
-                      ),
-                    MinKey(
-                      left: 221,
-                      top: 199,
-                      width: 25,
-                      k: "shift",
-                    ),
-                    MinKey(
-                      left: 6,
-                      top: 225,
-                      width: 25,
-                      k: TMinitelKey.arrowUp,
-                      ks: TMinitelKey.supL,
-                    ),
-                    MinKey(
-                      left: 35,
-                      top: 225,
-                      width: 25,
-                      k: TMinitelKey.arrowDown,
-                      ks: TMinitelKey.insL,
-                    ),
-                    MinKey(
-                      left: 64,
-                      top: 225,
-                      width: 142,
-                      k: " ",
-                    ),
-                    MinKey(
-                      left: 210,
-                      top: 225,
-                      width: 25,
-                      k: TMinitelKey.arrowLeft,
-                      kc: "\x7f",
-                      ks: TMinitelKey.delC,
-                    ),
-                    MinKey(
-                      left: 239,
-                      top: 225,
-                      width: 25,
-                      k: TMinitelKey.arrowRight,
-                    ),
-                    MinKey(
-                      left: 282,
-                      top: 226,
-                      width: 35,
-                      k: "\x0d",
-                      ks: TMinitelKey.home,
-                      kc: TMinitelKey.ePage,
-                    ),
-                  ],
+        return const MinMinitelKeyboard();
+      },
+    );
+  }
+}
+
+/// Compact keyboard for Minitel 40-column mode.
+class MinMinitelKeyboard extends StatelessWidget {
+  const MinMinitelKeyboard({super.key});
+
+  static const _row1 = [
+    ['Cx/Fin', TMinitelKey.cxFin],
+    ['Répétition', TMinitelKey.repetition],
+    ['Sommaire', TMinitelKey.sommaire],
+    ['Guide', TMinitelKey.guide],
+    ['Annulation', TMinitelKey.annulation],
+    ['Correction', TMinitelKey.correction],
+    ['Envoi', TMinitelKey.envoi],
+  ];
+
+  static const _row2 = [
+    ['Esc', '\x1b'],
+    ['Suite', TMinitelKey.suite],
+    ['Retour', TMinitelKey.retour],
+    ['Espace', ' '],
+    ['↑', TMinitelKey.arrowUp],
+    ['↓', TMinitelKey.arrowDown],
+    ['←', TMinitelKey.arrowLeft],
+    ['→', TMinitelKey.arrowRight],
+    ['Entrée', '\r'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, child) {
+        final scale = MinSettings().scale;
+        return SizedBox(
+          width: 8 * 80 * scale,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRow(_row1, scale),
+              _buildRow(_row2, scale),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRow(List<List<String>> keys, double scale) {
+    return Row(
+      children: keys.map((entry) {
+        final label = entry[0];
+        return Expanded(
+          flex: _keyFlex(label),
+          child: SizedBox(
+            height: 24 * scale,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.grey),
+                ),
+                backgroundColor: const Color(0xFF1E3A5F),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => MinModel().handleKeys(entry[1]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 10 * scale),
                 ),
               ),
             ),
           ),
         );
-      },
+      }).toList(),
     );
+  }
+
+  int _keyFlex(String label) {
+    if (label == 'Espace') return 3;
+    if (label == 'Esc') return 1;
+    return label == '↑' || label == '↓' || label == '←' || label == '→' ? 1 : 2;
   }
 }
 
@@ -665,93 +556,6 @@ class MinVt100Keyboard extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-class MinKeyboardImage extends StatelessWidget {
-  const MinKeyboardImage({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage("assets/clavier.png"),
-          fit: BoxFit.fill,
-        ),
-      ),
-    );
-  }
-}
-
-class MinKey extends StatelessWidget {
-  final double left;
-  final double top;
-  final double width;
-  final double height;
-  final String k;
-  final String ks;
-  final String kc;
-
-  const MinKey({
-    super.key,
-    this.left = 0,
-    this.top = 0,
-    this.width = 25,
-    this.height = 20,
-    this.k = "",
-    this.ks = "",
-    this.kc = "",
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MinSettings().scale;
-    return Positioned(
-      left: left * scale,
-      top: top * scale,
-      width: width * scale,
-      height: height * scale,
-      child: InkWell(
-        hoverColor: Colors.grey,
-        splashColor: const ui.Color.fromARGB(255, 107, 66, 0),
-        child: kDebugMode
-            ? Container(
-                decoration: BoxDecoration(
-                  border: Border.all(width: 1, color: Colors.red),
-                ),
-              )
-            : null,
-        onTap: () {
-          final player = AudioPlayer();
-          player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
-
-          final letters = RegExp('^[A-Z]\$');
-          final shifted = MinModel().isShifted;
-          final ctrl = MinModel().isCtrl;
-          final upMode = MinSettings().capslock;
-          var key = '';
-          if (letters.hasMatch(k)) {
-            if (k.toUpperCase() == 'G' && ctrl) {
-              key = '\x07';
-            } else {
-              key = (shifted && upMode) || (!shifted && !upMode)
-                  ? k.toLowerCase()
-                  : k;
-            }
-          } else {
-            if (ctrl && kc.isNotEmpty) {
-              key = kc;
-            } else {
-              key = shifted && ks.isNotEmpty ? ks : k;
-            }
-          }
-          MinModel().handleKeys(key);
-        },
-      ),
     );
   }
 }

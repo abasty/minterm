@@ -154,6 +154,27 @@ void main() {
       ),
     );
 
-    expect(find.byType(MinKeyboardImage), findsNothing);
+    expect(find.text('Sommaire'), findsNothing);
+    expect(find.text('F1'), findsOneWidget);
+  });
+
+  testWidgets('Compact Minitel keyboard is shown in 40-column mode', (
+    WidgetTester tester,
+  ) async {
+    MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: MinKeyboard(),
+        ),
+      ),
+    );
+
+    expect(find.text('Cx/Fin'), findsOneWidget);
+    expect(find.text('Sommaire'), findsOneWidget);
+    expect(find.text('Envoi'), findsOneWidget);
+    expect(find.text('Esc'), findsOneWidget);
+    expect(find.text('Entrée'), findsOneWidget);
   });
 }
