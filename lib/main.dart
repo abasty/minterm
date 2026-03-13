@@ -42,24 +42,31 @@ void main() async {
       }
       var ctrl = HardwareKeyboard.instance.isControlPressed;
       var shift = HardwareKeyboard.instance.isShiftPressed;
+      final isVt100 = MinModel().screenMode == TMinitelScreenMode.vt10080;
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
-          // Suite
-          MinModel().handleKeys(TMinitelKey.suite);
+          // PgDn in VT100 mode, Suite in Minitel mode
+          MinModel().handleKeys(isVt100 ? '\x1b[6~' : TMinitelKey.suite);
           break;
         case LogicalKeyboardKey.pageUp:
-          // Retour
-          MinModel().handleKeys(TMinitelKey.retour);
+          // PgUp in VT100 mode, Retour in Minitel mode
+          MinModel().handleKeys(isVt100 ? '\x1b[5~' : TMinitelKey.retour);
           break;
         case LogicalKeyboardKey.f1:
           // Guide
           MinModel().handleKeys(TMinitelKey.guide);
           break;
         case LogicalKeyboardKey.backspace:
-          // Correction
-          MinModel().handleKeys(TMinitelKey.correction);
+          // BackSp in VT100 mode, Correction in Minitel mode
+          MinModel().handleKeys(isVt100 ? '\x7f' : TMinitelKey.correction);
           break;
         case LogicalKeyboardKey.enter:
+        case LogicalKeyboardKey.numpadEnter:
+          // Entrée in VT100 mode, Envoi/Home/ePage in Minitel mode
+          if (isVt100) {
+            MinModel().handleKeys('\r');
+            break;
+          }
           // Envoi
           if (shift) {
             MinModel().handleKeys(TMinitelKey.home);
@@ -69,9 +76,21 @@ void main() async {
             MinModel().handleKeys(TMinitelKey.envoi);
           }
           break;
+        case LogicalKeyboardKey.delete:
+          // Del in VT100 mode
+          if (isVt100) {
+            MinModel().handleKeys('\x1b[3~');
+          }
+          break;
         case LogicalKeyboardKey.home:
-          // Sommaire
-          MinModel().handleKeys(TMinitelKey.sommaire);
+          // Home in VT100 mode, Sommaire in Minitel mode
+          MinModel().handleKeys(isVt100 ? '\x1b[H' : TMinitelKey.sommaire);
+          break;
+        case LogicalKeyboardKey.end:
+          // End in VT100 mode
+          if (isVt100) {
+            MinModel().handleKeys('\x1b[F');
+          }
           break;
         case LogicalKeyboardKey.arrowLeft:
           if (shift) {
@@ -108,9 +127,9 @@ void main() async {
           }
           break;
         case LogicalKeyboardKey.keyC:
-          // CX/Fin
+          // Ctrl+C in VT100 mode, CX/Fin in Minitel mode
           if (ctrl) {
-            MinModel().handleKeys(TMinitelKey.cxFin);
+            MinModel().handleKeys(isVt100 ? '\x03' : TMinitelKey.cxFin);
           } else {
             MinModel().handleKeys(event.character!);
           }

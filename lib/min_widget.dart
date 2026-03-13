@@ -53,7 +53,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
   static const durationMax = 400;
-  var scale = 2.5;
+  var scale = 2.0;
   var duration = durationMax;
   var _colors = MinGrey;
   int _loaded = 0;

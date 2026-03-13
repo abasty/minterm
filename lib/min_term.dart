@@ -39,6 +39,7 @@ class MinTerm extends StatelessWidget {
               Connection('Minipavi', 'tcp://go.minipavi.fr:516'),
               Connection('Zboub', 'tcp://abasty-retro.fr:1967'),
               Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
+              Connection('telehack', 'tcp://telehack.com:23'),
               Connection(
                 'BASTOS (localhost:1967)',
                 'tcp://127.0.0.1:1967',
