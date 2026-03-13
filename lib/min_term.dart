@@ -170,9 +170,8 @@ class _SetScreenModeState extends State<SetScreenMode> {
   @override
   Widget build(BuildContext context) {
     final mode = MinModel().screenMode;
-    final label = mode == TMinitelScreenMode.vt10080
-        ? 'VT100 80 colonnes'
-        : 'Minitel 40 colonnes';
+    final label =
+        mode == TMinitelScreenMode.vt10080 ? 'VT100 80' : 'Minitel 40';
     return ListTile(
       onTap: () {
         setState(() => MinModel().toggleScreenMode());

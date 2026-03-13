@@ -325,7 +325,7 @@ class MinKeyboard extends StatelessWidget {
       listenable: MinModel(),
       builder: (context, child) {
         if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
-          return const SizedBox.shrink();
+          return const MinVt100Keyboard();
         }
         return ChangeNotifierProvider.value(
           value: MinSettings(),
@@ -525,6 +525,92 @@ class MinKeyboard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Compact function-key bar shown in VT100 80-column mode.
+class MinVt100Keyboard extends StatelessWidget {
+  const MinVt100Keyboard({super.key});
+
+  static const _row1 = [
+    ['ESC', '\x1b'],
+    ['F1', '\x1bOP'],
+    ['F2', '\x1bOQ'],
+    ['F3', '\x1bOR'],
+    ['F4', '\x1bOS'],
+    ['F5', '\x1b[15~'],
+    ['F6', '\x1b[17~'],
+    ['F7', '\x1b[18~'],
+    ['F8', '\x1b[19~'],
+    ['F9', '\x1b[20~'],
+    ['F10', '\x1b[21~'],
+  ];
+
+  static const _row2 = [
+    ['Tab', '\t'],
+    ['BackSp', '\x7f'],
+    ['\u2191', '\x1b[A'],
+    ['\u2193', '\x1b[B'],
+    ['\u2190', '\x1b[D'],
+    ['\u2192', '\x1b[C'],
+    ['Home', '\x1b[H'],
+    ['End', '\x1b[F'],
+    ['PgUp', '\x1b[5~'],
+    ['PgDn', '\x1b[6~'],
+    ['Del', '\x1b[3~'],
+    ['Entr\u00e9e', '\r'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, child) {
+        final scale = MinSettings().scale;
+        return SizedBox(
+          width: 8 * 80 * scale,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRow(_row1, scale),
+              _buildRow(_row2, scale),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRow(List<List<String>> keys, double scale) {
+    return Row(
+      children: keys.map((entry) {
+        return Expanded(
+          child: SizedBox(
+            height: 24 * scale,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.grey),
+                ),
+                backgroundColor: const Color(0xFF212121),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => MinModel().handleKeys(entry[1]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  entry[0],
+                  style: TextStyle(fontSize: 10 * scale),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
