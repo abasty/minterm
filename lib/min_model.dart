@@ -9,6 +9,8 @@ import 'min_emulator.dart';
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();
   static final File _captureFile = File('capture.vdt');
+  static const int _capturePauseMarker = 0xFF;
+  static const Duration _capturePauseThreshold = Duration(seconds: 2);
   final minitel = TMinitel();
   var _codes = <int>[];
   int _index = -1;
@@ -20,8 +22,12 @@ class MinModel extends ChangeNotifier {
   dynamic _server;
   SerialPortReader? _serialReader;
   IOSink? _captureSink;
+  DateTime? _lastCaptureAt;
   bool _captureEnabled = false;
   bool _isReplayingCapture = false;
+  bool _isReplayPaused = false;
+  List<int> _replayPayload = <int>[];
+  int _replayOffset = 0;
   bool showBlink = true;
   int endKeyTap = 0;
 
@@ -42,6 +48,8 @@ class MinModel extends ChangeNotifier {
   bool get isCaptureEnabled => _captureEnabled;
 
   bool get isReplayingCapture => _isReplayingCapture;
+
+  bool get isReplayPaused => _isReplayPaused;
 
   bool get isEchoed => minitel.isEchoed;
   set isEchoed(bool value) {
@@ -138,6 +146,7 @@ class MinModel extends ChangeNotifier {
     await _closeCapture();
     try {
       _captureSink = _captureFile.openWrite();
+      _lastCaptureAt = null;
       _captureEnabled = true;
       debugPrint('Capture enabled: ${_captureFile.path}');
     } catch (error) {
@@ -150,6 +159,7 @@ class MinModel extends ChangeNotifier {
   Future<void> _closeCapture() async {
     final sink = _captureSink;
     _captureSink = null;
+    _lastCaptureAt = null;
     _captureEnabled = false;
     if (sink != null) {
       try {
@@ -164,7 +174,15 @@ class MinModel extends ChangeNotifier {
 
   void _captureCodes(List<int> codes) {
     if (!_captureEnabled || _captureSink == null || codes.isEmpty) return;
+
+    final now = DateTime.now();
+    if (_lastCaptureAt != null &&
+        now.difference(_lastCaptureAt!) > _capturePauseThreshold) {
+      _captureSink!.add([_capturePauseMarker]);
+    }
+
     _captureSink!.add(codes);
+    _lastCaptureAt = now;
   }
 
   Future<void> replayCapture() async {
@@ -173,8 +191,6 @@ class MinModel extends ChangeNotifier {
       debugPrint('Replay blocked while capture is enabled');
       return;
     }
-    _isReplayingCapture = true;
-    notifyListeners();
 
     try {
       if (!await _captureFile.exists()) {
@@ -188,22 +204,77 @@ class MinModel extends ChangeNotifier {
         return;
       }
 
-      // Replay the capture as-is, without speed throttling or re-capture.
-      minitel.emulate(payload);
-      if (minitel.speedChanged) {
-        bps = minitel.speed;
-        setSerialSpeed(bps);
-        minitel.speedChanged = false;
-      }
-      sendReplyToServer();
-      if (minitel.isDirty) notifyListeners();
-      debugPrint('Capture replayed: ${payload.length} bytes');
+      _replayPayload = List<int>.from(payload);
+      _replayOffset = 0;
+      _isReplayPaused = false;
+      _isReplayingCapture = true;
+      notifyListeners();
+
+      _continueReplay();
     } catch (error) {
       debugPrint('Failed to replay capture: $error');
-    } finally {
-      _isReplayingCapture = false;
-      notifyListeners();
+      _finishReplay();
     }
+  }
+
+  void resumeReplayAfterPause() {
+    if (!_isReplayPaused || !_isReplayingCapture) return;
+    _isReplayPaused = false;
+    notifyListeners();
+    _continueReplay();
+  }
+
+  void _continueReplay() {
+    while (_isReplayingCapture && _replayOffset < _replayPayload.length) {
+      if (_replayPayload[_replayOffset] == _capturePauseMarker) {
+        _replayOffset++;
+        _isReplayPaused = true;
+        notifyListeners();
+        return;
+      }
+
+      final start = _replayOffset;
+      while (_replayOffset < _replayPayload.length &&
+          _replayPayload[_replayOffset] != _capturePauseMarker) {
+        _replayOffset++;
+      }
+
+      if (_replayOffset > start) {
+        _emulateReplayChunk(_replayPayload.sublist(start, _replayOffset));
+      }
+    }
+
+    _finishReplay();
+  }
+
+  void _emulateReplayChunk(List<int> chunk) {
+    // Replay bytes as-is, bypassing throttling and capture recording.
+    minitel.emulate(chunk);
+    if (minitel.speedChanged) {
+      bps = minitel.speed;
+      setSerialSpeed(bps);
+      minitel.speedChanged = false;
+    }
+    sendReplyToServer();
+    if (minitel.isDirty) notifyListeners();
+  }
+
+  void _finishReplay() {
+    if (!_isReplayingCapture && !_isReplayPaused && _replayPayload.isEmpty) {
+      return;
+    }
+    _isReplayPaused = false;
+    _isReplayingCapture = false;
+    _replayPayload = <int>[];
+    _replayOffset = 0;
+    notifyListeners();
+    debugPrint('Capture replay finished');
+  }
+
+  void stopReplay() {
+    if (!_isReplayingCapture) return;
+    _finishReplay();
+    debugPrint('Capture replay cancelled');
   }
 
   void setSerialSpeed(int speed) {
@@ -401,6 +472,16 @@ class MinModel extends ChangeNotifier {
   }
 
   void handleKeys(String keys) {
+    if (_isReplayingCapture && keys == '\x1b') {
+      stopReplay();
+      return;
+    }
+
+    if (_isReplayPaused) {
+      resumeReplayAfterPause();
+      return;
+    }
+
     if (keys == 'shift') {
       _isShifted = !_isShifted;
       return;
@@ -449,6 +530,11 @@ class MinModel extends ChangeNotifier {
   }
 
   void handleTap(int x, int y) {
+    if (_isReplayPaused) {
+      resumeReplayAfterPause();
+      return;
+    }
+
     final c = minitel.getStringAlphaNum(x, y).toUpperCase();
     switch (c) {
       case '':

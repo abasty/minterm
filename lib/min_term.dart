@@ -70,7 +70,7 @@ class MinTerm extends StatelessWidget {
           child: Column(
             children: [
               MinScreen(),
-              MinKeyboard(),
+              ReplayKeyboardOverlay(),
             ],
           ),
         ),
@@ -250,6 +250,70 @@ class ReplayCaptureIndicator extends StatelessWidget {
               ? Colors.green.shade700
               : (captureEnabled ? Colors.grey : null),
           onPressed: replayAllowed ? () => MinModel().replayCapture() : null,
+        );
+      },
+    );
+  }
+}
+
+class ReplayKeyboardOverlay extends StatelessWidget {
+  const ReplayKeyboardOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final keyboardWidth = 8.0 * 80.0 * MinSettings().scale;
+        return SizedBox(
+          width: keyboardWidth,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const MinKeyboard(),
+              ListenableBuilder(
+                listenable: MinModel(),
+                builder: (context, _) {
+                  final paused = MinModel().isReplayPaused;
+                  return IgnorePointer(
+                    ignoring: !paused,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: paused
+                            ? () => MinModel().resumeReplayAfterPause()
+                            : null,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 160),
+                          curve: Curves.easeOut,
+                          opacity: paused ? 1 : 0,
+                          child: Container(
+                            width: keyboardWidth - 24,
+                            height: 52,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD32F2F)
+                                  .withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: const Text(
+                              'Pause lecture: touche/clic pour continuer, ESC pour quitter',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );
