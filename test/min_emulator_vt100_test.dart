@@ -37,6 +37,27 @@ void main() {
     });
   });
 
+  group('TMinitel Videotex', () {
+    test('RS resets attributes and homes cursor', () {
+      final minitel = TMinitel();
+
+      minitel.emulate([0x0E]);
+      expect(minitel.state.charset, kG1Charset);
+
+      minitel.emulate([0x1B, 0x50]);
+      expect(minitel.state.bgColor, 0);
+      expect(minitel.state.needAttrSpace, isTrue);
+
+      minitel.emulate([0x1E]);
+
+      expect(minitel.state.l, 1);
+      expect(minitel.state.c, 1);
+      expect(minitel.state.charset, kG0Charset);
+      expect(minitel.state.bgColor, kColorBlack);
+      expect(minitel.state.needAttrSpace, isFalse);
+    });
+  });
+
   group('TMinitel VT100', () {
     late TMinitel minitel;
 

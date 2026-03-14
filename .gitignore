@@ -44,3 +44,4 @@ app.*.map.json
 
 # Python virtual environment
 py3-venv/
+capture.vdt

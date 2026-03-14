@@ -8,6 +8,7 @@ import 'min_emulator.dart';
 
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();
+  static final File _captureFile = File('capture.vdt');
   final minitel = TMinitel();
   var _codes = <int>[];
   int _index = -1;
@@ -18,6 +19,9 @@ class MinModel extends ChangeNotifier {
   String? _serverAddress;
   dynamic _server;
   SerialPortReader? _serialReader;
+  IOSink? _captureSink;
+  bool _captureEnabled = false;
+  bool _isReplayingCapture = false;
   bool showBlink = true;
   int endKeyTap = 0;
 
@@ -34,6 +38,10 @@ class MinModel extends ChangeNotifier {
   }
 
   bool get isConnected => _server != null;
+
+  bool get isCaptureEnabled => _captureEnabled;
+
+  bool get isReplayingCapture => _isReplayingCapture;
 
   bool get isEchoed => minitel.isEchoed;
   set isEchoed(bool value) {
@@ -70,6 +78,8 @@ class MinModel extends ChangeNotifier {
   }
 
   void emulate(List<int> codes) {
+    _captureCodes(codes);
+
     // Manage the timer to send the codes at the right speed
     if (_timer != null) _timer!.cancel();
 
@@ -113,6 +123,87 @@ class MinModel extends ChangeNotifier {
         sendReplyToServer();
       }
     });
+  }
+
+  Future<void> toggleCapture() async {
+    if (_captureEnabled) {
+      await _closeCapture();
+    } else {
+      await _openCapture();
+    }
+    notifyListeners();
+  }
+
+  Future<void> _openCapture() async {
+    await _closeCapture();
+    try {
+      _captureSink = _captureFile.openWrite();
+      _captureEnabled = true;
+      debugPrint('Capture enabled: ${_captureFile.path}');
+    } catch (error) {
+      _captureSink = null;
+      _captureEnabled = false;
+      debugPrint('Failed to open capture file: $error');
+    }
+  }
+
+  Future<void> _closeCapture() async {
+    final sink = _captureSink;
+    _captureSink = null;
+    _captureEnabled = false;
+    if (sink != null) {
+      try {
+        await sink.flush();
+        await sink.close();
+      } catch (error) {
+        debugPrint('Failed to close capture file: $error');
+      }
+      debugPrint('Capture disabled: ${_captureFile.path}');
+    }
+  }
+
+  void _captureCodes(List<int> codes) {
+    if (!_captureEnabled || _captureSink == null || codes.isEmpty) return;
+    _captureSink!.add(codes);
+  }
+
+  Future<void> replayCapture() async {
+    if (_isReplayingCapture) return;
+    if (_captureEnabled) {
+      debugPrint('Replay blocked while capture is enabled');
+      return;
+    }
+    _isReplayingCapture = true;
+    notifyListeners();
+
+    try {
+      if (!await _captureFile.exists()) {
+        debugPrint('Capture file not found: ${_captureFile.path}');
+        return;
+      }
+
+      final payload = await _captureFile.readAsBytes();
+      if (payload.isEmpty) {
+        debugPrint('Capture file is empty: ${_captureFile.path}');
+        return;
+      }
+
+      // Replay the capture as-is, without speed throttling or re-capture.
+      minitel.emulate(payload);
+      if (minitel.speedChanged) {
+        bps = minitel.speed;
+        setSerialSpeed(bps);
+        minitel.speedChanged = false;
+      }
+      sendReplyToServer();
+      if (minitel.isDirty) notifyListeners();
+      debugPrint('Capture replayed: ${payload.length} bytes');
+    } catch (error) {
+      debugPrint('Failed to replay capture: $error');
+    } finally {
+      _isReplayingCapture = false;
+      notifyListeners();
+    }
   }
 
   void setSerialSpeed(int speed) {

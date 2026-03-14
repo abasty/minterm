@@ -24,6 +24,8 @@ class MinTerm extends StatelessWidget {
               SetBps(),
               Scale(),
               SetScreenMode(),
+              CaptureToggle(),
+              ReplayCaptureAction(),
               SetColors(),
               // ListTile(
               //   title: const Text('Keyboard'),
@@ -59,11 +61,9 @@ class MinTerm extends StatelessWidget {
             //   icon: const Icon(Icons.keyboard),
             //   onPressed: () => MinSettings.toggleKeyboard(),
             // ),
-            CapsLock(),
-            IconButton(
-              icon: const Icon(Icons.color_lens),
-              onPressed: () => MinSettings().toggleColors(),
-            ),
+            CaptureButton(),
+            ReplayCaptureIndicator(),
+            ColorsButton(),
           ],
         ),
         body: Center(
@@ -75,25 +75,6 @@ class MinTerm extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class CapsLock extends StatefulWidget {
-  const CapsLock({
-    super.key,
-  });
-
-  @override
-  State<CapsLock> createState() => _CapsLockState();
-}
-
-class _CapsLockState extends State<CapsLock> {
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: MinSettings().capslock ? const Text('A') : const Text('a'),
-      onPressed: () => setState(() => MinSettings.toggleCapslock()),
     );
   }
 }
@@ -156,6 +137,139 @@ class SetColors extends StatelessWidget {
         Navigator.pop(context);
       },
       title: const Text('Colors'),
+    );
+  }
+}
+
+class CaptureToggle extends StatefulWidget {
+  const CaptureToggle({super.key});
+
+  @override
+  State<CaptureToggle> createState() => _CaptureToggleState();
+}
+
+class _CaptureToggleState extends State<CaptureToggle> {
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final enabled = MinModel().isCaptureEnabled;
+        return ListTile(
+          onTap: () async {
+            await MinModel().toggleCapture();
+            if (!mounted) return;
+            Navigator.pop(context);
+          },
+          title: Row(
+            children: [
+              const Text('Capture'),
+              Expanded(child: Container()),
+              Text(enabled ? 'ON' : 'OFF'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class CaptureButton extends StatelessWidget {
+  const CaptureButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final enabled = MinModel().isCaptureEnabled;
+        return IconButton(
+          tooltip: enabled ? 'Capture ON' : 'Capture OFF',
+          icon: Icon(enabled ? Icons.fiber_manual_record : Icons.radio_button_unchecked),
+          color: enabled ? Colors.redAccent : null,
+          onPressed: () => MinModel().toggleCapture(),
+        );
+      },
+    );
+  }
+}
+
+class ReplayCaptureAction extends StatelessWidget {
+  const ReplayCaptureAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final replaying = MinModel().isReplayingCapture;
+        final captureEnabled = MinModel().isCaptureEnabled;
+        final replayAllowed = !replaying && !captureEnabled;
+        return ListTile(
+          onTap: !replayAllowed
+              ? null
+              : () async {
+                  await MinModel().replayCapture();
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                },
+          title: Row(
+            children: [
+              const Text('Replay capture'),
+              Expanded(child: Container()),
+              Text(replaying ? 'RUN' : (captureEnabled ? 'LOCK' : 'READY')),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ReplayCaptureIndicator extends StatelessWidget {
+  const ReplayCaptureIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final replaying = MinModel().isReplayingCapture;
+        final captureEnabled = MinModel().isCaptureEnabled;
+        final replayAllowed = !replaying && !captureEnabled;
+        return IconButton(
+          tooltip: replaying
+              ? 'Replay capture en cours'
+              : (captureEnabled
+                    ? 'Replay indisponible pendant la capture'
+                    : 'Lancer la relecture de capture'),
+          icon: Icon(replaying ? Icons.play_circle : Icons.play_circle_outline),
+          color: replaying
+              ? Colors.green.shade700
+              : (captureEnabled ? Colors.grey : null),
+          onPressed: replayAllowed ? () => MinModel().replayCapture() : null,
+        );
+      },
+    );
+  }
+}
+
+class ColorsButton extends StatelessWidget {
+  const ColorsButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final colorsEnabled = MinSettings().colors == MinColors;
+        return IconButton(
+          tooltip: colorsEnabled ? 'Mode couleur actif' : 'Mode couleur inactif',
+          icon: const Icon(Icons.color_lens),
+          color: colorsEnabled ? Colors.blue.shade700 : null,
+          onPressed: () => MinSettings().toggleColors(),
+        );
+      },
     );
   }
 }
