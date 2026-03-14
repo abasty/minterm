@@ -1327,6 +1327,7 @@ class TMinitel {
   }
 
   void setCursorHome() {
+    state.resetAttr();
     state.l = 1;
     state.c = 1;
     stateCode = 0;
