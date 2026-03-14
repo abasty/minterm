@@ -185,7 +185,9 @@ class CaptureButton extends StatelessWidget {
         final enabled = MinModel().isCaptureEnabled;
         return IconButton(
           tooltip: enabled ? 'Capture ON' : 'Capture OFF',
-          icon: Icon(enabled ? Icons.fiber_manual_record : Icons.radio_button_unchecked),
+          icon: Icon(enabled
+              ? Icons.fiber_manual_record
+              : Icons.radio_button_unchecked),
           color: enabled ? Colors.redAccent : null,
           onPressed: () => MinModel().toggleCapture(),
         );
@@ -241,8 +243,8 @@ class ReplayCaptureIndicator extends StatelessWidget {
           tooltip: replaying
               ? 'Replay capture en cours'
               : (captureEnabled
-                    ? 'Replay indisponible pendant la capture'
-                    : 'Lancer la relecture de capture'),
+                  ? 'Replay indisponible pendant la capture'
+                  : 'Lancer la relecture de capture'),
           icon: Icon(replaying ? Icons.play_circle : Icons.play_circle_outline),
           color: replaying
               ? Colors.green.shade700
@@ -264,7 +266,8 @@ class ColorsButton extends StatelessWidget {
       builder: (context, _) {
         final colorsEnabled = MinSettings().colors == MinColors;
         return IconButton(
-          tooltip: colorsEnabled ? 'Mode couleur actif' : 'Mode couleur inactif',
+          tooltip:
+              colorsEnabled ? 'Mode couleur actif' : 'Mode couleur inactif',
           icon: const Icon(Icons.color_lens),
           color: colorsEnabled ? Colors.blue.shade700 : null,
           onPressed: () => MinSettings().toggleColors(),
