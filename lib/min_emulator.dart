@@ -17,6 +17,8 @@ const int kStateSequence = 150;
 const int kStateVtEsc = 200;
 const int kStateVtCsi = 201;
 const int kStateVtPro2 = 202;
+const int kStateVtUs = 203;
+const int kStateVtUsAt = 204;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -120,6 +122,9 @@ class TMinitel {
   int _vtPro2Prefix = -1;
   int _vtSavedRow = 1;
   int _vtSavedColumn = 1;
+  int _vtLine0ReturnRow = 1;
+  int _vtLine0ReturnColumn = 1;
+  bool _vtInsertMode = false;
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -195,6 +200,9 @@ class TMinitel {
     if (isVt100Mode) {
       scrollOn = true;
       cursorOn = true;
+      _vtInsertMode = false;
+      _vtLine0ReturnRow = 1;
+      _vtLine0ReturnColumn = 1;
     }
     state.l = 1;
     state.c = 1;
@@ -372,6 +380,10 @@ class TMinitel {
       currentCode = code;
       if (stateCode == kStateVtPro2) {
         _handleVtPro2(code);
+      } else if (stateCode == kStateVtUs) {
+        _handleVtUs(code);
+      } else if (stateCode == kStateVtUsAt) {
+        _handleVtUsAt(code);
       } else if (stateCode == kStateVtEsc) {
         _handleVtEscape(code);
       } else if (stateCode == kStateVtCsi) {
@@ -381,6 +393,9 @@ class TMinitel {
       } else if (code < $space) {
         _handleVtControl(code);
       } else if (code != 0x7F) {
+        if (_vtInsertMode) {
+          _vtInsertChars(1);
+        }
         _putCharVt100(code);
         _setCursorForwardVt100();
       }
@@ -420,8 +435,48 @@ class TMinitel {
       case 0x0D:
         state.c = 1;
         break;
+      case 0x0E:
+        setG1Charset();
+        break;
+      case 0x0F:
+        setG0Charset();
+        break;
+      case $can:
+      case $sub:
+        _putCharVt100(0x7F);
+        _setCursorForwardVt100();
+        break;
+      case $rs:
+        _setCursorClamped(1, 1);
+        break;
+      case $us:
+        stateCode = kStateVtUs;
+        return;
       default:
         break;
+    }
+    stateCode = 0;
+  }
+
+  void _handleVtUs(int code) {
+    if (code == 0x40) {
+      stateCode = kStateVtUsAt;
+      return;
+    }
+    stateCode = 0;
+  }
+
+  void _handleVtUsAt(int code) {
+    if (code >= 0x40) {
+      code -= 0x40;
+    }
+    if (code > 0 && code < 64) {
+      if (state.l != 0) {
+        _vtLine0ReturnRow = state.l;
+        _vtLine0ReturnColumn = state.c;
+      }
+      state.l = 0;
+      state.c = code;
     }
     stateCode = 0;
   }
@@ -556,8 +611,29 @@ class TMinitel {
       case 0x4B: // EL
         _vtEraseLine(_vtParam(params, 0, 0));
         break;
+      case 0x40: // ICH
+        _vtInsertChars(_vtParam(params, 0, 1));
+        break;
+      case 0x4C: // IL
+        _vtInsertLines(_vtParam(params, 0, 1));
+        break;
+      case 0x4D: // DL
+        _vtDeleteLines(_vtParam(params, 0, 1));
+        break;
+      case 0x50: // DCH
+        _vtDeleteChars(_vtParam(params, 0, 1));
+        break;
       case 0x6D: // SGR
         _vtSetSgr(params);
+        break;
+      case 0x6E: // DSR
+        if (params.isNotEmpty && params.first == 6) {
+          reply.addAll([0x1B, 0x5B]);
+          reply.addAll(state.l.toString().codeUnits);
+          reply.add(0x3B);
+          reply.addAll(state.c.toString().codeUnits);
+          reply.add(0x52);
+        }
         break;
       case 0x73: // SCP
         _vtSavedRow = state.l;
@@ -568,14 +644,92 @@ class TMinitel {
         break;
       case 0x68: // SM
       case 0x6C: // RM
-        if (_vtCsiPrivate && params.isNotEmpty && params.first == 3) {
-          // Keep 80 columns in VT100 mode (ignore 132-column requests).
-          setScreenMode(TMinitelScreenMode.vt10080);
+        final enable = finalCode == 0x68;
+        if (_vtCsiPrivate && params.isNotEmpty) {
+          switch (params.first) {
+            case 1:
+              cursorOn = enable;
+              break;
+            case 3:
+              setScreenMode(
+                enable
+                    ? TMinitelScreenMode.videotex40
+                    : TMinitelScreenMode.vt10080,
+              );
+              break;
+            case 4:
+              scrollOn = !enable;
+              break;
+            default:
+              break;
+          }
+        } else if (params.isNotEmpty && params.first == 4) {
+          _vtInsertMode = enable;
         }
         break;
       default:
         break;
     }
+  }
+
+  void _vtInsertChars(int count) {
+    final n = count < 1 ? 1 : count;
+    final l = state.l;
+    if (l < 1 || l > lastLine) return;
+    final c = state.c;
+    for (int column = lastColumn; column >= c; --column) {
+      final src = column - n;
+      screen[l][column] = src >= c
+          ? TMinitelChar.from(screen[l][src])
+          : TMinitelChar.from(kEmptyChar);
+      markCharAsDirty(l, column);
+    }
+  }
+
+  void _vtDeleteChars(int count) {
+    final n = count < 1 ? 1 : count;
+    final l = state.l;
+    if (l < 1 || l > lastLine) return;
+    final c = state.c;
+    for (int column = c; column <= lastColumn; ++column) {
+      final src = column + n;
+      screen[l][column] = src <= lastColumn
+          ? TMinitelChar.from(screen[l][src])
+          : TMinitelChar.from(kEmptyChar);
+      markCharAsDirty(l, column);
+    }
+  }
+
+  void _vtInsertLines(int count) {
+    final n = count < 1 ? 1 : count;
+    final start = state.l;
+    if (start < 1 || start > lastLine) return;
+    for (int line = lastLine; line >= start; --line) {
+      final src = line - n;
+      for (int column = 1; column <= lastColumn; ++column) {
+        screen[line][column] = src >= start
+            ? TMinitelChar.from(screen[src][column])
+            : TMinitelChar.from(kEmptyChar);
+      }
+      screen[line][0].code |= kIsDirty;
+    }
+    screen[0][_dirtyColumn].code |= kIsDirty;
+  }
+
+  void _vtDeleteLines(int count) {
+    final n = count < 1 ? 1 : count;
+    final start = state.l;
+    if (start < 1 || start > lastLine) return;
+    for (int line = start; line <= lastLine; ++line) {
+      final src = line + n;
+      for (int column = 1; column <= lastColumn; ++column) {
+        screen[line][column] = src <= lastLine
+            ? TMinitelChar.from(screen[src][column])
+            : TMinitelChar.from(kEmptyChar);
+      }
+      screen[line][0].code |= kIsDirty;
+    }
+    screen[0][_dirtyColumn].code |= kIsDirty;
   }
 
   void _vtSetSgr(List<int> params) {
@@ -683,14 +837,16 @@ class TMinitel {
   }
 
   void _setCursorForwardVt100() {
-    state.c++;
-    if (state.c > lastColumn) {
-      state.c = 1;
-      _vtLineFeed();
+    if (state.c < lastColumn) {
+      state.c++;
     }
   }
 
   void _vtLineFeed() {
+    if (state.l == 0) {
+      _setCursorClamped(_vtLine0ReturnRow, _vtLine0ReturnColumn);
+      return;
+    }
     if (state.l < lastLine) {
       state.l++;
     } else {
@@ -905,6 +1061,12 @@ class TMinitel {
       TMinitelKey.supL.codeUnits: handleSupL,
       TMinitelKey.insL.codeUnits: handleInsL,
       TMinitelKey.delC.codeUnits: handleDelC,
+      [0x1b, 0x5b, 0x3f, 0x33, 0x68]: () {
+        setScreenMode(TMinitelScreenMode.videotex40);
+      },
+      [0x1b, 0x5b, 0x3f, 0x33, 0x6c]: () {
+        setScreenMode(TMinitelScreenMode.vt10080);
+      },
     };
 
     // Add the new code to the current sequence

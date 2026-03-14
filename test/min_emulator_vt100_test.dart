@@ -85,6 +85,16 @@ void main() {
       expect(minitel.state.c, 11);
     });
 
+    test('keeps writing on the last column without wrapping', () {
+      minitel.emulate(('A' * 80).codeUnits);
+      minitel.emulate('B'.codeUnits);
+
+      expect(readChar(minitel, 79, 1), 'B');
+      expect(readChar(minitel, 0, 2), ' ');
+      expect(minitel.state.l, 1);
+      expect(minitel.state.c, 80);
+    });
+
     test('applies SGR colors and erase line', () {
       minitel.emulate('\x1b[31;44mA'.codeUnits);
       final char = minitel.screen[1][1];
@@ -105,6 +115,82 @@ void main() {
       expect(readChar(minitel, 19, 10), 'B');
       expect(minitel.state.l, 10);
       expect(minitel.state.c, 21);
+    });
+
+    test('supports ICH and DCH', () {
+      minitel.emulate('ABCDE'.codeUnits);
+      minitel.emulate('\x1b[1;3H\x1b[2@'.codeUnits);
+      minitel.emulate('XY'.codeUnits);
+
+      expect(readLine(minitel, 1, 7), 'ABXYCDE');
+
+      minitel.emulate('\x1b[1;3H\x1b[2P'.codeUnits);
+      expect(readLine(minitel, 1, 5), 'ABCDE');
+    });
+
+    test('supports IL and DL', () {
+      minitel.emulate('AAAA'.codeUnits);
+      minitel.emulate('\x1b[2;1HBBBB'.codeUnits);
+      minitel.emulate('\x1b[3;1HCCCC'.codeUnits);
+
+      minitel.emulate('\x1b[2;1H\x1b[L'.codeUnits);
+      expect(readLine(minitel, 1, 4), 'AAAA');
+      expect(readLine(minitel, 2, 4), '    ');
+      expect(readLine(minitel, 3, 4), 'BBBB');
+
+      minitel.emulate('\x1b[2;1H\x1b[M'.codeUnits);
+      expect(readLine(minitel, 1, 4), 'AAAA');
+      expect(readLine(minitel, 2, 4), 'BBBB');
+      expect(readLine(minitel, 3, 4), 'CCCC');
+    });
+
+    test('supports insert/replace mode via SM4/RM4', () {
+      minitel.emulate('ABCDE'.codeUnits);
+      minitel.emulate('\x1b[1;3H\x1b[4hZ'.codeUnits);
+      expect(readLine(minitel, 1, 6), 'ABZCDE');
+
+      minitel.emulate('\x1b[4l\x1b[1;3HQ'.codeUnits);
+      expect(readLine(minitel, 1, 6), 'ABQCDE');
+    });
+
+    test('supports private mode cursor visibility and width', () {
+      expect(minitel.cursorOn, isTrue);
+      minitel.emulate('\x1b[?1l'.codeUnits);
+      expect(minitel.cursorOn, isFalse);
+      minitel.emulate('\x1b[?1h'.codeUnits);
+      expect(minitel.cursorOn, isTrue);
+
+      minitel.emulate('\x1b[?3h'.codeUnits);
+      expect(minitel.columns, 40);
+      minitel.emulate('\x1b[?3l'.codeUnits);
+      expect(minitel.columns, 80);
+    });
+
+    test('supports DSR 6n report', () {
+      minitel.emulate('\x1b[12;34H\x1b[6n'.codeUnits);
+      expect(String.fromCharCodes(minitel.reply), '\x1b[12;34R');
+    });
+
+    test('supports US @ Pc to access line 0', () {
+      minitel.emulate([0x1F, 0x40, 0x0A]);
+      minitel.emulate('S'.codeUnits);
+
+      expect(minitel.state.l, 0);
+      expect(minitel.state.c, 11);
+      expect(readChar(minitel, 9, 0), 'S');
+    });
+
+    test('LF exits line 0 and restores previous VT100 cursor position', () {
+      minitel.emulate('\x1b[5;12H'.codeUnits);
+      minitel.emulate([0x1F, 0x40, 0x4A]);
+
+      expect(minitel.state.l, 0);
+      expect(minitel.state.c, 10);
+
+      minitel.emulate('\n'.codeUnits);
+
+      expect(minitel.state.l, 5);
+      expect(minitel.state.c, 12);
     });
   });
 }
