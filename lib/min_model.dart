@@ -7,7 +7,7 @@ import 'min_emulator.dart';
 
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();
-  static final File _captureFile = File('capture.vdt');
+  static const String _captureFilePath = 'capture.vdt';
   static const int _capturePauseMarker = 0xFF;
   static const Duration _capturePauseThreshold = Duration(seconds: 2);
   final minitel = TMinitel();
@@ -23,6 +23,7 @@ class MinModel extends ChangeNotifier {
   dynamic _server;
   IOSink? _captureSink;
   DateTime? _lastCaptureAt;
+  final List<int> _webCaptureBytes = <int>[];
   bool _captureEnabled = false;
   bool _isReplayingCapture = false;
   bool _isReplayPaused = false;
@@ -50,6 +51,8 @@ class MinModel extends ChangeNotifier {
   bool get isReplayingCapture => _isReplayingCapture;
 
   bool get isReplayPaused => _isReplayPaused;
+
+  File? get _captureFile => kIsWeb ? null : File(_captureFilePath);
 
   bool get isEchoed => minitel.isEchoed;
   set isEchoed(bool value) {
@@ -181,11 +184,24 @@ class MinModel extends ChangeNotifier {
 
   Future<void> _openCapture() async {
     await _closeCapture();
-    try {
-      _captureSink = _captureFile.openWrite();
+    if (kIsWeb) {
+      _webCaptureBytes.clear();
       _lastCaptureAt = null;
       _captureEnabled = true;
-      debugPrint('Capture enabled: ${_captureFile.path}');
+      debugPrint('Capture enabled in browser memory');
+      return;
+    }
+
+    try {
+      final captureFile = _captureFile;
+      if (captureFile == null) {
+        _captureEnabled = false;
+        return;
+      }
+      _captureSink = captureFile.openWrite();
+      _lastCaptureAt = null;
+      _captureEnabled = true;
+      debugPrint('Capture enabled: ${captureFile.path}');
     } catch (error) {
       _captureSink = null;
       _captureEnabled = false;
@@ -198,6 +214,11 @@ class MinModel extends ChangeNotifier {
     _captureSink = null;
     _lastCaptureAt = null;
     _captureEnabled = false;
+    if (kIsWeb) {
+      debugPrint('Capture disabled in browser memory');
+      return;
+    }
+
     if (sink != null) {
       try {
         await sink.flush();
@@ -205,16 +226,32 @@ class MinModel extends ChangeNotifier {
       } catch (error) {
         debugPrint('Failed to close capture file: $error');
       }
-      debugPrint('Capture disabled: ${_captureFile.path}');
+      final captureFile = _captureFile;
+      if (captureFile != null) {
+        debugPrint('Capture disabled: ${captureFile.path}');
+      }
     }
   }
 
   void _captureCodes(List<int> codes) {
-    if (!_captureEnabled || _captureSink == null || codes.isEmpty) return;
+    if (!_captureEnabled || codes.isEmpty) return;
 
     final now = DateTime.now();
-    if (_lastCaptureAt != null &&
-        now.difference(_lastCaptureAt!) > _capturePauseThreshold) {
+    final insertPause = _lastCaptureAt != null &&
+        now.difference(_lastCaptureAt!) > _capturePauseThreshold;
+
+    if (kIsWeb) {
+      if (insertPause) {
+        _webCaptureBytes.add(_capturePauseMarker);
+      }
+      _webCaptureBytes.addAll(codes);
+      _lastCaptureAt = now;
+      return;
+    }
+
+    if (_captureSink == null) return;
+
+    if (insertPause) {
       _captureSink!.add([_capturePauseMarker]);
     }
 
@@ -230,14 +267,24 @@ class MinModel extends ChangeNotifier {
     }
 
     try {
-      if (!await _captureFile.exists()) {
-        debugPrint('Capture file not found: ${_captureFile.path}');
-        return;
+      List<int> payload;
+      if (kIsWeb) {
+        payload = List<int>.from(_webCaptureBytes);
+        if (payload.isEmpty) {
+          debugPrint('No in-memory capture found in this browser session');
+          return;
+        }
+      } else {
+        final captureFile = _captureFile;
+        if (captureFile == null || !await captureFile.exists()) {
+          debugPrint('Capture file not found: $_captureFilePath');
+          return;
+        }
+        payload = await captureFile.readAsBytes();
       }
 
-      final payload = await _captureFile.readAsBytes();
       if (payload.isEmpty) {
-        debugPrint('Capture file is empty: ${_captureFile.path}');
+        debugPrint('Capture is empty');
         return;
       }
 
