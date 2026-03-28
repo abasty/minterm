@@ -16,9 +16,10 @@ const int kStatePro3 = 130;
 const int kStateSequence = 150;
 const int kStateVtEsc = 200;
 const int kStateVtCsi = 201;
-const int kStateVtPro2 = 202;
-const int kStateVtUs = 203;
-const int kStateVtUsAt = 204;
+const int kStateVtPro1 = 202;
+const int kStateVtPro2 = 203;
+const int kStateVtUs = 204;
+const int kStateVtUsAt = 205;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -381,7 +382,9 @@ class TMinitel {
 
       final code = codes[i];
       currentCode = code;
-      if (stateCode == kStateVtPro2) {
+      if (stateCode == kStateVtPro1) {
+        handleProtocol1(code);
+      } else if (stateCode == kStateVtPro2) {
         _handleVtPro2(code);
       } else if (stateCode == kStateVtUs) {
         _handleVtUs(code);
@@ -485,6 +488,11 @@ class TMinitel {
   }
 
   void _handleVtEscape(int code) {
+    if (code == $pro1) {
+      stateCode = kStateVtPro1;
+      return;
+    }
+
     if (code == $pro2) {
       _vtPro2Prefix = -1;
       stateCode = kStateVtPro2;
@@ -1015,6 +1023,8 @@ class TMinitel {
         print('Protocol 1: speed reply $speedReply');
         reply.addAll([0x1b, 0x3a, 0x75, speedReply]);
       }
+    } else if (x == 0x7f) {
+      setScreenMode(TMinitelScreenMode.videotex40);
     }
     stateCode = 0;
   }

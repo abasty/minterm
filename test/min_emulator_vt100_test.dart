@@ -35,6 +35,17 @@ void main() {
       expect(minitel.screenMode, TMinitelScreenMode.videotex40);
       expect(minitel.columns, 40);
     });
+
+    test('ESC 9 7F switches back to Videotex 40 columns', () {
+      final minitel = TMinitel();
+      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      expect(minitel.columns, 80);
+
+      minitel.emulate([0x1B, 0x39, 0x7F]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+      expect(minitel.columns, 40);
+    });
   });
 
   group('TMinitel Videotex', () {
