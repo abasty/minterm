@@ -53,7 +53,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
   static const durationMax = 400;
-  var scale = 2.5;
+  var scale = 2.0;
   var duration = durationMax;
   var _colors = MinGrey;
   int _loaded = 0;
@@ -122,35 +122,54 @@ class MinScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MinSettings(),
+    return ChangeNotifierProvider.value(
+      value: MinSettings(),
       child: Consumer<MinSettings>(
-        builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinModel(),
-          child: SizedBox(
-            width: 8 * 40 * MinSettings().scale,
-            height: 10 * 25 * MinSettings().scale,
-            child: Consumer<MinModel>(
-              builder: (context, minmodel, child) => Transform.scale(
-                scale: MinSettings().scale,
-                alignment: Alignment.topLeft,
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTapDown: (TapDownDetails details) {
-                        final tapPosition = details.localPosition;
-                        final x = (tapPosition.dx / 8.0).toInt();
-                        final y = (tapPosition.dy / 10.0).toInt();
-                        minmodel.handleTap(x, y);
-                      },
-                    ),
-                    CustomPaint(
-                      painter: _MinPainter(minmodel),
-                    ),
-                  ],
+        builder: (context, settings, child) => ChangeNotifierProvider.value(
+          value: MinModel(),
+          child: Consumer<MinModel>(
+            builder: (context, minmodel, child) {
+              final displayColumns = 80;
+              final displayWidth = 8.0 * displayColumns;
+              final displayHeight = displayWidth * 3.0 / 4.0;
+              final cellWidth = displayWidth / minmodel.minitel.columns;
+              final cellHeight = displayHeight / minmodel.minitel.rows;
+              return SizedBox(
+                width: displayWidth * settings.scale,
+                height: displayHeight * settings.scale,
+                child: Transform.scale(
+                  scale: settings.scale,
+                  alignment: Alignment.topLeft,
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTapDown: (TapDownDetails details) {
+                          final tapPosition = details.localPosition;
+                          final x = math.max(
+                            0,
+                            math.min(
+                              minmodel.minitel.columns - 1,
+                              (tapPosition.dx / cellWidth).toInt(),
+                            ),
+                          );
+                          final y = math.max(
+                            0,
+                            math.min(
+                              minmodel.minitel.rows - 1,
+                              (tapPosition.dy / cellHeight).toInt(),
+                            ),
+                          );
+                          minmodel.handleTap(x, y);
+                        },
+                      ),
+                      CustomPaint(
+                        painter: _MinPainter(minmodel),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -161,44 +180,129 @@ class MinScreen extends StatelessWidget {
 class _MinPainter extends CustomPainter {
   final MinModel minmodel;
 
+  // Disjoint G1 mask from tools/g18x10.bdf (glyph C000, 8x10).
+  // Drawing this mask explicitly avoids sprite sampling artifacts.
+  static const List<int> _g1DisjointMaskRows = <int>[
+    0x88,
+    0x88,
+    0xFF,
+    0x88,
+    0x88,
+    0x88,
+    0xFF,
+    0x88,
+    0x88,
+    0xFF,
+  ];
+
   _MinPainter(this.minmodel);
+
+  Rect _snapRect(double x, double y, double width, double height, double dpr) {
+    final left = (x * dpr).floorToDouble() / dpr;
+    final top = (y * dpr).floorToDouble() / dpr;
+    final right = ((x + width) * dpr).ceilToDouble() / dpr;
+    final bottom = ((y + height) * dpr).ceilToDouble() / dpr;
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
+
+  void _drawDisjointMask(
+    Canvas canvas,
+    double x,
+    double y,
+    double scaleWidth,
+    double scaleHeight,
+    Color bgColor,
+    double dpr,
+  ) {
+    final paint = Paint()
+      ..color = bgColor
+      ..isAntiAlias = false;
+
+    for (int row = 0; row < _g1DisjointMaskRows.length; row++) {
+      final mask = _g1DisjointMaskRows[row];
+      for (int col = 0; col < 8; col++) {
+        final bit = 1 << (7 - col);
+        if ((mask & bit) == 0) continue;
+        canvas.drawRect(
+          _snapRect(
+            x + col * scaleWidth,
+            y + row * scaleHeight,
+            scaleWidth,
+            scaleHeight,
+            dpr,
+          ),
+          paint,
+        );
+      }
+    }
+  }
 
   void draw(Canvas canvas) {
     var screen = minmodel.minitel.screen;
+    final columns = minmodel.minitel.columns;
+    final lastLine = minmodel.minitel.lastLine;
+    const displayWidth = 8.0 * 80.0;
+    const displayHeight = displayWidth * 3.0 / 4.0;
+    final dpr =
+        ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
+    final cellWidth = displayWidth / columns;
+    final cellHeight = displayHeight / minmodel.minitel.rows;
     if (minmodel.minitel.bip) {
       final player = AudioPlayer();
       player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
       minmodel.minitel.bip = false;
     }
-    screen[0][41].code &= ~kIsDirty;
-    for (int line = 0; line <= 24; ++line) {
+    screen[0][columns + 1].code &= ~kIsDirty;
+    for (int line = 0; line <= lastLine; ++line) {
       screen[line][0].code &= ~kIsDirty;
-      for (int column = 40; column >= 1; --column) {
+      for (int column = columns; column >= 1; --column) {
         screen[line][column].code &= ~kIsDirty;
         drawChar(
           canvas,
-          (column - 1) * 8.0,
-          line * 10.0,
+          (column - 1) * cellWidth,
+          line * cellHeight,
           screen[line][column],
+          cellWidth: cellWidth,
+          cellHeight: cellHeight,
+          dpr: dpr,
         );
       }
     }
 
     final statusCode = minmodel.isConnected ? 0x43 : 0x46;
     final statusChar = TMinitelChar(0, kAttrInverse + kColorWhite, statusCode);
-    drawChar(canvas, 36 * 8, 0, statusChar);
+    final statusColumn = minmodel.minitel.columns >= 40
+        ? minmodel.minitel.columns - 3
+        : minmodel.minitel.columns;
+    drawChar(
+      canvas,
+      (statusColumn - 1) * cellWidth,
+      0,
+      statusChar,
+      cellWidth: cellWidth,
+      cellHeight: cellHeight,
+      dpr: dpr,
+    );
   }
 
   // Method to draw a character
-  void drawChar(Canvas canvas, double x, double y, TMinitelChar char) {
+  void drawChar(
+    Canvas canvas,
+    double x,
+    double y,
+    TMinitelChar char, {
+    double cellWidth = 8.0,
+    double cellHeight = 10.0,
+    double dpr = 1.0,
+  }) {
     var fgColor = MinSettings().colors[char.lAttr & kColorMask];
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
 
     // Manage the cursor
     if (minmodel.minitel.cursorOn &&
         minmodel.showBlink &&
-        minmodel.minitel.state.c * 8 - 8 == x &&
-        minmodel.minitel.state.l * 10 == y) {
+        (minmodel.minitel.state.c - 1) * cellWidth == x &&
+        minmodel.minitel.state.l * cellHeight == y) {
       fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
       bgColor = MinSettings().colors[7 - (char.gAttr & kColorMask)];
     }
@@ -219,23 +323,39 @@ class _MinPainter extends CustomPainter {
     }
 
     // Draw the background color
-    canvas.drawRect(Rect.fromLTWH(x, y, 8, 10), Paint()..color = bgColor);
+    final bgRect = _snapRect(x, y, cellWidth, cellHeight, dpr);
+    canvas.drawRect(
+      bgRect,
+      Paint()
+        ..color = bgColor
+        ..isAntiAlias = false,
+    );
 
     // If the character is a part of a double character stop rendering here
     if ((char.lAttr & kDoublePart) != 0) return;
 
     // Compute scale factors and adjust y position given the size attributes
     double scaleWidth = (char.lAttr & kAttrDoubleWidth) != 0 ? 2.0 : 1.0;
+    scaleWidth *= cellWidth / 8.0;
     double scaleHeight = 1.0;
-    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= 10) {
-      y -= 10.0;
+    if ((char.lAttr & kAttrDoubleHeight) != 0 && y >= cellHeight) {
+      y -= cellHeight;
       scaleHeight = 2.0;
     }
+    scaleHeight *= cellHeight / 10.0;
 
     // Get the character image from the font image
     final code = char.code;
     final charRect = Rect.fromLTWH(
         8 * (code ~/ 16).toDouble(), 10 * (code % 16).toDouble(), 8, 10);
+
+    final glyphRect = _snapRect(
+      x,
+      y,
+      8.0 * scaleWidth,
+      10.0 * scaleHeight,
+      dpr,
+    );
 
     // Draw the character in the foreground color
     final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
@@ -244,8 +364,11 @@ class _MinPainter extends CustomPainter {
     canvas.drawImageRect(
       font,
       charRect,
-      Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-      Paint()..colorFilter = ColorFilter.mode(fgColor, BlendMode.srcIn),
+      glyphRect,
+      Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none
+        ..colorFilter = ColorFilter.mode(fgColor, BlendMode.srcIn),
     );
 
     // Draw underline if applicable (only for G0/G2 charset, not espsep)
@@ -253,36 +376,56 @@ class _MinPainter extends CustomPainter {
         (char.gAttr & kCharsetMask) != kG1Charset &&
         (char.gAttr & kAttrSpace) == 0) {
       canvas.drawRect(
-        Rect.fromLTWH(x, y + 9.0 * scaleHeight, 8.0 * scaleWidth, scaleHeight),
-        Paint()..color = fgColor,
+        _snapRect(
+          x,
+          y + 9.0 * scaleHeight,
+          8.0 * scaleWidth,
+          scaleHeight,
+          dpr,
+        ),
+        Paint()
+          ..color = fgColor
+          ..isAntiAlias = false,
       );
     }
 
     // Draw disjointed if applicable (only for G1 charset)
     if ((char.gAttr & kAttrDisjointed) != 0 &&
         (char.gAttr & kCharsetMask) == kG1Charset) {
-      // Get the disjoint mask
-      const maskRect = Rect.fromLTWH(0, 0, 8, 10);
-      // Apply disjoint mask on character
-      canvas.drawImageRect(
-        font,
-        maskRect,
-        Rect.fromLTWH(x, y, 8.0 * scaleWidth, 10.0 * scaleHeight),
-        Paint()..colorFilter = ColorFilter.mode(bgColor, BlendMode.srcIn),
+      _drawDisjointMask(
+        canvas,
+        x,
+        y,
+        scaleWidth,
+        scaleHeight,
+        bgColor,
+        dpr,
       );
     }
   }
 
   // Method to draw a string
   void drawString(
-      Canvas canvas, double x, double y, TMinitelChar attr, String str) {
-    double stepX = (attr.lAttr & kAttrDoubleWidth) != 0 ? 16.0 : 8.0;
+    Canvas canvas,
+    double x,
+    double y,
+    TMinitelChar attr,
+    String str, {
+    double cellWidth = 8.0,
+    double cellHeight = 10.0,
+    double dpr = 1.0,
+  }) {
+    double stepX =
+        (attr.lAttr & kAttrDoubleWidth) != 0 ? 2 * cellWidth : cellWidth;
     for (var i = 0; i < str.length; i++) {
       drawChar(
         canvas,
         x + i * stepX,
         y,
         TMinitelChar(attr.gAttr, attr.lAttr, str.codeUnitAt(i)),
+        cellWidth: cellWidth,
+        cellHeight: cellHeight,
+        dpr: dpr,
       );
     }
   }
@@ -316,289 +459,187 @@ class MinKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MinSettings(),
-      child: Consumer<MinSettings>(
-        builder: (context, settings, child) => ChangeNotifierProvider(
-          create: (context) => MinSettings(),
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, child) {
+        if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
+          return const MinVt100Keyboard();
+        }
+        return const MinMinitelKeyboard();
+      },
+    );
+  }
+}
+
+/// Compact keyboard for Minitel 40-column mode.
+class MinMinitelKeyboard extends StatelessWidget {
+  const MinMinitelKeyboard({super.key});
+
+  static const _row1 = [
+    ['Cx/Fin', TMinitelKey.cxFin],
+    ['Répétition', TMinitelKey.repetition],
+    ['Sommaire', TMinitelKey.sommaire],
+    ['Guide', TMinitelKey.guide],
+    ['Annulation', TMinitelKey.annulation],
+    ['Correction', TMinitelKey.correction],
+    ['Envoi', TMinitelKey.envoi],
+  ];
+
+  static const _row2 = [
+    ['Esc', '\x1b'],
+    ['Suite', TMinitelKey.suite],
+    ['Retour', TMinitelKey.retour],
+    ['Espace', ' '],
+    ['↑', TMinitelKey.arrowUp],
+    ['↓', TMinitelKey.arrowDown],
+    ['←', TMinitelKey.arrowLeft],
+    ['→', TMinitelKey.arrowRight],
+    ['Entrée', '\r'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, child) {
+        final scale = MinSettings().scale;
+        return SizedBox(
+          width: 8 * 80 * scale,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRow(_row1, scale),
+              _buildRow(_row2, scale),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRow(List<List<String>> keys, double scale) {
+    return Row(
+      children: keys.map((entry) {
+        final label = entry[0];
+        return Expanded(
+          flex: _keyFlex(label),
           child: SizedBox(
-            width: 8 * 40 * MinSettings().scale,
-            height: 10 * 25 * MinSettings().scale,
-            child: Stack(
-              children: [
-                MinKeyboardImage(),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 0.5,
-                      color: Colors.black,
-                    ),
-                  ),
+            height: 24 * scale,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.grey),
                 ),
-                // Function keys
-                MinKey(left: 5, top: 10, width: 35, k: TMinitelKey.cxFin),
-                for (int i = 0; i < 4; i++)
-                  MinKey(
-                    left: 66 + i * 40,
-                    top: 36,
-                    width: 35,
-                    k: [
-                      TMinitelKey.sommaire,
-                      TMinitelKey.annulation,
-                      TMinitelKey.retour,
-                      TMinitelKey.repetition,
-                    ][i],
-                    ks: [
-                      TMinitelKey.circonflexe,
-                      "\\",
-                      TMinitelKey.aigu,
-                      "{",
-                    ][i],
-                    kc: [
-                      "\x00",
-                      TMinitelKey.livre,
-                      TMinitelKey.OE,
-                      TMinitelKey.oe,
-                    ][i],
-                  ),
-                for (int i = 0; i < 4; i++)
-                  MinKey(
-                    left: 66 + i * 40,
-                    top: 63,
-                    width: 35,
-                    k: [
-                      TMinitelKey.guide,
-                      TMinitelKey.correction,
-                      TMinitelKey.suite,
-                      TMinitelKey.envoi,
-                    ][i],
-                    ks: [
-                      TMinitelKey.trema,
-                      TMinitelKey.paragraph,
-                      TMinitelKey.grave,
-                      "}",
-                    ][i],
-                    kc: [
-                      "\x00",
-                      "${TMinitelKey.cedille}c",
-                      TMinitelKey.beta,
-                      "\x00",
-                    ][i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 8,
-                    k: "123"[i],
-                    ks: "!\"#"[i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 34,
-                    k: "456"[i],
-                    ks: "\$%&"[i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 60,
-                    k: "789"[i],
-                    ks: "'()"[i],
-                  ),
-                for (int i = 0; i < 3; i++)
-                  MinKey(
-                    left: 237 + i * 29,
-                    top: 86,
-                    k: "*0#"[i],
-                    ks: [
-                      "[",
-                      TMinitelKey.flecheHaut,
-                      "]",
-                    ][i],
-                  ),
-                MinKey(left: 37, top: 120, k: '\x1b'), // Escape key
-                // Special chars
-                for (int i = 0; i < 7; i++)
-                  MinKey(
-                    left: 67 + i * 30,
-                    top: 120,
-                    k: ",.';-:?"[i],
-                    ks: "<>@+=*/"[i],
-                  ),
-                // AZERTY first line
-                for (int i = 0; i < 10; i++)
-                  MinKey(
-                    left: 26 + i * 28.8,
-                    top: 147,
-                    k: "AZERTYUIOP"[i],
-                  ),
-                // AZERTY second line
-                MinKey(
-                  left: 6,
-                  top: 173,
-                  width: 25,
-                  k: "ctrl",
+                backgroundColor: const Color(0xFF1E3A5F),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => MinModel().handleKeys(entry[1]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 10 * scale),
                 ),
-                for (int i = 0; i < 10; i++)
-                  MinKey(
-                    left: 34 + i * 28.8,
-                    top: 173,
-                    k: "QSDFGHJKLM"[i],
-                  ),
-                MinKey(
-                  left: 20,
-                  top: 199,
-                  width: 25,
-                  k: "shift",
-                ),
-                // AZERTY third line
-                for (int i = 0; i < 6; i++)
-                  MinKey(
-                    left: 49 + i * 28.8,
-                    top: 199,
-                    k: "WXCVBN"[i],
-                  ),
-                MinKey(
-                  left: 221,
-                  top: 199,
-                  width: 25,
-                  k: "shift",
-                ),
-                MinKey(
-                  left: 6,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowUp,
-                  ks: TMinitelKey.supL,
-                ),
-                MinKey(
-                  left: 35,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowDown,
-                  ks: TMinitelKey.insL,
-                ),
-                MinKey(
-                  left: 64,
-                  top: 225,
-                  width: 142,
-                  k: " ",
-                ),
-                MinKey(
-                  left: 210,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowLeft,
-                  kc: "\x7f",
-                  ks: TMinitelKey.delC,
-                ),
-                MinKey(
-                  left: 239,
-                  top: 225,
-                  width: 25,
-                  k: TMinitelKey.arrowRight,
-                ),
-                MinKey(
-                  left: 282,
-                  top: 226,
-                  width: 35,
-                  k: "\x0d",
-                  ks: TMinitelKey.home,
-                  kc: TMinitelKey.ePage,
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }).toList(),
     );
+  }
+
+  int _keyFlex(String label) {
+    if (label == 'Espace') return 3;
+    if (label == 'Esc') return 1;
+    return label == '↑' || label == '↓' || label == '←' || label == '→' ? 1 : 2;
   }
 }
 
-class MinKeyboardImage extends StatelessWidget {
-  const MinKeyboardImage({
-    super.key,
-  });
+/// Compact function-key bar shown in VT100 80-column mode.
+class MinVt100Keyboard extends StatelessWidget {
+  const MinVt100Keyboard({super.key});
+
+  static const _row1 = [
+    ['ESC', '\x1b'],
+    ['F1', '\x1bOP'],
+    ['F2', '\x1bOQ'],
+    ['F3', '\x1bOR'],
+    ['F4', '\x1bOS'],
+    ['F5', '\x1b[15~'],
+    ['F6', '\x1b[17~'],
+    ['F7', '\x1b[18~'],
+    ['F8', '\x1b[19~'],
+    ['F9', '\x1b[20~'],
+    ['F10', '\x1b[21~'],
+  ];
+
+  static const _row2 = [
+    ['Tab', '\t'],
+    ['BackSp', '\x7f'],
+    ['\u2191', '\x1b[A'],
+    ['\u2193', '\x1b[B'],
+    ['\u2190', '\x1b[D'],
+    ['\u2192', '\x1b[C'],
+    ['Home', '\x1b[H'],
+    ['End', '\x1b[F'],
+    ['PgUp', '\x1b[5~'],
+    ['PgDn', '\x1b[6~'],
+    ['Del', '\x1b[3~'],
+    ['Entr\u00e9e', '\r'],
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage("assets/clavier.png"),
-          fit: BoxFit.fill,
-        ),
-      ),
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, child) {
+        final scale = MinSettings().scale;
+        return SizedBox(
+          width: 8 * 80 * scale,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRow(_row1, scale),
+              _buildRow(_row2, scale),
+            ],
+          ),
+        );
+      },
     );
   }
-}
 
-class MinKey extends StatelessWidget {
-  final double left;
-  final double top;
-  final double width;
-  final double height;
-  final String k;
-  final String ks;
-  final String kc;
-
-  const MinKey({
-    super.key,
-    this.left = 0,
-    this.top = 0,
-    this.width = 25,
-    this.height = 20,
-    this.k = "",
-    this.ks = "",
-    this.kc = "",
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MinSettings().scale;
-    return Positioned(
-      left: left * scale,
-      top: top * scale,
-      width: width * scale,
-      height: height * scale,
-      child: InkWell(
-        hoverColor: Colors.grey,
-        splashColor: const ui.Color.fromARGB(255, 107, 66, 0),
-        child: kDebugMode
-            ? Container(
-                decoration: BoxDecoration(
-                  border: Border.all(width: 1, color: Colors.red),
+  Widget _buildRow(List<List<String>> keys, double scale) {
+    return Row(
+      children: keys.map((entry) {
+        return Expanded(
+          child: SizedBox(
+            height: 24 * scale,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.grey),
                 ),
-              )
-            : null,
-        onTap: () {
-          final player = AudioPlayer();
-          player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
-
-          final letters = RegExp('^[A-Z]\$');
-          final shifted = MinModel().isShifted;
-          final ctrl = MinModel().isCtrl;
-          final upMode = MinSettings().capslock;
-          var key = '';
-          if (letters.hasMatch(k)) {
-            if (k.toUpperCase() == 'G' && ctrl) {
-              key = '\x07';
-            } else {
-              key = (shifted && upMode) || (!shifted && !upMode)
-                  ? k.toLowerCase()
-                  : k;
-            }
-          } else {
-            if (ctrl && kc.isNotEmpty) {
-              key = kc;
-            } else {
-              key = shifted && ks.isNotEmpty ? ks : k;
-            }
-          }
-          MinModel().handleKeys(key);
-        },
-      ),
+                backgroundColor: const Color(0xFF212121),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => MinModel().handleKeys(entry[1]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  entry[0],
+                  style: TextStyle(fontSize: 10 * scale),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_serial.dart';
 import 'min_widget.dart';
@@ -22,6 +23,9 @@ class MinTerm extends StatelessWidget {
               Divider(),
               SetBps(),
               Scale(),
+              SetScreenMode(),
+              CaptureToggle(),
+              ReplayCaptureAction(),
               SetColors(),
               // ListTile(
               //   title: const Text('Keyboard'),
@@ -37,6 +41,7 @@ class MinTerm extends StatelessWidget {
               Connection('Minipavi', 'tcp://go.minipavi.fr:516'),
               Connection('Zboub', 'tcp://abasty-retro.fr:1967'),
               Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
+              Connection('telehack', 'tcp://telehack.com:23'),
               Connection(
                 'BASTOS (localhost:1967)',
                 'tcp://127.0.0.1:1967',
@@ -56,41 +61,20 @@ class MinTerm extends StatelessWidget {
             //   icon: const Icon(Icons.keyboard),
             //   onPressed: () => MinSettings.toggleKeyboard(),
             // ),
-            CapsLock(),
-            IconButton(
-              icon: const Icon(Icons.color_lens),
-              onPressed: () => MinSettings().toggleColors(),
-            ),
+            CaptureButton(),
+            ReplayCaptureIndicator(),
+            ColorsButton(),
           ],
         ),
         body: Center(
           child: Column(
             children: [
               MinScreen(),
-              MinKeyboard(),
+              ReplayKeyboardOverlay(),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class CapsLock extends StatefulWidget {
-  const CapsLock({
-    super.key,
-  });
-
-  @override
-  State<CapsLock> createState() => _CapsLockState();
-}
-
-class _CapsLockState extends State<CapsLock> {
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: MinSettings().capslock ? const Text('A') : const Text('a'),
-      onPressed: () => setState(() => MinSettings.toggleCapslock()),
     );
   }
 }
@@ -153,6 +137,235 @@ class SetColors extends StatelessWidget {
         Navigator.pop(context);
       },
       title: const Text('Colors'),
+    );
+  }
+}
+
+class CaptureToggle extends StatefulWidget {
+  const CaptureToggle({super.key});
+
+  @override
+  State<CaptureToggle> createState() => _CaptureToggleState();
+}
+
+class _CaptureToggleState extends State<CaptureToggle> {
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final enabled = MinModel().isCaptureEnabled;
+        return ListTile(
+          onTap: () async {
+            await MinModel().toggleCapture();
+            if (!mounted) return;
+            Navigator.pop(context);
+          },
+          title: Row(
+            children: [
+              const Text('Capture'),
+              Expanded(child: Container()),
+              Text(enabled ? 'ON' : 'OFF'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class CaptureButton extends StatelessWidget {
+  const CaptureButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final enabled = MinModel().isCaptureEnabled;
+        return IconButton(
+          tooltip: enabled ? 'Capture ON' : 'Capture OFF',
+          icon: Icon(enabled
+              ? Icons.fiber_manual_record
+              : Icons.radio_button_unchecked),
+          color: enabled ? Colors.redAccent : null,
+          onPressed: () => MinModel().toggleCapture(),
+        );
+      },
+    );
+  }
+}
+
+class ReplayCaptureAction extends StatelessWidget {
+  const ReplayCaptureAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final replaying = MinModel().isReplayingCapture;
+        final captureEnabled = MinModel().isCaptureEnabled;
+        final replayAllowed = !replaying && !captureEnabled;
+        return ListTile(
+          onTap: !replayAllowed
+              ? null
+              : () async {
+                  await MinModel().replayCapture();
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                },
+          title: Row(
+            children: [
+              const Text('Replay capture'),
+              Expanded(child: Container()),
+              Text(replaying ? 'RUN' : (captureEnabled ? 'LOCK' : 'READY')),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ReplayCaptureIndicator extends StatelessWidget {
+  const ReplayCaptureIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final replaying = MinModel().isReplayingCapture;
+        final captureEnabled = MinModel().isCaptureEnabled;
+        final replayAllowed = !replaying && !captureEnabled;
+        return IconButton(
+          tooltip: replaying
+              ? 'Replay capture en cours'
+              : (captureEnabled
+                  ? 'Replay indisponible pendant la capture'
+                  : 'Lancer la relecture de capture'),
+          icon: Icon(replaying ? Icons.play_circle : Icons.play_circle_outline),
+          color: replaying
+              ? Colors.green.shade700
+              : (captureEnabled ? Colors.grey : null),
+          onPressed: replayAllowed ? () => MinModel().replayCapture() : null,
+        );
+      },
+    );
+  }
+}
+
+class ReplayKeyboardOverlay extends StatelessWidget {
+  const ReplayKeyboardOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final keyboardWidth = 8.0 * 80.0 * MinSettings().scale;
+        return SizedBox(
+          width: keyboardWidth,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const MinKeyboard(),
+              ListenableBuilder(
+                listenable: MinModel(),
+                builder: (context, _) {
+                  final paused = MinModel().isReplayPaused;
+                  return IgnorePointer(
+                    ignoring: !paused,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: paused
+                            ? () => MinModel().resumeReplayAfterPause()
+                            : null,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 160),
+                          curve: Curves.easeOut,
+                          opacity: paused ? 1 : 0,
+                          child: Container(
+                            width: keyboardWidth - 24,
+                            height: 52,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD32F2F)
+                                  .withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: const Text(
+                              'Pause lecture: touche/clic pour continuer, ESC pour quitter',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ColorsButton extends StatelessWidget {
+  const ColorsButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final colorsEnabled = MinSettings().colors == MinColors;
+        return IconButton(
+          tooltip:
+              colorsEnabled ? 'Mode couleur actif' : 'Mode couleur inactif',
+          icon: const Icon(Icons.color_lens),
+          color: colorsEnabled ? Colors.blue.shade700 : null,
+          onPressed: () => MinSettings().toggleColors(),
+        );
+      },
+    );
+  }
+}
+
+class SetScreenMode extends StatefulWidget {
+  const SetScreenMode({super.key});
+
+  @override
+  State<SetScreenMode> createState() => _SetScreenModeState();
+}
+
+class _SetScreenModeState extends State<SetScreenMode> {
+  @override
+  Widget build(BuildContext context) {
+    final mode = MinModel().screenMode;
+    final label =
+        mode == TMinitelScreenMode.vt10080 ? 'VT100 80' : 'Minitel 40';
+    return ListTile(
+      onTap: () {
+        setState(() => MinModel().toggleScreenMode());
+        Navigator.pop(context);
+      },
+      title: Row(
+        children: [
+          const Text('Mode écran'),
+          Expanded(child: Container()),
+          Text(label),
+        ],
+      ),
     );
   }
 }

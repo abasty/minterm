@@ -1,4 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:minterm/min_emulator.dart';
+import 'package:minterm/min_model.dart';
 import 'package:minterm/min_widget.dart';
 
 /*
@@ -122,8 +125,56 @@ import 'package:minterm/min_widget.dart';
 */
 
 void main() {
+  setUp(() {
+    MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+  });
+
   testWidgets('MinWidget creation', (WidgetTester tester) async {
-    // Build our widget and trigger a frame.
-    await tester.pumpWidget(const MinScreen());
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: MinScreen(),
+        ),
+      ),
+    );
+
+    expect(find.byType(MinScreen), findsOneWidget);
+  });
+
+  testWidgets('Virtual keyboard is hidden in VT100 mode', (
+    WidgetTester tester,
+  ) async {
+    MinModel().setScreenMode(TMinitelScreenMode.vt10080);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: MinKeyboard(),
+        ),
+      ),
+    );
+
+    expect(find.text('Sommaire'), findsNothing);
+    expect(find.text('F1'), findsOneWidget);
+  });
+
+  testWidgets('Compact Minitel keyboard is shown in 40-column mode', (
+    WidgetTester tester,
+  ) async {
+    MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: MinKeyboard(),
+        ),
+      ),
+    );
+
+    expect(find.text('Cx/Fin'), findsOneWidget);
+    expect(find.text('Sommaire'), findsOneWidget);
+    expect(find.text('Envoi'), findsOneWidget);
+    expect(find.text('Esc'), findsOneWidget);
+    expect(find.text('Entrée'), findsOneWidget);
   });
 }
