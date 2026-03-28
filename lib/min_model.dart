@@ -1,28 +1,38 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_libserialport/flutter_libserialport.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:universal_io/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'capture_web_storage_stub.dart'
+    if (dart.library.html) 'capture_web_storage_web.dart' as web_capture;
 import 'min_emulator.dart';
+import 'serial_support.dart';
 
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();
-  static final File _captureFile = File('capture.vdt');
+  static const String _captureFilePath = 'capture.vdt';
+  static const String _webCaptureStorageKey = 'minterm.capture.vdt.b64';
   static const int _capturePauseMarker = 0xFF;
   static const Duration _capturePauseThreshold = Duration(seconds: 2);
   final minitel = TMinitel();
-  var _codes = <int>[];
-  int _index = -1;
+  final _codes = <int>[];
   int _bps = 1200;
   bool _isShifted = false;
   bool _isCtrl = false;
   Timer? _timer;
+  DateTime? _lastDrainAt;
+  double _pendingBytesBudget = 0.0;
+  static const Duration _throttleTick = Duration(milliseconds: 8);
   String? _serverAddress;
   dynamic _server;
-  SerialPortReader? _serialReader;
+  StreamSubscription<List<int>>? _serialSubscription;
   IOSink? _captureSink;
+  File? _nativeCaptureFile;
   DateTime? _lastCaptureAt;
+  final List<int> _webCaptureBytes = <int>[];
   bool _captureEnabled = false;
   bool _isReplayingCapture = false;
   bool _isReplayPaused = false;
@@ -36,6 +46,8 @@ class MinModel extends ChangeNotifier {
   }
 
   MinModel._internal() {
+    _restoreWebCapture();
+    _initializeCaptureFile();
     Timer.periodic(Duration(milliseconds: 1000), (Timer timer) {
       _singleton.showBlink = !_singleton.showBlink;
       _singleton.minitel.isDirty = true;
@@ -45,11 +57,43 @@ class MinModel extends ChangeNotifier {
 
   bool get isConnected => _server != null;
 
+  bool get _isLinuxDesktop => !kIsWeb && Platform.isLinux;
+
   bool get isCaptureEnabled => _captureEnabled;
 
   bool get isReplayingCapture => _isReplayingCapture;
 
   bool get isReplayPaused => _isReplayPaused;
+
+  bool get hasCaptureData {
+    if (kIsWeb) {
+      return _webCaptureBytes.isNotEmpty;
+    }
+    if (_nativeCaptureFile == null) {
+      unawaited(_initializeCaptureFile());
+      return false;
+    }
+    final captureFile = _captureFile;
+    if (captureFile == null || !captureFile.existsSync()) {
+      return false;
+    }
+    return captureFile.lengthSync() > 0;
+  }
+
+  File? get _captureFile => kIsWeb ? null : _nativeCaptureFile;
+
+  Future<void> _initializeCaptureFile() async {
+    if (kIsWeb || _nativeCaptureFile != null) return;
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      final appDirectory = await getApplicationDocumentsDirectory();
+      _nativeCaptureFile = File('${appDirectory.path}/$_captureFilePath');
+    } else {
+      _nativeCaptureFile = File(_captureFilePath);
+    }
+
+    notifyListeners();
+  }
 
   bool get isEchoed => minitel.isEchoed;
   set isEchoed(bool value) {
@@ -88,15 +132,12 @@ class MinModel extends ChangeNotifier {
   void emulate(List<int> codes) {
     _captureCodes(codes);
 
-    // Manage the timer to send the codes at the right speed
-    if (_timer != null) _timer!.cancel();
-
-    // Add the new codes to the list
-    _codes += codes;
+    // Add new codes to the buffered queue consumed by throttling.
+    _codes.addAll(codes);
 
     // If the speed is 0, send all the codes at once
-    if (_bps == 0 || _serialReader != null) {
-      // Send all the codes at once
+    if (_bps == 0) {
+      _stopThrottleTimer();
       minitel.emulate(_codes);
       _codes.clear();
       if (minitel.speedChanged) {
@@ -109,28 +150,68 @@ class MinModel extends ChangeNotifier {
       return;
     }
 
-    final us = (8.0e+6 / _bps.toDouble()).toInt();
-    // Init the index
-    if (_index < 0) _index = 0;
-    // Start the timer
-    _timer = Timer.periodic(Duration(microseconds: us), (Timer timer) {
-      if (_index < _codes.length) {
-        // Send the next code to the emulator
-        minitel.emulate([_codes[_index++]]);
-        if (minitel.isDirty) notifyListeners();
-      } else {
-        // Stop the timer
-        timer.cancel();
-        _timer = null;
-        _index = -1;
-        _codes.clear();
-        if (minitel.speedChanged) {
-          _bps = minitel.speed;
-          minitel.speedChanged = false;
-        }
-        sendReplyToServer();
-      }
+    _startThrottleTimer();
+  }
+
+  void _startThrottleTimer() {
+    if (_timer != null) return;
+    _lastDrainAt = DateTime.now();
+    _timer = Timer.periodic(_throttleTick, (_) {
+      _drainBufferedCodes();
     });
+  }
+
+  void _stopThrottleTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _lastDrainAt = null;
+    _pendingBytesBudget = 0.0;
+  }
+
+  void _drainBufferedCodes() {
+    if (_codes.isEmpty) {
+      _stopThrottleTimer();
+      sendReplyToServer();
+      return;
+    }
+
+    final now = DateTime.now();
+    final elapsedUs = _lastDrainAt == null
+        ? _throttleTick.inMicroseconds
+        : now.difference(_lastDrainAt!).inMicroseconds;
+    _lastDrainAt = now;
+
+    _pendingBytesBudget += elapsedUs * (_bps / 8.0) / 1000000.0;
+    int bytesToProcess = _pendingBytesBudget.floor();
+
+    if (bytesToProcess <= 0) {
+      return;
+    }
+
+    if (bytesToProcess > _codes.length) {
+      bytesToProcess = _codes.length;
+    }
+
+    minitel.emulate(_codes.sublist(0, bytesToProcess));
+    _codes.removeRange(0, bytesToProcess);
+    _pendingBytesBudget -= bytesToProcess;
+
+    if (minitel.speedChanged) {
+      bps = minitel.speed;
+      setSerialSpeed(bps);
+      minitel.speedChanged = false;
+    }
+
+    sendReplyToServer();
+    if (minitel.isDirty) notifyListeners();
+
+    if (_bps == 0 && _codes.isNotEmpty) {
+      minitel.emulate(_codes);
+      _codes.clear();
+      sendReplyToServer();
+      if (minitel.isDirty) notifyListeners();
+      _stopThrottleTimer();
+    }
   }
 
   Future<void> toggleCapture() async {
@@ -144,11 +225,26 @@ class MinModel extends ChangeNotifier {
 
   Future<void> _openCapture() async {
     await _closeCapture();
-    try {
-      _captureSink = _captureFile.openWrite();
+    if (kIsWeb) {
+      _webCaptureBytes.clear();
       _lastCaptureAt = null;
       _captureEnabled = true;
-      debugPrint('Capture enabled: ${_captureFile.path}');
+      await _persistWebCapture();
+      debugPrint('Capture enabled in browser memory');
+      return;
+    }
+
+    try {
+      await _initializeCaptureFile();
+      final captureFile = _captureFile;
+      if (captureFile == null) {
+        _captureEnabled = false;
+        return;
+      }
+      _captureSink = captureFile.openWrite();
+      _lastCaptureAt = null;
+      _captureEnabled = true;
+      debugPrint('Capture enabled: ${captureFile.path}');
     } catch (error) {
       _captureSink = null;
       _captureEnabled = false;
@@ -161,6 +257,12 @@ class MinModel extends ChangeNotifier {
     _captureSink = null;
     _lastCaptureAt = null;
     _captureEnabled = false;
+    if (kIsWeb) {
+      await _persistWebCapture();
+      debugPrint('Capture disabled in browser memory');
+      return;
+    }
+
     if (sink != null) {
       try {
         await sink.flush();
@@ -168,16 +270,33 @@ class MinModel extends ChangeNotifier {
       } catch (error) {
         debugPrint('Failed to close capture file: $error');
       }
-      debugPrint('Capture disabled: ${_captureFile.path}');
+      final captureFile = _captureFile;
+      if (captureFile != null) {
+        debugPrint('Capture disabled: ${captureFile.path}');
+      }
     }
   }
 
   void _captureCodes(List<int> codes) {
-    if (!_captureEnabled || _captureSink == null || codes.isEmpty) return;
+    if (!_captureEnabled || codes.isEmpty) return;
 
     final now = DateTime.now();
-    if (_lastCaptureAt != null &&
-        now.difference(_lastCaptureAt!) > _capturePauseThreshold) {
+    final insertPause = _lastCaptureAt != null &&
+        now.difference(_lastCaptureAt!) > _capturePauseThreshold;
+
+    if (kIsWeb) {
+      if (insertPause) {
+        _webCaptureBytes.add(_capturePauseMarker);
+      }
+      _webCaptureBytes.addAll(codes);
+      _lastCaptureAt = now;
+      unawaited(_persistWebCapture());
+      return;
+    }
+
+    if (_captureSink == null) return;
+
+    if (insertPause) {
       _captureSink!.add([_capturePauseMarker]);
     }
 
@@ -193,14 +312,25 @@ class MinModel extends ChangeNotifier {
     }
 
     try {
-      if (!await _captureFile.exists()) {
-        debugPrint('Capture file not found: ${_captureFile.path}');
-        return;
+      List<int> payload;
+      if (kIsWeb) {
+        payload = List<int>.from(_webCaptureBytes);
+        if (payload.isEmpty) {
+          debugPrint('No in-memory capture found in this browser session');
+          return;
+        }
+      } else {
+        await _initializeCaptureFile();
+        final captureFile = _captureFile;
+        if (captureFile == null || !await captureFile.exists()) {
+          debugPrint('Capture file not found: $_captureFilePath');
+          return;
+        }
+        payload = await captureFile.readAsBytes();
       }
 
-      final payload = await _captureFile.readAsBytes();
       if (payload.isEmpty) {
-        debugPrint('Capture file is empty: ${_captureFile.path}');
+        debugPrint('Capture is empty');
         return;
       }
 
@@ -215,6 +345,105 @@ class MinModel extends ChangeNotifier {
       debugPrint('Failed to replay capture: $error');
       _finishReplay();
     }
+  }
+
+  Future<void> exportCapture() async {
+    if (kIsWeb) {
+      if (_webCaptureBytes.isEmpty) return;
+      await web_capture.exportCaptureAsDownload(
+        Uint8List.fromList(_webCaptureBytes),
+        _captureFilePath,
+      );
+      return;
+    }
+
+    await _initializeCaptureFile();
+    final resolvedCaptureFile = _captureFile;
+    if (resolvedCaptureFile == null || !await resolvedCaptureFile.exists()) {
+      return;
+    }
+    final payload = await resolvedCaptureFile.readAsBytes();
+    if (payload.isEmpty) return;
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export capture',
+        fileName: _captureFilePath,
+        type: FileType.custom,
+        allowedExtensions: const ['vdt'],
+      );
+      if (savePath != null && savePath.isNotEmpty) {
+        await File(savePath).writeAsBytes(payload, flush: true);
+      }
+      return;
+    }
+
+    final temporaryDir = await getTemporaryDirectory();
+    final exportFile = File('${temporaryDir.path}/$_captureFilePath');
+    await exportFile.writeAsBytes(payload, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(exportFile.path, mimeType: 'application/octet-stream')],
+        text: 'Capture Minitel',
+      ),
+    );
+  }
+
+  Future<void> importCapture() async {
+    if (_captureEnabled || _isReplayingCapture) return;
+
+    if (kIsWeb) {
+      final imported = await web_capture.importCaptureFromFilePicker();
+      if (imported == null || imported.isEmpty) return;
+      _webCaptureBytes
+        ..clear()
+        ..addAll(imported);
+      await _persistWebCapture();
+      notifyListeners();
+      return;
+    }
+
+    final picked = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.custom,
+      allowedExtensions: const ['vdt'],
+      withData: true,
+    );
+
+    if (picked == null || picked.files.isEmpty) return;
+
+    final selectedFile = picked.files.first;
+    Uint8List? importedBytes = selectedFile.bytes;
+    if (importedBytes == null && selectedFile.path != null) {
+      importedBytes = await File(selectedFile.path!).readAsBytes();
+    }
+
+    if (importedBytes == null || importedBytes.isEmpty) return;
+
+    await _initializeCaptureFile();
+    final captureFile = _captureFile;
+    if (captureFile == null) return;
+    await captureFile.writeAsBytes(importedBytes, flush: true);
+    notifyListeners();
+  }
+
+  Future<void> _persistWebCapture() async {
+    if (!kIsWeb) return;
+    await web_capture.saveCaptureToBrowserStorage(
+      _webCaptureStorageKey,
+      Uint8List.fromList(_webCaptureBytes),
+    );
+  }
+
+  Future<void> _restoreWebCapture() async {
+    if (!kIsWeb) return;
+    final restored =
+        await web_capture.loadCaptureFromBrowserStorage(_webCaptureStorageKey);
+    if (restored == null || restored.isEmpty) return;
+    _webCaptureBytes
+      ..clear()
+      ..addAll(restored);
+    notifyListeners();
   }
 
   void resumeReplayAfterPause() {
@@ -278,17 +507,8 @@ class MinModel extends ChangeNotifier {
   }
 
   void setSerialSpeed(int speed) {
-    if (_server is SerialPort) {
-      final port = _server as SerialPort;
-      if (port.isOpen) {
-        port.config = SerialPortConfig()
-          ..baudRate = speed
-          ..bits = 7
-          ..parity = SerialPortParity.even
-          ..stopBits = 1
-          ..setFlowControl(SerialPortFlowControl.none);
-      }
-    }
+    if (_server is! SerialConnection) return;
+    (_server as SerialConnection).configure(speed);
   }
 
   void sendReplyToServer() {
@@ -299,28 +519,8 @@ class MinModel extends ChangeNotifier {
           _server!.sink.add(replyU8);
         } else if (_server is Socket) {
           _server.add(replyU8);
-        } else if (_server is SerialPort) {
-          final port = _server as SerialPort;
-          if (port.isOpen) {
-            port.write(replyU8);
-            var last = replyU8.isNotEmpty ? replyU8.last : 0;
-            var sentSpeed = 0;
-            switch (last) {
-              case 0x64:
-                sentSpeed = 1200;
-                break;
-              case 0x76:
-                sentSpeed = 4800;
-                break;
-              case 0x7f:
-                sentSpeed = 9600;
-                break;
-            }
-            debugPrint(
-                'Sent ${replyU8.length} bytes (speed: $sentSpeed) to ${port.name}');
-          } else {
-            debugPrint('Serial port is not open: ${port.name}');
-          }
+        } else if (_server is SerialConnection) {
+          (_server as SerialConnection).write(replyU8);
         }
       }
       minitel.reply.clear();
@@ -331,32 +531,18 @@ class MinModel extends ChangeNotifier {
     isEchoed = true;
     debugPrint('End connection');
 
-    if (_timer != null) {
-      _timer!.cancel();
-      _timer = null;
-    }
-
-    _index = -1;
+    _stopThrottleTimer();
     _codes.clear();
 
     if (isConnected) {
+      _serialSubscription?.cancel();
+      _serialSubscription = null;
       if (_server is WebSocketChannel) {
         _server!.sink.close();
       } else if (_server is Socket) {
         _server.destroy();
-      } else if (_server is SerialPort) {
-        final port = _server as SerialPort;
-        debugPrint('Closing serial port reader');
-        if (_serialReader != null) {
-          _serialReader!.close();
-          _serialReader = null;
-        }
-        debugPrint('Closing serial port: ${port.name}');
-        if (port.isOpen) {
-          port.close();
-          debugPrint('Serial port closed: ${port.name}');
-        }
-        port.dispose();
+      } else if (_server is SerialConnection) {
+        (_server as SerialConnection).close();
       }
     }
     _server = null;
@@ -370,7 +556,11 @@ class MinModel extends ChangeNotifier {
     debugPrint('Connect to: $uri');
 
     if (uri.scheme == 'serial') {
-      connectSerial(uri.path);
+      if (_isLinuxDesktop) {
+        connectSerial(uri.path);
+      } else {
+        debugPrint('Serial is only available on Linux desktop');
+      }
     }
 
     if (uri.scheme == 'ws' || uri.scheme == 'wss') {
@@ -385,27 +575,26 @@ class MinModel extends ChangeNotifier {
   }
 
   void connectSerial(String portName) {
+    if (!_isLinuxDesktop) return;
     if (isConnected) end();
 
-    final port = SerialPort(portName);
-    debugPrint('Opening serial port: $portName');
-    if (!port.openReadWrite()) {
-      // Open the port for reading and writing
-      debugPrint('Failed to open serial port: ${port.name}');
+    final connection = openSerialConnection(portName);
+    if (connection == null) {
+      debugPrint('Failed to open serial port: $portName');
       return;
     }
 
-    _server = port;
+    _server = connection;
     minitel.speed = bps;
     setSerialSpeed(bps);
 
-    _serialReader = SerialPortReader(port);
-    final t0 = DateTime.now();
-    _serialReader!.stream.listen(
+    final openedAt = DateTime.now();
+    _serialSubscription = connection.stream.listen(
       (data) {
-        // Drop data in the first 0.5 second to avoid garbage
-        final t1 = DateTime.now();
-        if (t1.difference(t0).inMilliseconds < 500) return;
+        // Ignore first bytes right after opening to avoid line noise.
+        if (DateTime.now().difference(openedAt).inMilliseconds < 500) {
+          return;
+        }
         emulate(data);
       },
       onError: (error) {
@@ -417,7 +606,6 @@ class MinModel extends ChangeNotifier {
         end();
       },
     );
-    debugPrint('Serial port opened: ${port.name}');
   }
 
   void connectSocket(Uri uri) {
@@ -513,14 +701,8 @@ class MinModel extends ChangeNotifier {
         _server!.sink.add(keys);
       } else if (_server is Socket) {
         _server.write(keys);
-      } else if (_server is SerialPort) {
-        final port = _server as SerialPort;
-        if (port.isOpen) {
-          final keysU8 = Uint8List.fromList(keys.codeUnits);
-          port.write(keysU8);
-        } else {
-          debugPrint('Serial port is not open: ${port.name}');
-        }
+      } else if (_server is SerialConnection) {
+        (_server as SerialConnection).write(Uint8List.fromList(keys.codeUnits));
       }
     }
     if (isEchoed) {

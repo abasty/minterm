@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_libserialport/flutter_libserialport.dart';
 
 import 'min_model.dart';
+import 'serial_support.dart';
+
+class ConnectionSerial extends StatelessWidget {
+  const ConnectionSerial({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: const Text('Serial ports'),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MinSerial()),
+        );
+      },
+    );
+  }
+}
 
 class MinSerial extends StatefulWidget {
   const MinSerial({super.key});
 
   @override
-  MinSerialState createState() => MinSerialState();
+  State<MinSerial> createState() => MinSerialState();
 }
 
-extension IntToString on int {
+extension _IntFormat on int {
   String toHex() => '0x${toRadixString(16)}';
   String toPadded([int width = 3]) => toString().padLeft(width, '0');
-  String toTransport() {
-    switch (this) {
-      case SerialPortTransport.usb:
-        return 'USB';
-      case SerialPortTransport.bluetooth:
-        return 'Bluetooth';
-      case SerialPortTransport.native:
-        return 'Native';
-      default:
-        return 'Unknown';
-    }
-  }
 }
 
 class MinSerialState extends State<MinSerial> {
-  var availablePorts = [];
+  var availablePorts = const <SerialPortInfo>[];
 
   @override
   void initState() {
@@ -37,65 +42,47 @@ class MinSerialState extends State<MinSerial> {
   }
 
   void initPorts() {
-    setState(() => availablePorts = SerialPort.availablePorts);
+    setState(() => availablePorts = listSerialPorts());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Liste des ports série'),
-      ),
+      appBar: AppBar(title: const Text('Serial ports')),
       body: Scrollbar(
         child: ListView(
           children: [
-            for (final address in availablePorts)
-              Builder(builder: (context) {
-                final port = SerialPort(address);
-                Widget portStatus = ListTile(
-                  title: Text(address),
-                  subtitle: Text('Description: ${port.description ?? "N/A"}'
-                      '\nTransport: ${port.transport.toTransport()}'
-                      '\nUSB Bus: ${port.busNumber?.toPadded()}'
-                      '\nUSB Device: ${port.deviceNumber?.toPadded()}'
-                      '\nVendor ID: ${port.vendorId?.toHex()}'
-                      '\nProduct ID: ${port.productId?.toHex()}'
+            for (final port in availablePorts)
+              Builder(
+                builder: (context) {
+                  return ListTile(
+                    title: Text(port.address),
+                    subtitle: Text(
+                      'Description: ${port.description ?? "N/A"}'
+                      '\nTransport: ${port.transport}'
+                      '\nUSB Bus: ${port.busNumber?.toPadded() ?? "N/A"}'
+                      '\nUSB Device: ${port.deviceNumber?.toPadded() ?? "N/A"}'
+                      '\nVendor ID: ${port.vendorId?.toHex() ?? "N/A"}'
+                      '\nProduct ID: ${port.productId?.toHex() ?? "N/A"}'
                       '\nManufacturer: ${port.manufacturer ?? "N/A"}'
                       '\nProduct Name: ${port.productName ?? "N/A"}'
                       '\nSerial Number: ${port.serialNumber ?? "N/A"}'
-                      '\nMAC Address: ${port.macAddress ?? "N/A"}'),
-                  onTap: () {
-                    MinModel().serverAddress = 'serial://$address';
-                    MinModel().connect();
-                    Navigator.pop(context);
-                  },
-                );
-                port.dispose();
-                return portStatus;
-              }),
+                      '\nMAC Address: ${port.macAddress ?? "N/A"}',
+                    ),
+                    onTap: () {
+                      MinModel().serverAddress = 'serial://${port.address}';
+                      MinModel().connect();
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: initPorts,
-        child: Icon(Icons.refresh),
-      ),
-    );
-  }
-}
-
-class CardListTile extends StatelessWidget {
-  final String name;
-  final String? value;
-
-  const CardListTile(this.name, this.value, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text(value ?? 'N/A'),
-        subtitle: Text(name),
+        child: const Icon(Icons.refresh),
       ),
     );
   }

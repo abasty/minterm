@@ -4,12 +4,11 @@ import 'package:audioplayers/audioplayers.dart';
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_serial.dart';
+import 'serial_support.dart';
 import 'min_widget.dart';
 
 class MinTerm extends StatelessWidget {
-  const MinTerm({
-    super.key,
-  });
+  const MinTerm({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +25,8 @@ class MinTerm extends StatelessWidget {
               SetScreenMode(),
               CaptureToggle(),
               ReplayCaptureAction(),
+              ImportCaptureAction(),
+              ExportCaptureAction(),
               SetColors(),
               // ListTile(
               //   title: const Text('Keyboard'),
@@ -36,21 +37,17 @@ class MinTerm extends StatelessWidget {
               // ),
               Divider(),
               Clear(),
-              Connection('3615', 'ws://3615co.de/ws'),
               Connection('3611', 'ws://3611.re/ws'),
-              Connection('Minipavi', 'tcp://go.minipavi.fr:516'),
-              Connection('Zboub', 'tcp://abasty-retro.fr:1967'),
+              Connection('3615', 'ws://3615co.de/ws'),
+              Connection('Minipavi', 'ws://go.minipavi.fr:8182'),
               Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
-              Connection('telehack', 'tcp://telehack.com:23'),
-              Connection(
-                'BASTOS (localhost:1967)',
-                'tcp://127.0.0.1:1967',
-              ),
+              Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
+              Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
               Connection(
                 'WS/WSS Gateway (localhost:1963)',
                 'tcp://127.0.0.1:1963',
               ),
-              ConnectionSerial(),
+              if (isSerialSupported) const ConnectionSerial(),
             ],
           ),
         ),
@@ -80,9 +77,7 @@ class MinTerm extends StatelessWidget {
 }
 
 class CloseMenu extends StatelessWidget {
-  const CloseMenu({
-    super.key,
-  });
+  const CloseMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -95,32 +90,30 @@ class CloseMenu extends StatelessWidget {
   }
 }
 
-class SetBps extends StatefulWidget {
+class SetBps extends StatelessWidget {
   const SetBps({super.key});
 
-  @override
-  State<SetBps> createState() => _SetBpsState();
-}
-
-class _SetBpsState extends State<SetBps> {
   static const speeds = [300, 1200, 4800, 9600, 0];
-  int speedIndex = 1;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        speedIndex = (speedIndex + 1) % speeds.length;
-        setState(() => MinModel().bps = speeds[speedIndex]);
-      },
-      title: Row(
-        children: [
-          const Text('Speed'),
-          Expanded(child: Container()),
-          MinModel().bps == 0
-              ? const Text('max')
-              : Text('${MinModel().bps} bps'),
-        ],
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) => ListTile(
+        onTap: () {
+          final currentIndex = speeds.indexOf(MinModel().bps);
+          final nextIndex = (currentIndex + 1) % speeds.length;
+          MinModel().bps = speeds[nextIndex];
+        },
+        title: Row(
+          children: [
+            const Text('Speed'),
+            Expanded(child: Container()),
+            MinModel().bps == 0
+                ? const Text('max')
+                : Text('${MinModel().bps} bps'),
+          ],
+        ),
       ),
     );
   }
@@ -157,9 +150,10 @@ class _CaptureToggleState extends State<CaptureToggle> {
         final enabled = MinModel().isCaptureEnabled;
         return ListTile(
           onTap: () async {
+            final navigator = Navigator.of(context);
             await MinModel().toggleCapture();
             if (!mounted) return;
-            Navigator.pop(context);
+            navigator.pop();
           },
           title: Row(
             children: [
@@ -211,15 +205,77 @@ class ReplayCaptureAction extends StatelessWidget {
           onTap: !replayAllowed
               ? null
               : () async {
+                  final navigator = Navigator.of(context);
                   await MinModel().replayCapture();
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
+                  navigator.pop();
                 },
           title: Row(
             children: [
               const Text('Replay capture'),
               Expanded(child: Container()),
               Text(replaying ? 'RUN' : (captureEnabled ? 'LOCK' : 'READY')),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ImportCaptureAction extends StatelessWidget {
+  const ImportCaptureAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final replaying = MinModel().isReplayingCapture;
+        final captureEnabled = MinModel().isCaptureEnabled;
+        final actionAllowed = !replaying && !captureEnabled;
+        return ListTile(
+          onTap: !actionAllowed
+              ? null
+              : () async {
+                  final navigator = Navigator.of(context);
+                  await MinModel().importCapture();
+                  navigator.pop();
+                },
+          title: Row(
+            children: [
+              const Text('Import capture'),
+              Expanded(child: Container()),
+              Text(actionAllowed ? 'READY' : 'LOCK'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ExportCaptureAction extends StatelessWidget {
+  const ExportCaptureAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final hasCapture = MinModel().hasCaptureData;
+        return ListTile(
+          onTap: !hasCapture
+              ? null
+              : () async {
+                  final navigator = Navigator.of(context);
+                  await MinModel().exportCapture();
+                  navigator.pop();
+                },
+          title: Row(
+            children: [
+              const Text('Export capture'),
+              Expanded(child: Container()),
+              Text(hasCapture ? 'READY' : 'EMPTY'),
             ],
           ),
         );
@@ -378,7 +434,8 @@ class Clear extends StatelessWidget {
     return ListTile(
       onTap: () {
         MinModel().end();
-        MinModel().emulate([0x0C]);
+        MinModel()
+            .emulate([0x0C, 0x1F, 0x40, 0x41, 0x18, 0x1B, 0x3A, 0x6A, 0x43]);
         final player = AudioPlayer();
         player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
         Navigator.pop(context);
@@ -440,24 +497,6 @@ class Connection extends StatelessWidget {
         Navigator.pop(context);
       },
       title: Text(text),
-    );
-  }
-}
-
-class ConnectionSerial extends StatelessWidget {
-  const ConnectionSerial({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => MinSerial()),
-        );
-      },
-      title: const Text('ESP8266 / USB série'),
     );
   }
 }

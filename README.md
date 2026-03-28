@@ -11,14 +11,6 @@ $ build/linux/x64/release/bundle/minterm
 
 ## Build Android
 
-Il faut commenter la ligne faisant référence à `Registar` dans
-`~/.pub-cache/hosted/pub.dev/flutter_libserialport-0.5.0/android/src/main/kotlin/org/sigrok/flutter_libserialport/FlutterLibserialportPlugin.kt`.
-
-"/** import io.flutter.plugin.common.PluginRegistry.Registrar */"
-
-Ensuite on peut suivre la doc ici :
-<https://docs.flutter.dev/deployment/android#build-the-app-for-release>
-
 Pour téléphone et tablette arm64, on peut ne construire que l'APK approprié :
 
 ```
@@ -47,6 +39,7 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
+* [ ] Vitesse en mode web non respectée
 * Penser à Ctrl+X pour CX/Fin
 * [ ] Bug rendu des caractères disjoints (en x2.5 et x3.5 pas en x3 ou x4).
   Éventuellement voir code JS ici (clip avant de dessiner):
@@ -77,7 +70,7 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
   l'écran
 * [ ] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
 * [ ] Émulation mode 80 colonnes et mode mixte
-* [ ] Connexion serial to Minitel (output)
+* [ ] Connexion to Minitel (output)
 * [ ] Ajouter BASTOS
 * [ ] Mode vidéo inverse (bof, pour BASTOS / VP100)
 * [ ] Implémenter clavier zx81 étendu
