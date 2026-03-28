@@ -59,6 +59,7 @@ class MinSettings extends ChangeNotifier {
   int _loaded = 0;
   bool _keyboard = false;
   bool _capslock = true;
+  bool _startupScaleInitialized = false;
 
   factory MinSettings() {
     return _singleton;
@@ -96,7 +97,24 @@ class MinSettings extends ChangeNotifier {
   static void setScale(double scale) {
     _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
+    _singleton._startupScaleInitialized = true;
     _singleton.notifyListeners();
+  }
+
+  void initializeScaleForViewport(
+    double maxWidth,
+    double maxHeight, {
+    required double baseWidth,
+    required double baseHeight,
+  }) {
+    if (_startupScaleInitialized) return;
+    if (maxWidth <= 0 || maxHeight <= 0) return;
+    if (baseWidth <= 0 || baseHeight <= 0) return;
+
+    final fittedScale = math.min(maxWidth / baseWidth, maxHeight / baseHeight);
+    scale = math.max(1.0, math.min(4.0, fittedScale));
+    _startupScaleInitialized = true;
+    notifyListeners();
   }
 
   // Toggles between two color schemes
@@ -132,42 +150,63 @@ class MinScreen extends StatelessWidget {
               final displayColumns = 80;
               final displayWidth = 8.0 * displayColumns;
               final displayHeight = displayWidth * 3.0 / 4.0;
-              final cellWidth = displayWidth / minmodel.minitel.columns;
-              final cellHeight = displayHeight / minmodel.minitel.rows;
-              return SizedBox(
-                width: displayWidth * settings.scale,
-                height: displayHeight * settings.scale,
-                child: Transform.scale(
-                  scale: settings.scale,
-                  alignment: Alignment.topLeft,
-                  child: Stack(
-                    children: [
-                      GestureDetector(
-                        onTapDown: (TapDownDetails details) {
-                          final tapPosition = details.localPosition;
-                          final x = math.max(
-                            0,
-                            math.min(
-                              minmodel.minitel.columns - 1,
-                              (tapPosition.dx / cellWidth).toInt(),
-                            ),
-                          );
-                          final y = math.max(
-                            0,
-                            math.min(
-                              minmodel.minitel.rows - 1,
-                              (tapPosition.dy / cellHeight).toInt(),
-                            ),
-                          );
-                          minmodel.handleTap(x, y);
-                        },
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  settings.initializeScaleForViewport(
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                    baseWidth: displayWidth,
+                    baseHeight: displayHeight,
+                  );
+
+                  final maxWidth = constraints.maxWidth;
+                  final maxHeight = constraints.maxHeight;
+                  if (!maxWidth.isFinite || !maxHeight.isFinite) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final fittedScale = math.min(
+                      maxWidth / displayWidth, maxHeight / displayHeight);
+                  final viewportWidth = displayWidth * fittedScale;
+                  final viewportHeight = displayHeight * fittedScale;
+                  final cellWidth = viewportWidth / minmodel.minitel.columns;
+                  final cellHeight = viewportHeight / minmodel.minitel.rows;
+
+                  return Center(
+                    child: SizedBox(
+                      width: viewportWidth,
+                      height: viewportHeight,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          GestureDetector(
+                            onTapDown: (TapDownDetails details) {
+                              final tapPosition = details.localPosition;
+                              final x = math.max(
+                                0,
+                                math.min(
+                                  minmodel.minitel.columns - 1,
+                                  (tapPosition.dx / cellWidth).toInt(),
+                                ),
+                              );
+                              final y = math.max(
+                                0,
+                                math.min(
+                                  minmodel.minitel.rows - 1,
+                                  (tapPosition.dy / cellHeight).toInt(),
+                                ),
+                              );
+                              minmodel.handleTap(x, y);
+                            },
+                          ),
+                          CustomPaint(
+                            painter: _MinPainter(minmodel),
+                          ),
+                        ],
                       ),
-                      CustomPaint(
-                        painter: _MinPainter(minmodel),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -237,12 +276,12 @@ class _MinPainter extends CustomPainter {
     }
   }
 
-  void draw(Canvas canvas) {
+  void draw(Canvas canvas, Size size) {
     var screen = minmodel.minitel.screen;
     final columns = minmodel.minitel.columns;
     final lastLine = minmodel.minitel.lastLine;
-    const displayWidth = 8.0 * 80.0;
-    const displayHeight = displayWidth * 3.0 / 4.0;
+    final displayWidth = size.width;
+    final displayHeight = size.height;
     final dpr =
         ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
     final cellWidth = displayWidth / columns;
@@ -435,7 +474,7 @@ class _MinPainter extends CustomPainter {
     if (!MinSettings().isLoaded) return;
 
     // Draw the screen
-    draw(canvas);
+    draw(canvas, size);
 
     // drawString(
     //   canvas,
@@ -503,15 +542,35 @@ class MinMinitelKeyboard extends StatelessWidget {
       listenable: MinSettings(),
       builder: (context, child) {
         final scale = MinSettings().scale;
-        return SizedBox(
-          width: 8 * 80 * scale,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRow(_row1, scale),
-              _buildRow(_row2, scale),
-            ],
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final displayColumns = 80;
+            final displayWidth = 8.0 * displayColumns;
+            final displayHeight = displayWidth * 3.0 / 4.0;
+
+            final maxWidth = constraints.maxWidth;
+            final maxHeight = constraints.maxHeight;
+            if (!maxWidth.isFinite) {
+              return const SizedBox.shrink();
+            }
+
+            final fittedScale =
+                math.min(maxWidth / displayWidth, maxHeight / displayHeight);
+            final keyboardWidth = displayWidth * fittedScale;
+
+            return Center(
+              child: SizedBox(
+                width: keyboardWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildRow(_row1, scale),
+                    _buildRow(_row2, scale),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -597,15 +656,35 @@ class MinVt100Keyboard extends StatelessWidget {
       listenable: MinSettings(),
       builder: (context, child) {
         final scale = MinSettings().scale;
-        return SizedBox(
-          width: 8 * 80 * scale,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRow(_row1, scale),
-              _buildRow(_row2, scale),
-            ],
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final displayColumns = 80;
+            final displayWidth = 8.0 * displayColumns;
+            final displayHeight = displayWidth * 3.0 / 4.0;
+
+            final maxWidth = constraints.maxWidth;
+            final maxHeight = constraints.maxHeight;
+            if (!maxWidth.isFinite) {
+              return const SizedBox.shrink();
+            }
+
+            final fittedScale =
+                math.min(maxWidth / displayWidth, maxHeight / displayHeight);
+            final keyboardWidth = displayWidth * fittedScale;
+
+            return Center(
+              child: SizedBox(
+                width: keyboardWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildRow(_row1, scale),
+                    _buildRow(_row2, scale),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
