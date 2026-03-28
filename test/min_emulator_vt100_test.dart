@@ -67,6 +67,20 @@ void main() {
       expect(minitel.state.bgColor, kColorBlack);
       expect(minitel.state.needAttrSpace, isFalse);
     });
+
+    test('FF clears screen without clearing line 0', () {
+      final minitel = TMinitel();
+
+      minitel.screen[0][1].code = 'H'.codeUnitAt(0);
+      minitel.screen[1][1].code = 'A'.codeUnitAt(0);
+
+      minitel.emulate([0x0C]);
+
+      expect(readChar(minitel, 0, 0), 'H');
+      expect(readChar(minitel, 0, 1), ' ');
+      expect(minitel.state.l, 1);
+      expect(minitel.state.c, 1);
+    });
   });
 
   group('TMinitel VT100', () {
