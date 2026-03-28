@@ -6,6 +6,7 @@ import 'min_model.dart';
 import 'min_serial.dart';
 import 'serial_support.dart';
 import 'min_widget.dart';
+import 'window_setup.dart' as window_setup;
 
 class MinTerm extends StatelessWidget {
   const MinTerm({super.key});
@@ -58,6 +59,8 @@ class MinTerm extends StatelessWidget {
             //   icon: const Icon(Icons.keyboard),
             //   onPressed: () => MinSettings.toggleKeyboard(),
             // ),
+            if (window_setup.isWindowControlsSupported)
+              const FullscreenToggleButton(),
             CaptureButton(),
             ReplayCaptureIndicator(),
             ColorsButton(),
@@ -72,6 +75,28 @@ class MinTerm extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class FullscreenToggleButton extends StatelessWidget {
+  const FullscreenToggleButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: window_setup.fullscreenListenable,
+      builder: (context, isFullscreen, _) {
+        return IconButton(
+          tooltip: isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen',
+          icon: Icon(
+            isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+          ),
+          onPressed: () {
+            window_setup.toggleFullscreen();
+          },
+        );
+      },
     );
   }
 }
