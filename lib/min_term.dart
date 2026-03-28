@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
@@ -227,10 +226,6 @@ class ImportCaptureAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) {
-      return const SizedBox.shrink();
-    }
-
     return ListenableBuilder(
       listenable: MinModel(),
       builder: (context, _) {
@@ -263,10 +258,6 @@ class ExportCaptureAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) {
-      return const SizedBox.shrink();
-    }
-
     return ListenableBuilder(
       listenable: MinModel(),
       builder: (context, _) {

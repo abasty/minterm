@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'capture_web_storage_stub.dart'
@@ -25,6 +28,7 @@ class MinModel extends ChangeNotifier {
   String? _serverAddress;
   dynamic _server;
   IOSink? _captureSink;
+  File? _nativeCaptureFile;
   DateTime? _lastCaptureAt;
   final List<int> _webCaptureBytes = <int>[];
   bool _captureEnabled = false;
@@ -41,6 +45,7 @@ class MinModel extends ChangeNotifier {
 
   MinModel._internal() {
     _restoreWebCapture();
+    _initializeCaptureFile();
     Timer.periodic(Duration(milliseconds: 1000), (Timer timer) {
       _singleton.showBlink = !_singleton.showBlink;
       _singleton.minitel.isDirty = true;
@@ -60,11 +65,31 @@ class MinModel extends ChangeNotifier {
     if (kIsWeb) {
       return _webCaptureBytes.isNotEmpty;
     }
+    if (_nativeCaptureFile == null) {
+      unawaited(_initializeCaptureFile());
+      return false;
+    }
     final captureFile = _captureFile;
-    return captureFile != null && captureFile.existsSync();
+    if (captureFile == null || !captureFile.existsSync()) {
+      return false;
+    }
+    return captureFile.lengthSync() > 0;
   }
 
-  File? get _captureFile => kIsWeb ? null : File(_captureFilePath);
+  File? get _captureFile => kIsWeb ? null : _nativeCaptureFile;
+
+  Future<void> _initializeCaptureFile() async {
+    if (kIsWeb || _nativeCaptureFile != null) return;
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      final appDirectory = await getApplicationDocumentsDirectory();
+      _nativeCaptureFile = File('${appDirectory.path}/$_captureFilePath');
+    } else {
+      _nativeCaptureFile = File(_captureFilePath);
+    }
+
+    notifyListeners();
+  }
 
   bool get isEchoed => minitel.isEchoed;
   set isEchoed(bool value) {
@@ -206,6 +231,7 @@ class MinModel extends ChangeNotifier {
     }
 
     try {
+      await _initializeCaptureFile();
       final captureFile = _captureFile;
       if (captureFile == null) {
         _captureEnabled = false;
@@ -290,6 +316,7 @@ class MinModel extends ChangeNotifier {
           return;
         }
       } else {
+        await _initializeCaptureFile();
         final captureFile = _captureFile;
         if (captureFile == null || !await captureFile.exists()) {
           debugPrint('Capture file not found: $_captureFilePath');
@@ -317,21 +344,82 @@ class MinModel extends ChangeNotifier {
   }
 
   Future<void> exportCapture() async {
-    if (!kIsWeb || _webCaptureBytes.isEmpty) return;
-    await web_capture.exportCaptureAsDownload(
-      Uint8List.fromList(_webCaptureBytes),
-      _captureFilePath,
+    if (kIsWeb) {
+      if (_webCaptureBytes.isEmpty) return;
+      await web_capture.exportCaptureAsDownload(
+        Uint8List.fromList(_webCaptureBytes),
+        _captureFilePath,
+      );
+      return;
+    }
+
+    await _initializeCaptureFile();
+    final resolvedCaptureFile = _captureFile;
+    if (resolvedCaptureFile == null || !await resolvedCaptureFile.exists()) {
+      return;
+    }
+    final payload = await resolvedCaptureFile.readAsBytes();
+    if (payload.isEmpty) return;
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export capture',
+        fileName: _captureFilePath,
+        type: FileType.custom,
+        allowedExtensions: const ['vdt'],
+      );
+      if (savePath != null && savePath.isNotEmpty) {
+        await File(savePath).writeAsBytes(payload, flush: true);
+      }
+      return;
+    }
+
+    final temporaryDir = await getTemporaryDirectory();
+    final exportFile = File('${temporaryDir.path}/$_captureFilePath');
+    await exportFile.writeAsBytes(payload, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(exportFile.path, mimeType: 'application/octet-stream')],
+        text: 'Capture Minitel',
+      ),
     );
   }
 
   Future<void> importCapture() async {
-    if (!kIsWeb || _captureEnabled || _isReplayingCapture) return;
-    final imported = await web_capture.importCaptureFromFilePicker();
-    if (imported == null || imported.isEmpty) return;
-    _webCaptureBytes
-      ..clear()
-      ..addAll(imported);
-    await _persistWebCapture();
+    if (_captureEnabled || _isReplayingCapture) return;
+
+    if (kIsWeb) {
+      final imported = await web_capture.importCaptureFromFilePicker();
+      if (imported == null || imported.isEmpty) return;
+      _webCaptureBytes
+        ..clear()
+        ..addAll(imported);
+      await _persistWebCapture();
+      notifyListeners();
+      return;
+    }
+
+    final picked = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.custom,
+      allowedExtensions: const ['vdt'],
+      withData: true,
+    );
+
+    if (picked == null || picked.files.isEmpty) return;
+
+    final selectedFile = picked.files.first;
+    Uint8List? importedBytes = selectedFile.bytes;
+    if (importedBytes == null && selectedFile.path != null) {
+      importedBytes = await File(selectedFile.path!).readAsBytes();
+    }
+
+    if (importedBytes == null || importedBytes.isEmpty) return;
+
+    await _initializeCaptureFile();
+    final captureFile = _captureFile;
+    if (captureFile == null) return;
+    await captureFile.writeAsBytes(importedBytes, flush: true);
     notifyListeners();
   }
 
