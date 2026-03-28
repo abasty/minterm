@@ -38,7 +38,7 @@ class MinTerm extends StatelessWidget {
               Clear(),
               Connection('3611', 'ws://3611.re/ws'),
               Connection('3615', 'ws://3615co.de/ws'),
-              Connection('Minipavi', 'ws://go.minipavi.fr:8182/'),
+              Connection('Minipavi', 'ws://go.minipavi.fr:8182'),
               Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
               Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
               Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),

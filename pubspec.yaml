@@ -17,7 +17,7 @@ dependencies:
   provider: ^6.1.2
   share_plus: ^11.1.0
   web_socket_channel: ^3.0.1
-  # window_manager: ^0.4.2
+  window_manager: ^0.4.2
 
 dev_dependencies:
   flutter_test:
