@@ -39,6 +39,7 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 ## TODO
 
+* [ ] Vitesse en mode web non respectée
 * Penser à Ctrl+X pour CX/Fin
 * [ ] Bug rendu des caractères disjoints (en x2.5 et x3.5 pas en x3 ou x4).
   Éventuellement voir code JS ici (clip avant de dessiner):
