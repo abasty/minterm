@@ -153,7 +153,8 @@ class MinModel extends ChangeNotifier {
     _pendingBytesBudget -= bytesToProcess;
 
     if (minitel.speedChanged) {
-      _bps = minitel.speed;
+      bps = minitel.speed;
+      setSerialSpeed(bps);
       minitel.speedChanged = false;
     }
 

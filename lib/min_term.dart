@@ -87,32 +87,30 @@ class CloseMenu extends StatelessWidget {
   }
 }
 
-class SetBps extends StatefulWidget {
+class SetBps extends StatelessWidget {
   const SetBps({super.key});
 
-  @override
-  State<SetBps> createState() => _SetBpsState();
-}
-
-class _SetBpsState extends State<SetBps> {
   static const speeds = [300, 1200, 4800, 9600, 0];
-  int speedIndex = 1;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        speedIndex = (speedIndex + 1) % speeds.length;
-        setState(() => MinModel().bps = speeds[speedIndex]);
-      },
-      title: Row(
-        children: [
-          const Text('Speed'),
-          Expanded(child: Container()),
-          MinModel().bps == 0
-              ? const Text('max')
-              : Text('${MinModel().bps} bps'),
-        ],
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) => ListTile(
+        onTap: () {
+          final currentIndex = speeds.indexOf(MinModel().bps);
+          final nextIndex = (currentIndex + 1) % speeds.length;
+          MinModel().bps = speeds[nextIndex];
+        },
+        title: Row(
+          children: [
+            const Text('Speed'),
+            Expanded(child: Container()),
+            MinModel().bps == 0
+                ? const Text('max')
+                : Text('${MinModel().bps} bps'),
+          ],
+        ),
       ),
     );
   }
