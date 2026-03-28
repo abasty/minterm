@@ -221,6 +221,18 @@ class TMinitel {
     stateCode = 0;
   }
 
+  void clearScreenPreserveLine0() {
+    state.resetAttr();
+    state.l = 1;
+    state.c = 1;
+    for (int line = 1; line <= lastLine; ++line) {
+      for (int column = 0; column <= _dirtyColumn; ++column) {
+        screen[line][column] = TMinitelChar.from(kEmptyChar);
+      }
+    }
+    stateCode = 0;
+  }
+
   void setPartAttr(int l, int c, TMinitelChar char, int partFlags) {
     final partChar = screen[l][c];
     partChar.code = char.code;
@@ -251,7 +263,7 @@ class TMinitel {
       handleTabulation,
       handleLineFeed,
       handleVerticalTab,
-      clearScreen,
+      clearScreenPreserveLine0,
       handleCarriageReturn,
       setG1Charset,
       setG0Charset,

@@ -22,7 +22,6 @@ class MinTerm extends StatelessWidget {
               CloseMenu(),
               Divider(),
               SetBps(),
-              Scale(),
               SetScreenMode(),
               CaptureToggle(),
               ReplayCaptureAction(),
@@ -66,13 +65,13 @@ class MinTerm extends StatelessWidget {
             ColorsButton(),
           ],
         ),
-        body: Center(
-          child: Column(
-            children: [
-              MinScreen(),
-              ReplayKeyboardOverlay(),
-            ],
-          ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Expanded(
+              child: MinScreenAndKeyboard(),
+            ),
+          ],
         ),
       ),
     );
@@ -342,10 +341,9 @@ class ReplayKeyboardOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: MinSettings(),
-      builder: (context, _) {
-        final keyboardWidth = 8.0 * 80.0 * MinSettings().scale;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final keyboardWidth = constraints.maxWidth;
         return SizedBox(
           width: keyboardWidth,
           child: Stack(
@@ -368,7 +366,9 @@ class ReplayKeyboardOverlay extends StatelessWidget {
                           curve: Curves.easeOut,
                           opacity: paused ? 1 : 0,
                           child: Container(
-                            width: keyboardWidth - 24,
+                            width: keyboardWidth > 24
+                                ? keyboardWidth - 24
+                                : keyboardWidth,
                             height: 52,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
@@ -466,44 +466,6 @@ class Clear extends StatelessWidget {
         Navigator.pop(context);
       },
       title: const Text('Clear'),
-    );
-  }
-}
-
-class Scale extends StatefulWidget {
-  const Scale({super.key});
-
-  @override
-  State<Scale> createState() => _ScaleState();
-}
-
-class _ScaleState extends State<Scale> {
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Row(
-        children: [
-          const Text('Scale'),
-          Expanded(child: Container()),
-          IconButton(
-            icon: const Icon(Icons.remove),
-            onPressed: () {
-              var scale = MinSettings().scale - 0.5;
-              if (scale < 1) scale = 4.0;
-              setState(() => MinSettings.setScale(scale));
-            },
-          ),
-          Text('${MinSettings().scale}'),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              var scale = MinSettings().scale + 0.5;
-              if (scale > 4) scale = 0.5;
-              setState(() => MinSettings.setScale(scale));
-            },
-          ),
-        ],
-      ),
     );
   }
 }
