@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
@@ -24,6 +25,8 @@ class MinTerm extends StatelessWidget {
               SetScreenMode(),
               CaptureToggle(),
               ReplayCaptureAction(),
+              ImportCaptureAction(),
+              ExportCaptureAction(),
               SetColors(),
               // ListTile(
               //   title: const Text('Keyboard'),
@@ -147,9 +150,10 @@ class _CaptureToggleState extends State<CaptureToggle> {
         final enabled = MinModel().isCaptureEnabled;
         return ListTile(
           onTap: () async {
+            final navigator = Navigator.of(context);
             await MinModel().toggleCapture();
             if (!mounted) return;
-            Navigator.pop(context);
+            navigator.pop();
           },
           title: Row(
             children: [
@@ -201,15 +205,85 @@ class ReplayCaptureAction extends StatelessWidget {
           onTap: !replayAllowed
               ? null
               : () async {
+                  final navigator = Navigator.of(context);
                   await MinModel().replayCapture();
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
+                  navigator.pop();
                 },
           title: Row(
             children: [
               const Text('Replay capture'),
               Expanded(child: Container()),
               Text(replaying ? 'RUN' : (captureEnabled ? 'LOCK' : 'READY')),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ImportCaptureAction extends StatelessWidget {
+  const ImportCaptureAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return const SizedBox.shrink();
+    }
+
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final replaying = MinModel().isReplayingCapture;
+        final captureEnabled = MinModel().isCaptureEnabled;
+        final actionAllowed = !replaying && !captureEnabled;
+        return ListTile(
+          onTap: !actionAllowed
+              ? null
+              : () async {
+                  final navigator = Navigator.of(context);
+                  await MinModel().importCapture();
+                  navigator.pop();
+                },
+          title: Row(
+            children: [
+              const Text('Import capture'),
+              Expanded(child: Container()),
+              Text(actionAllowed ? 'READY' : 'LOCK'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ExportCaptureAction extends StatelessWidget {
+  const ExportCaptureAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return const SizedBox.shrink();
+    }
+
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final hasCapture = MinModel().hasCaptureData;
+        return ListTile(
+          onTap: !hasCapture
+              ? null
+              : () async {
+                  final navigator = Navigator.of(context);
+                  await MinModel().exportCapture();
+                  navigator.pop();
+                },
+          title: Row(
+            children: [
+              const Text('Export capture'),
+              Expanded(child: Container()),
+              Text(hasCapture ? 'READY' : 'EMPTY'),
             ],
           ),
         );

@@ -3,11 +3,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'capture_web_storage_stub.dart'
+    if (dart.library.html) 'capture_web_storage_web.dart' as web_capture;
 import 'min_emulator.dart';
 
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();
   static const String _captureFilePath = 'capture.vdt';
+  static const String _webCaptureStorageKey = 'minterm.capture.vdt.b64';
   static const int _capturePauseMarker = 0xFF;
   static const Duration _capturePauseThreshold = Duration(seconds: 2);
   final minitel = TMinitel();
@@ -37,6 +40,7 @@ class MinModel extends ChangeNotifier {
   }
 
   MinModel._internal() {
+    _restoreWebCapture();
     Timer.periodic(Duration(milliseconds: 1000), (Timer timer) {
       _singleton.showBlink = !_singleton.showBlink;
       _singleton.minitel.isDirty = true;
@@ -51,6 +55,14 @@ class MinModel extends ChangeNotifier {
   bool get isReplayingCapture => _isReplayingCapture;
 
   bool get isReplayPaused => _isReplayPaused;
+
+  bool get hasCaptureData {
+    if (kIsWeb) {
+      return _webCaptureBytes.isNotEmpty;
+    }
+    final captureFile = _captureFile;
+    return captureFile != null && captureFile.existsSync();
+  }
 
   File? get _captureFile => kIsWeb ? null : File(_captureFilePath);
 
@@ -188,6 +200,7 @@ class MinModel extends ChangeNotifier {
       _webCaptureBytes.clear();
       _lastCaptureAt = null;
       _captureEnabled = true;
+      await _persistWebCapture();
       debugPrint('Capture enabled in browser memory');
       return;
     }
@@ -215,6 +228,7 @@ class MinModel extends ChangeNotifier {
     _lastCaptureAt = null;
     _captureEnabled = false;
     if (kIsWeb) {
+      await _persistWebCapture();
       debugPrint('Capture disabled in browser memory');
       return;
     }
@@ -246,6 +260,7 @@ class MinModel extends ChangeNotifier {
       }
       _webCaptureBytes.addAll(codes);
       _lastCaptureAt = now;
+      unawaited(_persistWebCapture());
       return;
     }
 
@@ -299,6 +314,44 @@ class MinModel extends ChangeNotifier {
       debugPrint('Failed to replay capture: $error');
       _finishReplay();
     }
+  }
+
+  Future<void> exportCapture() async {
+    if (!kIsWeb || _webCaptureBytes.isEmpty) return;
+    await web_capture.exportCaptureAsDownload(
+      Uint8List.fromList(_webCaptureBytes),
+      _captureFilePath,
+    );
+  }
+
+  Future<void> importCapture() async {
+    if (!kIsWeb || _captureEnabled || _isReplayingCapture) return;
+    final imported = await web_capture.importCaptureFromFilePicker();
+    if (imported == null || imported.isEmpty) return;
+    _webCaptureBytes
+      ..clear()
+      ..addAll(imported);
+    await _persistWebCapture();
+    notifyListeners();
+  }
+
+  Future<void> _persistWebCapture() async {
+    if (!kIsWeb) return;
+    await web_capture.saveCaptureToBrowserStorage(
+      _webCaptureStorageKey,
+      Uint8List.fromList(_webCaptureBytes),
+    );
+  }
+
+  Future<void> _restoreWebCapture() async {
+    if (!kIsWeb) return;
+    final restored =
+        await web_capture.loadCaptureFromBrowserStorage(_webCaptureStorageKey);
+    if (restored == null || restored.isEmpty) return;
+    _webCaptureBytes
+      ..clear()
+      ..addAll(restored);
+    notifyListeners();
   }
 
   void resumeReplayAfterPause() {
