@@ -212,11 +212,11 @@ class TMinitel {
     state.c = 1;
     for (int line = 1; line <= lastLine; ++line) {
       for (int column = 0; column <= _dirtyColumn; ++column) {
-        screen[line][column] = TMinitelChar.from(kEmptyChar);
+        screen[line][column].copyFrom(kEmptyChar);
       }
     }
     for (int column = 0; column <= _dirtyColumn; ++column) {
-      screen[0][column] = TMinitelChar.from(kEmptyChar);
+      screen[0][column].copyFrom(kEmptyChar);
     }
     stateCode = 0;
   }
@@ -227,7 +227,7 @@ class TMinitel {
     state.c = 1;
     for (int line = 1; line <= lastLine; ++line) {
       for (int column = 0; column <= _dirtyColumn; ++column) {
-        screen[line][column] = TMinitelChar.from(kEmptyChar);
+        screen[line][column].copyFrom(kEmptyChar);
       }
     }
     stateCode = 0;
@@ -1652,6 +1652,11 @@ class TMinitelChar {
       : gAttr = char.gAttr,
         lAttr = char.lAttr,
         code = char.code;
+  void copyFrom(TMinitelChar char) {
+    gAttr = char.gAttr;
+    lAttr = char.lAttr;
+    code = char.code;
+  }
 }
 
 class TMinitelState {
