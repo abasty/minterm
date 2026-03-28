@@ -1,35 +1,17 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:window_manager/window_manager.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_term.dart';
+import 'window_setup.dart' as window_setup;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (kIsWeb) {
-    // Code to execute only on web targets
-  } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await windowManager.ensureInitialized();
-
-    const WindowOptions windowOptions = WindowOptions(
-      // size: Size(4 * 8 * 40 + 64, 4 * 10 * 25 + 64),
-      fullScreen: true,
-      title: 'Terminal Minitel',
-      // backgroundColor: Colors.transparent,
-      // skipTaskbar: false,
-      // titleBarStyle: TitleBarStyle.hidden,
-      // windowButtonVisibility: false,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
+  if (!kIsWeb) {
+    await window_setup.initializeWindow();
   }
 
   HardwareKeyboard.instance.addHandler((event) {

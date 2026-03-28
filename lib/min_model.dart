@@ -1,14 +1,15 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:universal_io/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'capture_web_storage_stub.dart'
     if (dart.library.html) 'capture_web_storage_web.dart' as web_capture;
 import 'min_emulator.dart';
+import 'serial_support.dart';
 
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();
@@ -27,6 +28,7 @@ class MinModel extends ChangeNotifier {
   static const Duration _throttleTick = Duration(milliseconds: 8);
   String? _serverAddress;
   dynamic _server;
+  StreamSubscription<List<int>>? _serialSubscription;
   IOSink? _captureSink;
   File? _nativeCaptureFile;
   DateTime? _lastCaptureAt;
@@ -54,6 +56,8 @@ class MinModel extends ChangeNotifier {
   }
 
   bool get isConnected => _server != null;
+
+  bool get _isLinuxDesktop => !kIsWeb && Platform.isLinux;
 
   bool get isCaptureEnabled => _captureEnabled;
 
@@ -502,7 +506,10 @@ class MinModel extends ChangeNotifier {
     debugPrint('Capture replay cancelled');
   }
 
-  void setSerialSpeed(int speed) {}
+  void setSerialSpeed(int speed) {
+    if (_server is! SerialConnection) return;
+    (_server as SerialConnection).configure(speed);
+  }
 
   void sendReplyToServer() {
     if (minitel.reply.isNotEmpty) {
@@ -512,6 +519,8 @@ class MinModel extends ChangeNotifier {
           _server!.sink.add(replyU8);
         } else if (_server is Socket) {
           _server.add(replyU8);
+        } else if (_server is SerialConnection) {
+          (_server as SerialConnection).write(replyU8);
         }
       }
       minitel.reply.clear();
@@ -526,10 +535,14 @@ class MinModel extends ChangeNotifier {
     _codes.clear();
 
     if (isConnected) {
+      _serialSubscription?.cancel();
+      _serialSubscription = null;
       if (_server is WebSocketChannel) {
         _server!.sink.close();
       } else if (_server is Socket) {
         _server.destroy();
+      } else if (_server is SerialConnection) {
+        (_server as SerialConnection).close();
       }
     }
     _server = null;
@@ -542,6 +555,14 @@ class MinModel extends ChangeNotifier {
     var uri = Uri.parse(_serverAddress!);
     debugPrint('Connect to: $uri');
 
+    if (uri.scheme == 'serial') {
+      if (_isLinuxDesktop) {
+        connectSerial(uri.path);
+      } else {
+        debugPrint('Serial is only available on Linux desktop');
+      }
+    }
+
     if (uri.scheme == 'ws' || uri.scheme == 'wss') {
       connectWebSocket(uri);
     }
@@ -551,6 +572,40 @@ class MinModel extends ChangeNotifier {
     }
 
     isEchoed = false;
+  }
+
+  void connectSerial(String portName) {
+    if (!_isLinuxDesktop) return;
+    if (isConnected) end();
+
+    final connection = openSerialConnection(portName);
+    if (connection == null) {
+      debugPrint('Failed to open serial port: $portName');
+      return;
+    }
+
+    _server = connection;
+    minitel.speed = bps;
+    setSerialSpeed(bps);
+
+    final openedAt = DateTime.now();
+    _serialSubscription = connection.stream.listen(
+      (data) {
+        // Ignore first bytes right after opening to avoid line noise.
+        if (DateTime.now().difference(openedAt).inMilliseconds < 500) {
+          return;
+        }
+        emulate(data);
+      },
+      onError: (error) {
+        debugPrint('Serial port error: $error');
+        end();
+      },
+      onDone: () {
+        debugPrint('Serial port connection closed');
+        end();
+      },
+    );
   }
 
   void connectSocket(Uri uri) {
@@ -646,6 +701,8 @@ class MinModel extends ChangeNotifier {
         _server!.sink.add(keys);
       } else if (_server is Socket) {
         _server.write(keys);
+      } else if (_server is SerialConnection) {
+        (_server as SerialConnection).write(Uint8List.fromList(keys.codeUnits));
       }
     }
     if (isEchoed) {

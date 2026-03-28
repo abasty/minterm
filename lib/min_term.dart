@@ -3,7 +3,8 @@ import 'package:audioplayers/audioplayers.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
-// serial support removed
+import 'min_serial.dart';
+import 'serial_support.dart';
 import 'min_widget.dart';
 
 class MinTerm extends StatelessWidget {
@@ -46,7 +47,7 @@ class MinTerm extends StatelessWidget {
                 'WS/WSS Gateway (localhost:1963)',
                 'tcp://127.0.0.1:1963',
               ),
-              // Serial connections removed
+              if (isSerialSupported) const ConnectionSerial(),
             ],
           ),
         ),
@@ -499,5 +500,3 @@ class Connection extends StatelessWidget {
     );
   }
 }
-
-// ConnectionSerial widget removed with serial support
