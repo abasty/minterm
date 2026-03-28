@@ -38,7 +38,7 @@ class MinTerm extends StatelessWidget {
               Clear(),
               Connection('3611', 'ws://3611.re/ws'),
               Connection('3615', 'ws://3615co.de/ws'),
-              Connection('Minipavi', 'tcp://go.minipavi.fr:516'),
+              Connection('Minipavi', 'ws://go.minipavi.fr:8182/'),
               Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
               Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
               Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
@@ -433,7 +433,8 @@ class Clear extends StatelessWidget {
     return ListTile(
       onTap: () {
         MinModel().end();
-        MinModel().emulate([0x0C]);
+        MinModel()
+            .emulate([0x0C, 0x1F, 0x40, 0x41, 0x18, 0x1B, 0x3A, 0x6A, 0x43]);
         final player = AudioPlayer();
         player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
         Navigator.pop(context);

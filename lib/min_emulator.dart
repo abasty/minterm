@@ -151,6 +151,9 @@ class TMinitel {
   void setScreenMode(TMinitelScreenMode mode) {
     if (_screenMode == mode) return;
     _screenMode = mode;
+    if (mode == TMinitelScreenMode.videotex40) {
+      scrollOn = false;
+    }
     _columns = mode == TMinitelScreenMode.vt10080 ? 80 : 40;
     _initScreen();
     clearScreen();
