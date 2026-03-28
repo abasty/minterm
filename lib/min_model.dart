@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'min_emulator.dart';
@@ -20,7 +19,6 @@ class MinModel extends ChangeNotifier {
   Timer? _timer;
   String? _serverAddress;
   dynamic _server;
-  SerialPortReader? _serialReader;
   IOSink? _captureSink;
   DateTime? _lastCaptureAt;
   bool _captureEnabled = false;
@@ -95,7 +93,7 @@ class MinModel extends ChangeNotifier {
     _codes += codes;
 
     // If the speed is 0, send all the codes at once
-    if (_bps == 0 || _serialReader != null) {
+    if (_bps == 0) {
       // Send all the codes at once
       minitel.emulate(_codes);
       _codes.clear();
@@ -277,19 +275,7 @@ class MinModel extends ChangeNotifier {
     debugPrint('Capture replay cancelled');
   }
 
-  void setSerialSpeed(int speed) {
-    if (_server is SerialPort) {
-      final port = _server as SerialPort;
-      if (port.isOpen) {
-        port.config = SerialPortConfig()
-          ..baudRate = speed
-          ..bits = 7
-          ..parity = SerialPortParity.even
-          ..stopBits = 1
-          ..setFlowControl(SerialPortFlowControl.none);
-      }
-    }
-  }
+  void setSerialSpeed(int speed) {}
 
   void sendReplyToServer() {
     if (minitel.reply.isNotEmpty) {
@@ -299,28 +285,6 @@ class MinModel extends ChangeNotifier {
           _server!.sink.add(replyU8);
         } else if (_server is Socket) {
           _server.add(replyU8);
-        } else if (_server is SerialPort) {
-          final port = _server as SerialPort;
-          if (port.isOpen) {
-            port.write(replyU8);
-            var last = replyU8.isNotEmpty ? replyU8.last : 0;
-            var sentSpeed = 0;
-            switch (last) {
-              case 0x64:
-                sentSpeed = 1200;
-                break;
-              case 0x76:
-                sentSpeed = 4800;
-                break;
-              case 0x7f:
-                sentSpeed = 9600;
-                break;
-            }
-            debugPrint(
-                'Sent ${replyU8.length} bytes (speed: $sentSpeed) to ${port.name}');
-          } else {
-            debugPrint('Serial port is not open: ${port.name}');
-          }
         }
       }
       minitel.reply.clear();
@@ -344,19 +308,6 @@ class MinModel extends ChangeNotifier {
         _server!.sink.close();
       } else if (_server is Socket) {
         _server.destroy();
-      } else if (_server is SerialPort) {
-        final port = _server as SerialPort;
-        debugPrint('Closing serial port reader');
-        if (_serialReader != null) {
-          _serialReader!.close();
-          _serialReader = null;
-        }
-        debugPrint('Closing serial port: ${port.name}');
-        if (port.isOpen) {
-          port.close();
-          debugPrint('Serial port closed: ${port.name}');
-        }
-        port.dispose();
       }
     }
     _server = null;
@@ -369,10 +320,6 @@ class MinModel extends ChangeNotifier {
     var uri = Uri.parse(_serverAddress!);
     debugPrint('Connect to: $uri');
 
-    if (uri.scheme == 'serial') {
-      connectSerial(uri.path);
-    }
-
     if (uri.scheme == 'ws' || uri.scheme == 'wss') {
       connectWebSocket(uri);
     }
@@ -382,42 +329,6 @@ class MinModel extends ChangeNotifier {
     }
 
     isEchoed = false;
-  }
-
-  void connectSerial(String portName) {
-    if (isConnected) end();
-
-    final port = SerialPort(portName);
-    debugPrint('Opening serial port: $portName');
-    if (!port.openReadWrite()) {
-      // Open the port for reading and writing
-      debugPrint('Failed to open serial port: ${port.name}');
-      return;
-    }
-
-    _server = port;
-    minitel.speed = bps;
-    setSerialSpeed(bps);
-
-    _serialReader = SerialPortReader(port);
-    final t0 = DateTime.now();
-    _serialReader!.stream.listen(
-      (data) {
-        // Drop data in the first 0.5 second to avoid garbage
-        final t1 = DateTime.now();
-        if (t1.difference(t0).inMilliseconds < 500) return;
-        emulate(data);
-      },
-      onError: (error) {
-        debugPrint('Serial port error: $error');
-        end();
-      },
-      onDone: () {
-        debugPrint('Serial port connection closed');
-        end();
-      },
-    );
-    debugPrint('Serial port opened: ${port.name}');
   }
 
   void connectSocket(Uri uri) {
@@ -513,14 +424,6 @@ class MinModel extends ChangeNotifier {
         _server!.sink.add(keys);
       } else if (_server is Socket) {
         _server.write(keys);
-      } else if (_server is SerialPort) {
-        final port = _server as SerialPort;
-        if (port.isOpen) {
-          final keysU8 = Uint8List.fromList(keys.codeUnits);
-          port.write(keysU8);
-        } else {
-          debugPrint('Serial port is not open: ${port.name}');
-        }
       }
     }
     if (isEchoed) {

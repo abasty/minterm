@@ -3,13 +3,11 @@ import 'package:audioplayers/audioplayers.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
-import 'min_serial.dart';
+// serial support removed
 import 'min_widget.dart';
 
 class MinTerm extends StatelessWidget {
-  const MinTerm({
-    super.key,
-  });
+  const MinTerm({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -42,15 +40,12 @@ class MinTerm extends StatelessWidget {
               Connection('Zboub', 'tcp://abasty-retro.fr:1967'),
               Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
               Connection('telehack', 'tcp://telehack.com:23'),
-              Connection(
-                'BASTOS (localhost:1967)',
-                'tcp://127.0.0.1:1967',
-              ),
+              Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
               Connection(
                 'WS/WSS Gateway (localhost:1963)',
                 'tcp://127.0.0.1:1963',
               ),
-              ConnectionSerial(),
+              // Serial connections removed
             ],
           ),
         ),
@@ -80,9 +75,7 @@ class MinTerm extends StatelessWidget {
 }
 
 class CloseMenu extends StatelessWidget {
-  const CloseMenu({
-    super.key,
-  });
+  const CloseMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -444,20 +437,4 @@ class Connection extends StatelessWidget {
   }
 }
 
-class ConnectionSerial extends StatelessWidget {
-  const ConnectionSerial({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => MinSerial()),
-        );
-      },
-      title: const Text('ESP8266 / USB série'),
-    );
-  }
-}
+// ConnectionSerial widget removed with serial support
