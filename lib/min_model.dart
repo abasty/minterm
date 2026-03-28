@@ -11,12 +11,14 @@ class MinModel extends ChangeNotifier {
   static const int _capturePauseMarker = 0xFF;
   static const Duration _capturePauseThreshold = Duration(seconds: 2);
   final minitel = TMinitel();
-  var _codes = <int>[];
-  int _index = -1;
+  final _codes = <int>[];
   int _bps = 1200;
   bool _isShifted = false;
   bool _isCtrl = false;
   Timer? _timer;
+  DateTime? _lastDrainAt;
+  double _pendingBytesBudget = 0.0;
+  static const Duration _throttleTick = Duration(milliseconds: 8);
   String? _serverAddress;
   dynamic _server;
   IOSink? _captureSink;
@@ -86,15 +88,12 @@ class MinModel extends ChangeNotifier {
   void emulate(List<int> codes) {
     _captureCodes(codes);
 
-    // Manage the timer to send the codes at the right speed
-    if (_timer != null) _timer!.cancel();
-
-    // Add the new codes to the list
-    _codes += codes;
+    // Add new codes to the buffered queue consumed by throttling.
+    _codes.addAll(codes);
 
     // If the speed is 0, send all the codes at once
     if (_bps == 0) {
-      // Send all the codes at once
+      _stopThrottleTimer();
       minitel.emulate(_codes);
       _codes.clear();
       if (minitel.speedChanged) {
@@ -107,28 +106,67 @@ class MinModel extends ChangeNotifier {
       return;
     }
 
-    final us = (8.0e+6 / _bps.toDouble()).toInt();
-    // Init the index
-    if (_index < 0) _index = 0;
-    // Start the timer
-    _timer = Timer.periodic(Duration(microseconds: us), (Timer timer) {
-      if (_index < _codes.length) {
-        // Send the next code to the emulator
-        minitel.emulate([_codes[_index++]]);
-        if (minitel.isDirty) notifyListeners();
-      } else {
-        // Stop the timer
-        timer.cancel();
-        _timer = null;
-        _index = -1;
-        _codes.clear();
-        if (minitel.speedChanged) {
-          _bps = minitel.speed;
-          minitel.speedChanged = false;
-        }
-        sendReplyToServer();
-      }
+    _startThrottleTimer();
+  }
+
+  void _startThrottleTimer() {
+    if (_timer != null) return;
+    _lastDrainAt = DateTime.now();
+    _timer = Timer.periodic(_throttleTick, (_) {
+      _drainBufferedCodes();
     });
+  }
+
+  void _stopThrottleTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _lastDrainAt = null;
+    _pendingBytesBudget = 0.0;
+  }
+
+  void _drainBufferedCodes() {
+    if (_codes.isEmpty) {
+      _stopThrottleTimer();
+      sendReplyToServer();
+      return;
+    }
+
+    final now = DateTime.now();
+    final elapsedUs = _lastDrainAt == null
+        ? _throttleTick.inMicroseconds
+        : now.difference(_lastDrainAt!).inMicroseconds;
+    _lastDrainAt = now;
+
+    _pendingBytesBudget += elapsedUs * (_bps / 8.0) / 1000000.0;
+    int bytesToProcess = _pendingBytesBudget.floor();
+
+    if (bytesToProcess <= 0) {
+      return;
+    }
+
+    if (bytesToProcess > _codes.length) {
+      bytesToProcess = _codes.length;
+    }
+
+    minitel.emulate(_codes.sublist(0, bytesToProcess));
+    _codes.removeRange(0, bytesToProcess);
+    _pendingBytesBudget -= bytesToProcess;
+
+    if (minitel.speedChanged) {
+      _bps = minitel.speed;
+      minitel.speedChanged = false;
+    }
+
+    sendReplyToServer();
+    if (minitel.isDirty) notifyListeners();
+
+    if (_bps == 0 && _codes.isNotEmpty) {
+      minitel.emulate(_codes);
+      _codes.clear();
+      sendReplyToServer();
+      if (minitel.isDirty) notifyListeners();
+      _stopThrottleTimer();
+    }
   }
 
   Future<void> toggleCapture() async {
@@ -295,12 +333,7 @@ class MinModel extends ChangeNotifier {
     isEchoed = true;
     debugPrint('End connection');
 
-    if (_timer != null) {
-      _timer!.cancel();
-      _timer = null;
-    }
-
-    _index = -1;
+    _stopThrottleTimer();
     _codes.clear();
 
     if (isConnected) {
