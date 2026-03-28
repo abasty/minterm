@@ -69,9 +69,8 @@ class MinTerm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Expanded(
-              child: MinScreen(),
+              child: MinScreenAndKeyboard(),
             ),
-            ReplayKeyboardOverlay(),
           ],
         ),
       ),

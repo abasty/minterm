@@ -216,6 +216,284 @@ class MinScreen extends StatelessWidget {
   }
 }
 
+class MinScreenAndKeyboard extends StatelessWidget {
+  const MinScreenAndKeyboard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: MinSettings(),
+      child: Consumer<MinSettings>(
+        builder: (context, settings, child) => ChangeNotifierProvider.value(
+          value: MinModel(),
+          child: Consumer<MinModel>(
+            builder: (context, minmodel, child) {
+              const displayColumns = 80;
+              const displayWidth = 8.0 * displayColumns;
+              const displayHeight = displayWidth * 3.0 / 4.0;
+              const keyboardBaseHeight = 48.0;
+
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxWidth = constraints.maxWidth;
+                  final maxHeight = constraints.maxHeight;
+                  if (!maxWidth.isFinite || !maxHeight.isFinite) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final fittedScale = math.min(
+                    maxWidth / displayWidth,
+                    maxHeight / (displayHeight + keyboardBaseHeight),
+                  );
+                  final viewportWidth = displayWidth * fittedScale;
+                  final viewportHeight = displayHeight * fittedScale;
+                  final keyboardHeight = keyboardBaseHeight * fittedScale;
+                  final cellWidth = viewportWidth / minmodel.minitel.columns;
+                  final cellHeight = viewportHeight / minmodel.minitel.rows;
+
+                  settings.initializeScaleForViewport(
+                    maxWidth,
+                    maxHeight,
+                    baseWidth: displayWidth,
+                    baseHeight: displayHeight + keyboardBaseHeight,
+                  );
+
+                  return Center(
+                    child: SizedBox(
+                      width: viewportWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: viewportHeight,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                GestureDetector(
+                                  onTapDown: (TapDownDetails details) {
+                                    final tapPosition = details.localPosition;
+                                    final x = math.max(
+                                      0,
+                                      math.min(
+                                        minmodel.minitel.columns - 1,
+                                        (tapPosition.dx / cellWidth).toInt(),
+                                      ),
+                                    );
+                                    final y = math.max(
+                                      0,
+                                      math.min(
+                                        minmodel.minitel.rows - 1,
+                                        (tapPosition.dy / cellHeight).toInt(),
+                                      ),
+                                    );
+                                    minmodel.handleTap(x, y);
+                                  },
+                                ),
+                                CustomPaint(
+                                  painter: _MinPainter(minmodel),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: keyboardHeight,
+                            child: _KeyboardWithReplayOverlay(
+                              scale: fittedScale,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KeyboardWithReplayOverlay extends StatelessWidget {
+  final double scale;
+
+  const _KeyboardWithReplayOverlay({required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      alignment: Alignment.center,
+      children: [
+        ListenableBuilder(
+          listenable: MinModel(),
+          builder: (context, child) {
+            if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
+              return _SharedVt100Keyboard(scale: scale);
+            }
+            return _SharedMinitelKeyboard(scale: scale);
+          },
+        ),
+        ListenableBuilder(
+          listenable: MinModel(),
+          builder: (context, _) {
+            final paused = MinModel().isReplayPaused;
+            return IgnorePointer(
+              ignoring: !paused,
+              child: Center(
+                child: GestureDetector(
+                  onTap:
+                      paused ? () => MinModel().resumeReplayAfterPause() : null,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOut,
+                    opacity: paused ? 1 : 0,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final overlayWidth = constraints.maxWidth > 24
+                            ? constraints.maxWidth - 24
+                            : constraints.maxWidth;
+                        return Container(
+                          width: overlayWidth,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFD32F2F).withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: const Text(
+                            'Pause lecture: touche/clic pour continuer, ESC pour quitter',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _SharedMinitelKeyboard extends StatelessWidget {
+  final double scale;
+
+  const _SharedMinitelKeyboard({required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildRow(MinMinitelKeyboard._row1),
+        _buildRow(MinMinitelKeyboard._row2),
+      ],
+    );
+  }
+
+  Widget _buildRow(List<List<String>> keys) {
+    return Row(
+      children: keys.map((entry) {
+        final label = entry[0];
+        return Expanded(
+          flex: _minitelKeyFlex(label),
+          child: SizedBox(
+            height: 24 * scale,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.grey),
+                ),
+                backgroundColor: const Color(0xFF1E3A5F),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => MinModel().handleKeys(entry[1]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 10 * scale),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  int _minitelKeyFlex(String label) {
+    if (label == 'Espace') return 3;
+    if (label == 'Esc') return 1;
+    return label == '↑' || label == '↓' || label == '←' || label == '→' ? 1 : 2;
+  }
+}
+
+class _SharedVt100Keyboard extends StatelessWidget {
+  final double scale;
+
+  const _SharedVt100Keyboard({required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildRow(MinVt100Keyboard._row1),
+        _buildRow(MinVt100Keyboard._row2),
+      ],
+    );
+  }
+
+  Widget _buildRow(List<List<String>> keys) {
+    return Row(
+      children: keys.map((entry) {
+        return Expanded(
+          child: SizedBox(
+            height: 24 * scale,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.grey),
+                ),
+                backgroundColor: const Color(0xFF212121),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => MinModel().handleKeys(entry[1]),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  entry[0],
+                  style: TextStyle(fontSize: 10 * scale),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
 class _MinPainter extends CustomPainter {
   final MinModel minmodel;
 
