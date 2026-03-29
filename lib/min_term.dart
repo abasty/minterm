@@ -140,6 +140,10 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
     _clearing = false;
   }
 
+  void _handleValidationKey() {
+    MinModel().handleKeys(TMinitelKey.envoi);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -181,9 +185,10 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
                 autocorrect: false,
                 enableSuggestions: false,
                 showCursor: false,
-                textInputAction: TextInputAction.none,
+                textInputAction: TextInputAction.done,
                 keyboardType: TextInputType.text,
                 onChanged: _handleTextInput,
+                onSubmitted: (_) => _handleValidationKey(),
                 decoration: const InputDecoration.collapsed(hintText: ''),
               ),
             ),
