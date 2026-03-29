@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
@@ -10,6 +11,12 @@ import 'window_setup.dart' as window_setup;
 
 class MinTerm extends StatelessWidget {
   const MinTerm({super.key});
+
+  bool get _isMobileDevice {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +76,7 @@ class MinTerm extends StatelessWidget {
                 // ),
                 if (window_setup.isWindowControlsSupported)
                   const FullscreenToggleButton(),
+                if (_isMobileDevice) const MobileKeyboardButton(),
                 const BackgroundButton(),
                 CaptureButton(),
                 ReplayCaptureIndicator(),
@@ -86,6 +94,86 @@ class MinTerm extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class MobileKeyboardButton extends StatefulWidget {
+  const MobileKeyboardButton({super.key});
+
+  @override
+  State<MobileKeyboardButton> createState() => _MobileKeyboardButtonState();
+}
+
+class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Show virtual keyboard',
+      icon: const Icon(Icons.keyboard),
+      onPressed: () {
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          builder: (context) => const _MobileKeyboardSheet(),
+        );
+      },
+    );
+  }
+}
+
+class _MobileKeyboardSheet extends StatefulWidget {
+  const _MobileKeyboardSheet();
+
+  @override
+  State<_MobileKeyboardSheet> createState() => _MobileKeyboardSheetState();
+}
+
+class _MobileKeyboardSheetState extends State<_MobileKeyboardSheet> {
+  final TextEditingController _controller = TextEditingController();
+  bool _clearing = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTextInput(String value) {
+    if (_clearing || value.isEmpty) return;
+    for (final rune in value.runes) {
+      MinModel().handleKeys(String.fromCharCode(rune));
+    }
+    _clearing = true;
+    _controller.clear();
+    _clearing = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final insets = MediaQuery.of(context).viewInsets;
+    return Padding(
+      padding: EdgeInsets.only(bottom: insets.bottom),
+      child: Opacity(
+        opacity: 0,
+        child: SizedBox(
+          height: 1,
+          width: 1,
+          child: TextField(
+            controller: _controller,
+            autofocus: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            showCursor: false,
+            textInputAction: TextInputAction.none,
+            keyboardType: TextInputType.text,
+            onChanged: _handleTextInput,
+            decoration: const InputDecoration.collapsed(hintText: ''),
+          ),
+        ),
+      ),
     );
   }
 }
