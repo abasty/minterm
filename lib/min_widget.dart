@@ -60,7 +60,7 @@ class MinSettings extends ChangeNotifier {
   bool _keyboard = false;
   bool _capslock = true;
   bool _startupScaleInitialized = false;
-  Color _appBackgroundColor = Colors.white;
+  Color _appBackgroundColor = Colors.black;
 
   factory MinSettings() {
     return _singleton;

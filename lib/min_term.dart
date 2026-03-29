@@ -15,71 +15,77 @@ class MinTerm extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: MinSettings(),
-      builder: (context, _) => ExcludeFocus(
-        excluding: true,
-        child: Scaffold(
-          backgroundColor: MinSettings().appBackgroundColor,
-          drawer: Drawer(
-            child: ListView(
-              children: [
-                CloseMenu(),
-                Divider(),
-                SetBps(),
-                SetScreenMode(),
-                CaptureToggle(),
-                ReplayCaptureAction(),
-                ImportCaptureAction(),
-                ExportCaptureAction(),
-                SetColors(),
-                SetBackground(),
-                // ListTile(
-                //   title: const Text('Keyboard'),
-                //   onTap: () {
-                //     MinSettings.toggleKeyboard();
-                //     Navigator.pop(context);
-                //   },
+      builder: (context, _) {
+        final appBackground = MinSettings().appBackgroundColor;
+        final isDarkMode = appBackground.computeLuminance() < 0.5;
+        return ExcludeFocus(
+          excluding: true,
+          child: Scaffold(
+            backgroundColor: appBackground,
+            drawer: Drawer(
+              child: ListView(
+                children: [
+                  CloseMenu(),
+                  Divider(),
+                  SetBps(),
+                  SetScreenMode(),
+                  CaptureToggle(),
+                  ReplayCaptureAction(),
+                  ImportCaptureAction(),
+                  ExportCaptureAction(),
+                  SetColors(),
+                  SetBackground(),
+                  // ListTile(
+                  //   title: const Text('Keyboard'),
+                  //   onTap: () {
+                  //     MinSettings.toggleKeyboard();
+                  //     Navigator.pop(context);
+                  //   },
+                  // ),
+                  Divider(),
+                  Clear(),
+                  Connection('3611', 'ws://3611.re/ws'),
+                  Connection('3615', 'ws://3615co.de/ws'),
+                  Connection('Minipavi', 'ws://go.minipavi.fr:8182'),
+                  Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
+                  Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
+                  Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
+                  Connection(
+                    'WS/WSS Gateway (localhost:1963)',
+                    'tcp://127.0.0.1:1963',
+                  ),
+                  if (isSerialSupported) const ConnectionSerial(),
+                ],
+              ),
+            ),
+            appBar: AppBar(
+              backgroundColor: isDarkMode ? Colors.black : Colors.white,
+              foregroundColor: isDarkMode ? Colors.white : Colors.black,
+              title: const Text('Minterm'),
+              actions: [
+                // IconButton(
+                //   icon: const Icon(Icons.keyboard),
+                //   onPressed: () => MinSettings.toggleKeyboard(),
                 // ),
-                Divider(),
-                Clear(),
-                Connection('3611', 'ws://3611.re/ws'),
-                Connection('3615', 'ws://3615co.de/ws'),
-                Connection('Minipavi', 'ws://go.minipavi.fr:8182'),
-                Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
-                Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
-                Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
-                Connection(
-                  'WS/WSS Gateway (localhost:1963)',
-                  'tcp://127.0.0.1:1963',
+                if (window_setup.isWindowControlsSupported)
+                  const FullscreenToggleButton(),
+                CaptureButton(),
+                ReplayCaptureIndicator(),
+                ColorsButton(),
+                const BackgroundButton(),
+              ],
+            ),
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Expanded(
+                  child: MinScreenAndKeyboard(),
                 ),
-                if (isSerialSupported) const ConnectionSerial(),
               ],
             ),
           ),
-          appBar: AppBar(
-            title: const Text('Minterm'),
-            actions: [
-              // IconButton(
-              //   icon: const Icon(Icons.keyboard),
-              //   onPressed: () => MinSettings.toggleKeyboard(),
-              // ),
-              if (window_setup.isWindowControlsSupported)
-                const FullscreenToggleButton(),
-              CaptureButton(),
-              ReplayCaptureIndicator(),
-              ColorsButton(),
-              const BackgroundButton(),
-            ],
-          ),
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Expanded(
-                child: MinScreenAndKeyboard(),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -98,7 +104,7 @@ class BackgroundButton extends StatelessWidget {
           tooltip: isDark ? 'Set white background' : 'Set black background',
           icon: Icon(
             isDark ? Icons.brightness_2 : Icons.wb_sunny,
-            color: Colors.black,
+            color: isDark ? Colors.white : Colors.black,
           ),
           onPressed: () {
             MinSettings().toggleAppBackgroundColor();
