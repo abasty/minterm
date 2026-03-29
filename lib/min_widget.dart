@@ -191,33 +191,29 @@ class MinScreen extends StatelessWidget {
                     child: SizedBox(
                       width: viewportWidth,
                       height: viewportHeight,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          GestureDetector(
-                            onTapDown: (TapDownDetails details) {
-                              final tapPosition = details.localPosition;
-                              final x = math.max(
-                                0,
-                                math.min(
-                                  minmodel.minitel.columns - 1,
-                                  (tapPosition.dx / cellWidth).toInt(),
-                                ),
-                              );
-                              final y = math.max(
-                                0,
-                                math.min(
-                                  minmodel.minitel.rows - 1,
-                                  (tapPosition.dy / cellHeight).toInt(),
-                                ),
-                              );
-                              minmodel.handleTap(x, y);
-                            },
-                          ),
-                          CustomPaint(
-                            painter: _MinPainter(minmodel),
-                          ),
-                        ],
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapDown: (TapDownDetails details) {
+                          final tapPosition = details.localPosition;
+                          final x = math.max(
+                            0,
+                            math.min(
+                              minmodel.minitel.columns - 1,
+                              (tapPosition.dx / cellWidth).toInt(),
+                            ),
+                          );
+                          final y = math.max(
+                            0,
+                            math.min(
+                              minmodel.minitel.rows - 1,
+                              (tapPosition.dy / cellHeight).toInt(),
+                            ),
+                          );
+                          minmodel.handleTap(x, y);
+                        },
+                        child: CustomPaint(
+                          painter: _MinPainter(minmodel),
+                        ),
                       ),
                     ),
                   );
@@ -282,33 +278,29 @@ class MinScreenAndKeyboard extends StatelessWidget {
                         children: [
                           SizedBox(
                             height: viewportHeight,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                GestureDetector(
-                                  onTapDown: (TapDownDetails details) {
-                                    final tapPosition = details.localPosition;
-                                    final x = math.max(
-                                      0,
-                                      math.min(
-                                        minmodel.minitel.columns - 1,
-                                        (tapPosition.dx / cellWidth).toInt(),
-                                      ),
-                                    );
-                                    final y = math.max(
-                                      0,
-                                      math.min(
-                                        minmodel.minitel.rows - 1,
-                                        (tapPosition.dy / cellHeight).toInt(),
-                                      ),
-                                    );
-                                    minmodel.handleTap(x, y);
-                                  },
-                                ),
-                                CustomPaint(
-                                  painter: _MinPainter(minmodel),
-                                ),
-                              ],
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTapDown: (TapDownDetails details) {
+                                final tapPosition = details.localPosition;
+                                final x = math.max(
+                                  0,
+                                  math.min(
+                                    minmodel.minitel.columns - 1,
+                                    (tapPosition.dx / cellWidth).toInt(),
+                                  ),
+                                );
+                                final y = math.max(
+                                  0,
+                                  math.min(
+                                    minmodel.minitel.rows - 1,
+                                    (tapPosition.dy / cellHeight).toInt(),
+                                  ),
+                                );
+                                minmodel.handleTap(x, y);
+                              },
+                              child: CustomPaint(
+                                painter: _MinPainter(minmodel),
+                              ),
                             ),
                           ),
                           SizedBox(
