@@ -13,67 +13,98 @@ class MinTerm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExcludeFocus(
-      excluding: true,
-      child: Scaffold(
-        drawer: Drawer(
-          child: ListView(
-            children: [
-              CloseMenu(),
-              Divider(),
-              SetBps(),
-              SetScreenMode(),
-              CaptureToggle(),
-              ReplayCaptureAction(),
-              ImportCaptureAction(),
-              ExportCaptureAction(),
-              SetColors(),
-              // ListTile(
-              //   title: const Text('Keyboard'),
-              //   onTap: () {
-              //     MinSettings.toggleKeyboard();
-              //     Navigator.pop(context);
-              //   },
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) => ExcludeFocus(
+        excluding: true,
+        child: Scaffold(
+          backgroundColor: MinSettings().appBackgroundColor,
+          drawer: Drawer(
+            child: ListView(
+              children: [
+                CloseMenu(),
+                Divider(),
+                SetBps(),
+                SetScreenMode(),
+                CaptureToggle(),
+                ReplayCaptureAction(),
+                ImportCaptureAction(),
+                ExportCaptureAction(),
+                SetColors(),
+                SetBackground(),
+                // ListTile(
+                //   title: const Text('Keyboard'),
+                //   onTap: () {
+                //     MinSettings.toggleKeyboard();
+                //     Navigator.pop(context);
+                //   },
+                // ),
+                Divider(),
+                Clear(),
+                Connection('3611', 'ws://3611.re/ws'),
+                Connection('3615', 'ws://3615co.de/ws'),
+                Connection('Minipavi', 'ws://go.minipavi.fr:8182'),
+                Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
+                Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
+                Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
+                Connection(
+                  'WS/WSS Gateway (localhost:1963)',
+                  'tcp://127.0.0.1:1963',
+                ),
+                if (isSerialSupported) const ConnectionSerial(),
+              ],
+            ),
+          ),
+          appBar: AppBar(
+            title: const Text('Minterm'),
+            actions: [
+              // IconButton(
+              //   icon: const Icon(Icons.keyboard),
+              //   onPressed: () => MinSettings.toggleKeyboard(),
               // ),
-              Divider(),
-              Clear(),
-              Connection('3611', 'ws://3611.re/ws'),
-              Connection('3615', 'ws://3615co.de/ws'),
-              Connection('Minipavi', 'ws://go.minipavi.fr:8182'),
-              Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
-              Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
-              Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
-              Connection(
-                'WS/WSS Gateway (localhost:1963)',
-                'tcp://127.0.0.1:1963',
+              if (window_setup.isWindowControlsSupported)
+                const FullscreenToggleButton(),
+              CaptureButton(),
+              ReplayCaptureIndicator(),
+              ColorsButton(),
+              const BackgroundButton(),
+            ],
+          ),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Expanded(
+                child: MinScreenAndKeyboard(),
               ),
-              if (isSerialSupported) const ConnectionSerial(),
             ],
           ),
         ),
-        appBar: AppBar(
-          title: const Text('Minterm'),
-          actions: [
-            // IconButton(
-            //   icon: const Icon(Icons.keyboard),
-            //   onPressed: () => MinSettings.toggleKeyboard(),
-            // ),
-            if (window_setup.isWindowControlsSupported)
-              const FullscreenToggleButton(),
-            CaptureButton(),
-            ReplayCaptureIndicator(),
-            ColorsButton(),
-          ],
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Expanded(
-              child: MinScreenAndKeyboard(),
-            ),
-          ],
-        ),
       ),
+    );
+  }
+}
+
+class BackgroundButton extends StatelessWidget {
+  const BackgroundButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final background = MinSettings().appBackgroundColor;
+        final isDark = background.computeLuminance() < 0.5;
+        return IconButton(
+          tooltip: isDark ? 'Set white background' : 'Set black background',
+          icon: Icon(
+            isDark ? Icons.brightness_2 : Icons.wb_sunny,
+            color: Colors.black,
+          ),
+          onPressed: () {
+            MinSettings().toggleAppBackgroundColor();
+          },
+        );
+      },
     );
   }
 }
@@ -154,6 +185,33 @@ class SetColors extends StatelessWidget {
         Navigator.pop(context);
       },
       title: const Text('Colors'),
+    );
+  }
+}
+
+class SetBackground extends StatelessWidget {
+  const SetBackground({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final isBlack = MinSettings().appBackgroundColor == Colors.black;
+        return ListTile(
+          onTap: () {
+            MinSettings().toggleAppBackgroundColor();
+            Navigator.pop(context);
+          },
+          title: Row(
+            children: [
+              const Text('Background'),
+              Expanded(child: Container()),
+              Text(isBlack ? 'BLACK' : 'WHITE'),
+            ],
+          ),
+        );
+      },
     );
   }
 }

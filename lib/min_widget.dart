@@ -60,6 +60,7 @@ class MinSettings extends ChangeNotifier {
   bool _keyboard = false;
   bool _capslock = true;
   bool _startupScaleInitialized = false;
+  Color _appBackgroundColor = Colors.white;
 
   factory MinSettings() {
     return _singleton;
@@ -93,6 +94,8 @@ class MinSettings extends ChangeNotifier {
   bool get keyboard => _keyboard;
 
   bool get capslock => _capslock;
+
+  Color get appBackgroundColor => _appBackgroundColor;
 
   static void setScale(double scale) {
     _singleton.duration = 0;
@@ -132,6 +135,18 @@ class MinSettings extends ChangeNotifier {
   static void toggleCapslock() {
     _singleton._capslock = !_singleton._capslock;
     _singleton.notifyListeners();
+  }
+
+  void setAppBackgroundColor(Color color) {
+    if (_appBackgroundColor == color) return;
+    _appBackgroundColor = color;
+    notifyListeners();
+  }
+
+  void toggleAppBackgroundColor() {
+    setAppBackgroundColor(
+      _appBackgroundColor == Colors.black ? Colors.white : Colors.black,
+    );
   }
 }
 
