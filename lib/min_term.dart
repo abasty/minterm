@@ -69,10 +69,10 @@ class MinTerm extends StatelessWidget {
                 // ),
                 if (window_setup.isWindowControlsSupported)
                   const FullscreenToggleButton(),
+                const BackgroundButton(),
                 CaptureButton(),
                 ReplayCaptureIndicator(),
                 ColorsButton(),
-                const BackgroundButton(),
               ],
             ),
             body: Column(
