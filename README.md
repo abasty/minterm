@@ -11,6 +11,9 @@ $ build/linux/x64/release/bundle/minterm
 
 ## Build Android
 
+Il faut que les options développeur et le mode _Debug USB_ soit activé sur le
+_device_. Il apparait alors dans la liste avec `flutter devices`.
+
 Pour téléphone et tablette arm64, on peut ne construire que l'APK approprié :
 
 ```
