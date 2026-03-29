@@ -187,7 +187,8 @@ class MinScreen extends StatelessWidget {
                   final cellWidth = viewportWidth / minmodel.minitel.columns;
                   final cellHeight = viewportHeight / minmodel.minitel.rows;
 
-                  return Center(
+                  return Align(
+                    alignment: Alignment.topCenter,
                     child: SizedBox(
                       width: viewportWidth,
                       height: viewportHeight,
@@ -269,7 +270,8 @@ class MinScreenAndKeyboard extends StatelessWidget {
                     baseHeight: displayHeight + keyboardBaseHeight,
                   );
 
-                  return Center(
+                  return Align(
+                    alignment: Alignment.topCenter,
                     child: SizedBox(
                       width: viewportWidth,
                       child: Column(
