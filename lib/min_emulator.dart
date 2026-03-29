@@ -1,4 +1,5 @@
 import 'package:charcode/ascii.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 // Some Minitel special codes
 const int $rep = 0x12;
@@ -1032,7 +1033,9 @@ class TMinitel {
         speedReply = 0x64;
       }
       if (speed != 0) {
-        print('Protocol 1: speed reply $speedReply');
+        if (kDebugMode) {
+          print('Protocol 1: speed reply $speedReply');
+        }
         reply.addAll([0x1b, 0x3a, 0x75, speedReply]);
       }
     } else if (x == 0x7f) {

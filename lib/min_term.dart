@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -27,7 +29,7 @@ class MinTerm extends StatelessWidget {
         final appBackground = MinSettings().appBackgroundColor;
         final isDarkMode = appBackground.computeLuminance() < 0.5;
         return ExcludeFocus(
-          excluding: true,
+          excluding: !_isMobileDevice,
           child: Scaffold(
             backgroundColor: appBackground,
             drawer: Drawer(
@@ -111,6 +113,7 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
   final TextEditingController _controller = TextEditingController();
   bool _clearing = false;
   bool _keyboardOpen = false;
+  String _lastInputValue = '';
 
   @override
   void initState() {
@@ -131,17 +134,68 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
   }
 
   void _handleTextInput(String value) {
-    if (_clearing || value.isEmpty) return;
-    for (final rune in value.runes) {
+    if (_clearing) return;
+
+    if (value == _lastInputValue) return;
+
+    // Compute common prefix to determine user edits and committed delta.
+    int common = 0;
+    final max = math.min(_lastInputValue.length, value.length);
+    while (common < max &&
+        _lastInputValue.codeUnitAt(common) == value.codeUnitAt(common)) {
+      common++;
+    }
+
+    // If text shrank or was replaced, emit correction key(s) for removed chars.
+    final removedCount = _lastInputValue.length - common;
+    for (int i = 0; i < removedCount; i++) {
+      MinModel().handleKeys(TMinitelKey.correction);
+    }
+
+    // Emit added tail as typed characters.
+    final added = value.substring(common);
+    for (final rune in added.runes) {
       MinModel().handleKeys(String.fromCharCode(rune));
     }
-    _clearing = true;
-    _controller.clear();
-    _clearing = false;
+
+    _lastInputValue = value;
   }
 
   void _handleValidationKey() {
     MinModel().handleKeys(TMinitelKey.envoi);
+    _clearing = true;
+    _controller.clear();
+    _lastInputValue = '';
+    _clearing = false;
+    // Re-open the keyboard: TextInputAction.done causes the IME to dismiss it.
+    if (_keyboardOpen) {
+      _openKeyboard();
+    }
+  }
+
+  Future<void> _openKeyboard() async {
+    if (mounted && !_keyboardOpen) {
+      setState(() {
+        _keyboardOpen = true;
+      });
+    }
+    FocusScope.of(context).requestFocus(_focusNode);
+    await Future<void>.delayed(const Duration(milliseconds: 16));
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  }
+
+  Future<void> _closeKeyboard() async {
+    if (mounted && _keyboardOpen) {
+      setState(() {
+        _keyboardOpen = false;
+      });
+    }
+    _focusNode.unfocus();
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    _clearing = true;
+    _controller.clear();
+    _lastInputValue = '';
+    _clearing = false;
   }
 
   @override
@@ -154,21 +208,9 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
           icon: Icon(_keyboardOpen ? Icons.keyboard_hide : Icons.keyboard),
           onPressed: () async {
             if (_keyboardOpen) {
-              setState(() {
-                _keyboardOpen = false;
-              });
-              _focusNode.unfocus();
-              await SystemChannels.textInput
-                  .invokeMethod<void>('TextInput.hide');
+              await _closeKeyboard();
             } else {
-              _focusNode.requestFocus();
-              await SystemChannels.textInput
-                  .invokeMethod<void>('TextInput.show');
-              if (mounted) {
-                setState(() {
-                  _keyboardOpen = true;
-                });
-              }
+              await _openKeyboard();
             }
           },
         ),
@@ -182,8 +224,8 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
                 controller: _controller,
                 focusNode: _focusNode,
                 autofocus: false,
-                autocorrect: false,
-                enableSuggestions: false,
+                autocorrect: true,
+                enableSuggestions: true,
                 showCursor: false,
                 textInputAction: TextInputAction.done,
                 keyboardType: TextInputType.text,
