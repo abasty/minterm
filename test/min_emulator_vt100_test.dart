@@ -205,6 +205,24 @@ void main() {
       expect(readChar(minitel, 9, 0), 'S');
     });
 
+    test('US outside line-0 sequence is ignored without consuming next chars',
+        () {
+      // "US A A" doit produire "AA" (US ignoré, les deux 'A' traités normalement)
+      minitel.emulate([0x1F, 0x41, 0x41]);
+
+      expect(readLine(minitel, 1, 2), 'AA');
+      expect(minitel.state.l, 1);
+      expect(minitel.state.c, 3);
+    });
+
+    test('US followed by control code is ignored without consuming it', () {
+      // US suivi de CR : le CR doit être exécuté (retour en colonne 1)
+      minitel.emulate('ABCD'.codeUnits);
+      minitel.emulate([0x1F, 0x0D]); // US CR
+
+      expect(minitel.state.c, 1);
+    });
+
     test('LF exits line 0 and restores previous VT100 cursor position', () {
       minitel.emulate('\x1b[5;12H'.codeUnits);
       minitel.emulate([0x1F, 0x40, 0x4A]);

@@ -482,7 +482,19 @@ class TMinitel {
       stateCode = kStateVtUsAt;
       return;
     }
+    // US ignoré (hors séquence ligne 0) : re-traite le byte courant normalement
     stateCode = 0;
+    if (code == $esc) {
+      stateCode = kStateVtEsc;
+    } else if (code < $space) {
+      _handleVtControl(code);
+    } else if (code != 0x7F) {
+      if (_vtInsertMode) {
+        _vtInsertChars(1);
+      }
+      _putCharVt100(code);
+      _setCursorForwardVt100();
+    }
   }
 
   void _handleVtUsAt(int code) {
