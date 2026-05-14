@@ -458,10 +458,12 @@ class TMinitel {
         state.c = 1;
         break;
       case 0x0E:
-        setG1Charset();
+        // SO : bascule GL vers G1 (charset seulement, pas les attrs SGR)
+        state.charset = kG1Charset;
         break;
       case 0x0F:
-        setG0Charset();
+        // SI : bascule GL vers G0 (charset seulement, pas les attrs SGR)
+        state.charset = kG0Charset;
         break;
       case $can:
       case $sub:

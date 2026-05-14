@@ -369,5 +369,41 @@ void main() {
       expect(minitel.state.l, 5);
       expect(minitel.state.c, 12);
     });
+
+    test('SI (0x0F) does not reset inverse SGR attribute', () {
+      // Un serveur Minitel envoie typiquement SI en fin de ligne pour revenir
+      // au charset G0. En mode VT100, cela ne doit pas désactiver l'inverse.
+      minitel.emulate('\x1b[7m'.codeUnits); // activer inverse
+      minitel.emulate([0x0F]); // SI — charset G0, mais inverse intact
+      expect(minitel.state.inverse, kAttrInverse);
+
+      // Le caractère suivant doit avoir l'attribut inverse
+      minitel.emulate('A'.codeUnits);
+      expect(minitel.screen[1][1].lAttr & kAttrInverse, kAttrInverse);
+    });
+
+    test('SO (0x0E) does not reset inverse SGR attribute', () {
+      // SO bascule vers le charset G1 sans toucher aux attrs SGR
+      minitel.emulate('\x1b[7m'.codeUnits); // activer inverse
+      minitel.emulate([0x0E]); // SO — charset G1, mais inverse intact
+      expect(minitel.state.inverse, kAttrInverse);
+
+      minitel.emulate('A'.codeUnits);
+      expect(minitel.screen[1][1].lAttr & kAttrInverse, kAttrInverse);
+    });
+
+    test('SI after CRLF keeps inverse attribute', () {
+      // Scénario réel : le serveur envoie "texte\r\n\x0f" pour fin de ligne
+      minitel.emulate('\x1b[7m'.codeUnits);
+      minitel.emulate('Hello'.codeUnits);
+      minitel.emulate([0x0D, 0x0A, 0x0F]); // CR LF SI
+
+      // L'inverse doit être toujours actif après CR+LF+SI
+      expect(minitel.state.inverse, kAttrInverse);
+
+      // La ligne suivante doit écrire en inverse
+      minitel.emulate('B'.codeUnits);
+      expect(minitel.screen[2][1].lAttr & kAttrInverse, kAttrInverse);
+    });
   });
 }
