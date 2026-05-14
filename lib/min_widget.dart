@@ -624,8 +624,10 @@ class _MinPainter extends CustomPainter {
     double cellHeight = 10.0,
     double dpr = 1.0,
   }) {
-    var fgColor = MinSettings().colors[char.lAttr & kColorMask];
-    var bgColor = MinSettings().colors[char.gAttr & kColorMask];
+    final palette =
+        minmodel.minitel.isVt100Mode ? MinGrey : MinSettings().colors;
+    var fgColor = palette[char.lAttr & kColorMask];
+    var bgColor = palette[char.gAttr & kColorMask];
 
     // Manage the cursor
     final isCursorHere = minmodel.minitel.cursorOn &&
@@ -633,8 +635,8 @@ class _MinPainter extends CustomPainter {
         minmodel.minitel.state.l * cellHeight == y;
     // En mode Videotex, le curseur est un bloc en vidéo inverse
     if (isCursorHere && minmodel.showBlink && !minmodel.minitel.isVt100Mode) {
-      fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
-      bgColor = MinSettings().colors[7 - (char.gAttr & kColorMask)];
+      fgColor = palette[7 - (char.lAttr & kColorMask)];
+      bgColor = palette[7 - (char.gAttr & kColorMask)];
     }
 
     // Swap the foreground and background colors if the inverse attribute is set
@@ -744,7 +746,7 @@ class _MinPainter extends CustomPainter {
           dpr,
         ),
         Paint()
-          ..color = fgColor
+          ..color = MinGrey[2] // même gris que la couleur fg par défaut VT100
           ..isAntiAlias = false,
       );
     }

@@ -211,6 +211,7 @@ class TMinitel {
       _vtInsertMode = false;
       _vtLine0ReturnRow = 1;
       _vtLine0ReturnColumn = 1;
+      state.fgColor = 2; // couleur par défaut VT100
     }
     state.l = 1;
     state.c = 1;
@@ -800,6 +801,10 @@ class TMinitel {
       switch (param) {
         case 0:
           state.resetAttr();
+          state.fgColor = 2; // couleur par défaut VT100 (pas kColorWhite)
+          break;
+        case 1:
+          state.fgColor = kColorWhite; // surintensité → couleur 7
           break;
         case 4:
           state.underlined = kAttrUnderline;
@@ -809,6 +814,9 @@ class TMinitel {
           break;
         case 7:
           state.inverse = kAttrInverse;
+          break;
+        case 22:
+          state.fgColor = 2; // fin surintensité → couleur par défaut 2
           break;
         case 24:
           state.underlined = kAttrNone;
@@ -823,7 +831,7 @@ class TMinitel {
           state.fgColor = param - 30;
           break;
         case 39:
-          state.fgColor = kColorWhite;
+          state.fgColor = 2; // couleur fg par défaut VT100
           break;
         case >= 40 && <= 47:
           state.bgColor = param - 40;

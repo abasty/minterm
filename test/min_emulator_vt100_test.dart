@@ -133,6 +133,49 @@ void main() {
       expect(readLine(minitel, 1, 5), 'AB   ');
     });
 
+    test('default fg color is 2 in VT100 mode', () {
+      // En mode 80 cols la couleur par défaut est 2 (pas kColorWhite=7)
+      expect(minitel.state.fgColor, 2);
+
+      // Un caractère écrit sans SGR doit avoir la couleur 2
+      minitel.emulate('A'.codeUnits);
+      expect(minitel.screen[1][1].lAttr & kColorMask, 2);
+    });
+
+    test('SGR 1 activates bold (fg color 7)', () {
+      minitel.emulate('\x1b[1mA'.codeUnits);
+      expect(minitel.state.fgColor, kColorWhite);
+      expect(minitel.screen[1][1].lAttr & kColorMask, kColorWhite);
+    });
+
+    test('SGR 22 deactivates bold (back to default fg color 2)', () {
+      minitel.emulate('\x1b[1m'.codeUnits); // surintensité ON
+      expect(minitel.state.fgColor, kColorWhite);
+
+      minitel.emulate('\x1b[22m'.codeUnits); // surintensité OFF
+      expect(minitel.state.fgColor, 2);
+
+      minitel.emulate('A'.codeUnits);
+      expect(minitel.screen[1][1].lAttr & kColorMask, 2);
+    });
+
+    test('SGR 0 resets fg color to 2 (VT100 default)', () {
+      minitel.emulate('\x1b[1m'.codeUnits); // bold ON
+      minitel.emulate('\x1b[0m'.codeUnits); // reset
+
+      expect(minitel.state.fgColor, 2);
+      minitel.emulate('A'.codeUnits);
+      expect(minitel.screen[1][1].lAttr & kColorMask, 2);
+    });
+
+    test('SGR 39 restores default fg color 2', () {
+      minitel.emulate('\x1b[31m'.codeUnits); // rouge
+      expect(minitel.state.fgColor, 1);
+
+      minitel.emulate('\x1b[39m'.codeUnits); // fg par défaut
+      expect(minitel.state.fgColor, 2);
+    });
+
     test('saves and restores cursor with CSI s/u', () {
       minitel.emulate('\x1b[10;20H\x1b[s\x1b[1;1HA\x1b[uB'.codeUnits);
 
