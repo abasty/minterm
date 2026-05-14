@@ -596,7 +596,10 @@ class _MinPainter extends CustomPainter {
     }
 
     final statusCode = minmodel.isConnected ? 0x43 : 0x46;
-    final statusChar = TMinitelChar(0, kAttrInverse + kColorWhite, statusCode);
+    // En mode 80 cols, la lettre F/C en ligne 0 n'est pas en vidéo inverse
+    final statusLAttr =
+        minmodel.minitel.isVt100Mode ? kColorWhite : kAttrInverse + kColorWhite;
+    final statusChar = TMinitelChar(0, statusLAttr, statusCode);
     final statusColumn = minmodel.minitel.columns >= 40
         ? minmodel.minitel.columns - 3
         : minmodel.minitel.columns;
@@ -625,10 +628,11 @@ class _MinPainter extends CustomPainter {
     var bgColor = MinSettings().colors[char.gAttr & kColorMask];
 
     // Manage the cursor
-    if (minmodel.minitel.cursorOn &&
-        minmodel.showBlink &&
+    final isCursorHere = minmodel.minitel.cursorOn &&
         (minmodel.minitel.state.c - 1) * cellWidth == x &&
-        minmodel.minitel.state.l * cellHeight == y) {
+        minmodel.minitel.state.l * cellHeight == y;
+    // En mode Videotex, le curseur est un bloc en vidéo inverse
+    if (isCursorHere && minmodel.showBlink && !minmodel.minitel.isVt100Mode) {
       fgColor = MinSettings().colors[7 - (char.lAttr & kColorMask)];
       bgColor = MinSettings().colors[7 - (char.gAttr & kColorMask)];
     }
@@ -726,6 +730,22 @@ class _MinPainter extends CustomPainter {
         scaleHeight,
         bgColor,
         dpr,
+      );
+    }
+
+    // En mode VT100/80 cols, le curseur est un trait de soulignement clignotant
+    if (minmodel.minitel.isVt100Mode && isCursorHere && minmodel.showBlink) {
+      canvas.drawRect(
+        _snapRect(
+          x,
+          y + 9.0 * scaleHeight,
+          8.0 * scaleWidth,
+          scaleHeight,
+          dpr,
+        ),
+        Paint()
+          ..color = fgColor
+          ..isAntiAlias = false,
       );
     }
   }
