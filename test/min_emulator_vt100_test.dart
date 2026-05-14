@@ -191,9 +191,72 @@ void main() {
       expect(minitel.columns, 80);
     });
 
+    test('supports Minitel CSI < 1 l/h for cursor on/off', () {
+      // CSI < 1 l → allumage du curseur (l = ON dans la convention Minitel)
+      minitel.emulate('\x1b[<1l'.codeUnits);
+      expect(minitel.cursorOn, isTrue);
+
+      // CSI < 1 h → arrêt du curseur (h = OFF dans la convention Minitel)
+      minitel.emulate('\x1b[<1h'.codeUnits);
+      expect(minitel.cursorOn, isFalse);
+
+      // Ré-allumage
+      minitel.emulate('\x1b[<1l'.codeUnits);
+      expect(minitel.cursorOn, isTrue);
+    });
+
     test('supports DSR 6n report', () {
       minitel.emulate('\x1b[12;34H\x1b[6n'.codeUnits);
       expect(String.fromCharCodes(minitel.reply), '\x1b[12;34R');
+    });
+
+    test('scroll mode: LF on last line scrolls up', () {
+      // Mode rouleau par défaut (scrollOn = true)
+      expect(minitel.scrollOn, isTrue);
+      minitel.emulate('\x1b[24;1H'.codeUnits);
+      minitel.emulate('A'.codeUnits);
+      minitel.emulate('\n'.codeUnits);
+
+      // Le curseur reste en ligne 24 (dernière), le contenu a scrollé
+      expect(minitel.state.l, 24);
+      expect(readChar(minitel, 0, 23), 'A'); // 'A' maintenant en ligne 23
+    });
+
+    test('page mode: LF on last line wraps to line 1', () {
+      // CSI < 4 h → mode page (séquence Minitel 80 cols)
+      minitel.emulate('\x1b[<4h'.codeUnits);
+      expect(minitel.scrollOn, isFalse);
+
+      minitel.emulate('\x1b[24;1H'.codeUnits);
+      minitel.emulate('A'.codeUnits);
+      minitel.emulate('\n'.codeUnits);
+
+      // Curseur revient en ligne 1, pas de scroll, 'A' reste en ligne 24
+      expect(minitel.state.l, 1);
+      expect(readChar(minitel, 0, 24), 'A');
+    });
+
+    test('CSI ? 4 l restores scroll mode (séquence Minitel 80 cols)', () {
+      minitel.emulate('\x1b[<4h'.codeUnits);
+      expect(minitel.scrollOn, isFalse);
+      minitel.emulate('\x1b[?4l'.codeUnits);
+      expect(minitel.scrollOn, isTrue);
+    });
+
+    test('ESC : i C sets scroll mode (même séquence qu\'en 40 cols)', () {
+      minitel.emulate([0x1B, 0x3A, 0x6A, 0x43]); // ESC : j C → page
+      expect(minitel.scrollOn, isFalse);
+      minitel.emulate([0x1B, 0x3A, 0x69, 0x43]); // ESC : i C → rouleau
+      expect(minitel.scrollOn, isTrue);
+    });
+
+    test(
+        'ESC : s y sets scroll mode via bitmask (même séquence qu\'en 40 cols)',
+        () {
+      minitel.emulate([0x1B, 0x3A, 0x73, 0x00]); // bit 0x02 = 0 → page
+      expect(minitel.scrollOn, isFalse);
+      minitel.emulate([0x1B, 0x3A, 0x73, 0x02]); // bit 0x02 = 1 → rouleau
+      expect(minitel.scrollOn, isTrue);
     });
 
     test('supports US @ Pc to access line 0', () {

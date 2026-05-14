@@ -120,7 +120,8 @@ class TMinitel {
   TMinitelScreenMode _screenMode = TMinitelScreenMode.videotex40;
   int _columns = 40;
   StringBuffer _vtCsiBuffer = StringBuffer();
-  bool _vtCsiPrivate = false;
+  // Marqueur intermédiaire CSI : 0=aucun, 0x3F='?' (VT100), 0x3C='<' (Minitel 80 cols)
+  int _vtCsiIntermediate = 0;
   int _vtPro2Prefix = -1;
   int _vtSavedRow = 1;
   int _vtSavedColumn = 1;
@@ -526,7 +527,7 @@ class TMinitel {
 
     if (code == 0x5B) {
       _vtCsiBuffer = StringBuffer();
-      _vtCsiPrivate = false;
+      _vtCsiIntermediate = 0;
       stateCode = kStateVtCsi;
       return;
     }
@@ -575,6 +576,9 @@ class TMinitel {
       } else if (code == 0x7E) {
         setScreenMode(TMinitelScreenMode.videotex40);
       }
+    } else {
+      // Délégation aux séquences protocole 2 communes (ex. rouleau/page)
+      handleProtocol2(_vtPro2Prefix, code);
     }
 
     _vtPro2Prefix = -1;
@@ -586,21 +590,24 @@ class TMinitel {
       _vtCsiBuffer.writeCharCode(code);
       return;
     }
-    if (code == 0x3F && _vtCsiBuffer.isEmpty) {
-      _vtCsiPrivate = true;
+    // Marqueurs intermédiaires : '?' (VT100) et '<' (Minitel 80 cols)
+    if ((code == 0x3F || code == 0x3C) &&
+        _vtCsiBuffer.isEmpty &&
+        _vtCsiIntermediate == 0) {
+      _vtCsiIntermediate = code;
       return;
     }
     if (code >= 0x40 && code <= 0x7E) {
       _executeVtCsi(code, _vtParseParams(_vtCsiBuffer.toString()));
       _vtCsiBuffer = StringBuffer();
-      _vtCsiPrivate = false;
+      _vtCsiIntermediate = 0;
       stateCode = 0;
       return;
     }
 
     // Unsupported CSI fragment: reset state to avoid getting stuck.
     _vtCsiBuffer = StringBuffer();
-    _vtCsiPrivate = false;
+    _vtCsiIntermediate = 0;
     stateCode = 0;
   }
 
@@ -681,7 +688,8 @@ class TMinitel {
       case 0x68: // SM
       case 0x6C: // RM
         final enable = finalCode == 0x68;
-        if (_vtCsiPrivate && params.isNotEmpty) {
+        if (_vtCsiIntermediate == 0x3F && params.isNotEmpty) {
+          // Séquences VT100 privées : CSI ? Pn h/l
           switch (params.first) {
             case 1:
               cursorOn = enable;
@@ -695,6 +703,20 @@ class TMinitel {
               break;
             case 4:
               scrollOn = !enable;
+              break;
+            default:
+              break;
+          }
+        } else if (_vtCsiIntermediate == 0x3C && params.isNotEmpty) {
+          // Séquences Minitel 80 cols : CSI < Pn h/l
+          // Convention inversée : l (0x6C) = ON, h (0x68) = OFF
+          final minitelEnable = finalCode == 0x6C;
+          switch (params.first) {
+            case 1: // Allumage/arrêt du curseur
+              cursorOn = minitelEnable;
+              break;
+            case 4: // Mode page (CSI < 4 h) / mode rouleau (CSI < 4 l)
+              scrollOn = minitelEnable;
               break;
             default:
               break;
@@ -885,8 +907,11 @@ class TMinitel {
     }
     if (state.l < lastLine) {
       state.l++;
-    } else {
+    } else if (scrollOn) {
       scrollUp();
+    } else {
+      // Mode page : retour en ligne 1 (même comportement qu'en 40 cols)
+      state.l = 1;
     }
   }
 
