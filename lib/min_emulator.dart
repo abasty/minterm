@@ -202,7 +202,9 @@ class TMinitel {
   }
 
   void clearScreen() {
-    state.resetAttr();
+    if (!isVt100Mode) {
+      state.resetAttr();
+    }
     if (isVt100Mode) {
       scrollOn = true;
       cursorOn = true;
@@ -551,7 +553,7 @@ class TMinitel {
         if (state.l > 1) {
           state.l--;
         } else {
-          scrollDown();
+          _vtScrollDown();
         }
         break;
       case 0x63: // RIS
@@ -876,10 +878,7 @@ class TMinitel {
     final start = fromColumn < 1 ? 1 : fromColumn;
     final end = toColumn > lastColumn ? lastColumn : toColumn;
     for (int column = start; column <= end; ++column) {
-      final char = screen[line][column];
-      char.code = $space;
-      char.gAttr = state.bgColor | state.underlined;
-      char.lAttr = state.fgColor | state.blink | state.inverse;
+      screen[line][column] = TMinitelChar.from(kEmptyChar);
       markCharAsDirty(line, column);
     }
   }
@@ -908,11 +907,19 @@ class TMinitel {
     if (state.l < lastLine) {
       state.l++;
     } else if (scrollOn) {
-      scrollUp();
+      _vtScrollUp();
     } else {
       // Mode page : retour en ligne 1 (même comportement qu'en 40 cols)
       state.l = 1;
     }
+  }
+
+  void _vtScrollUp({int fromLine = 1}) {
+    scrollUp(fromLine: fromLine);
+  }
+
+  void _vtScrollDown({int fromLine = 1}) {
+    scrollDown(fromLine: fromLine);
   }
 
   void _setCursorClamped(int line, int column) {

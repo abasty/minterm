@@ -259,6 +259,77 @@ void main() {
       expect(minitel.scrollOn, isTrue);
     });
 
+    test('scroll-up new line is plain empty (no SGR attrs)', () {
+      minitel.emulate('\x1b[7m'.codeUnits); // SGR inverse actif
+      minitel.emulate('\x1b[24;1H'.codeUnits);
+      minitel.emulate('\n'.codeUnits); // scroll up
+
+      // Nouvelle ligne vierge : espace sans attributs (kEmptyChar)
+      final char = minitel.screen[24][1];
+      expect(char.lAttr & kAttrInverse, 0);
+      expect(char.gAttr & kColorMask, kColorBlack);
+    });
+
+    test('scroll-up new line is plain empty (no bgColor)', () {
+      minitel.emulate('\x1b[44m'.codeUnits); // SGR bg bleu actif
+      minitel.emulate('\x1b[24;1H'.codeUnits);
+      minitel.emulate('\n'.codeUnits); // scroll up
+
+      // Nouvelle ligne vierge : fond noir (kEmptyChar, pas le SGR courant)
+      final char = minitel.screen[24][1];
+      expect(char.gAttr & kColorMask, kColorBlack);
+    });
+
+    test('RI scroll-down new line is plain empty (no SGR attrs)', () {
+      minitel.emulate('\x1b[42m'.codeUnits); // SGR bg vert actif
+      minitel.emulate('\x1b[1;1H'.codeUnits);
+      minitel.emulate('\x1bM'.codeUnits); // RI
+
+      // Nouvelle ligne vierge en haut : fond noir (kEmptyChar)
+      final char = minitel.screen[1][1];
+      expect(char.gAttr & kColorMask, kColorBlack);
+    });
+
+    test('ICH blank chars are plain empty (no SGR attrs)', () {
+      minitel.emulate('\x1b[41mABCDE'.codeUnits); // SGR bg rouge + texte
+      minitel.emulate('\x1b[1;3H\x1b[2@'.codeUnits); // ICH 2 en col 3
+
+      // Les 2 nouvelles cellules vierges : fond noir (kEmptyChar)
+      expect(minitel.screen[1][3].gAttr & kColorMask, kColorBlack);
+      expect(minitel.screen[1][4].gAttr & kColorMask, kColorBlack);
+    });
+
+    test('IL blank line is plain empty (no SGR attrs)', () {
+      minitel.emulate('\x1b[43m'.codeUnits); // SGR bg jaune actif
+      minitel.emulate('\x1b[2;1H\x1b[L'.codeUnits); // IL en ligne 2
+
+      // Ligne insérée vierge : fond noir (kEmptyChar)
+      expect(minitel.screen[2][1].gAttr & kColorMask, kColorBlack);
+    });
+
+    test('cls does not reset SGR terminal attributes', () {
+      minitel.emulate('\x1b[7m\x1b[44m'.codeUnits); // inverse + bg bleu
+      minitel.emulate('\x1b[2J'.codeUnits); // ED 2 = cls
+
+      // Les attributs SGR sont conservés dans le state
+      expect(minitel.state.inverse, kAttrInverse);
+      expect(minitel.state.bgColor, 4);
+
+      // Les nouvelles cellules écrites utilisent ces attributs
+      minitel.emulate('A'.codeUnits);
+      expect(minitel.screen[1][1].lAttr & kAttrInverse, kAttrInverse);
+      expect(minitel.screen[1][1].gAttr & kColorMask, 4);
+    });
+
+    test('cls fills screen with plain empty chars (no SGR attrs)', () {
+      minitel.emulate('\x1b[44m'.codeUnits); // bg bleu actif
+      minitel.emulate('A'.codeUnits); // écrit un caractère
+      minitel.emulate('\x1b[2J'.codeUnits); // cls
+
+      // Les cellules effacées sont sans attribut (fond noir = kEmptyChar)
+      expect(minitel.screen[1][1].gAttr & kColorMask, kColorBlack);
+    });
+
     test('supports US @ Pc to access line 0', () {
       minitel.emulate([0x1F, 0x40, 0x0A]);
       minitel.emulate('S'.codeUnits);
