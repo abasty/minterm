@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:charcode/ascii.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
@@ -15,6 +16,8 @@ const int kStatePro1 = 110;
 const int kStatePro2 = 120;
 const int kStatePro3 = 130;
 const int kStateSequence = 150;
+const int kStateDrcsHeader = 160;
+const int kStateDrcsData   = 161;
 const int kStateTeleinfoEsc = 200;
 const int kStateTeleinfoCsi = 201;
 const int kStateTeleinfoPro1 = 202;
@@ -46,6 +49,7 @@ const int kColorWhite = 0x07;
 const int kDoublePart = 0x80;
 const int kG0Charset = 0x00;
 const int kG1Charset = 0x10;
+const int kDRCSCharset = 0x100;
 
 const int kG2Charset = 0x20;
 // Char code redraw flag
@@ -132,6 +136,14 @@ class TMinitel {
   int _teleinfoLine0ReturnColumn = 1;
   // Mode insertion caractère (ESC[4h/l), partagé Videotex 40 cols et Téléinformatique 80 cols.
   bool _insertMode = false;
+
+  // DRCS download state
+  bool   _drcsLoadingG1   = false;
+  int    _drcsHeaderStep  = 0;
+  int    _drcsCurrentCode = 0;
+  int    _drcsPixelIndex  = 0;
+  final  _drcsPixels      = Uint8List(80);
+  void Function(bool isG1, int code, Uint8List pixels80)? onDrcsGlyph;
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -237,6 +249,7 @@ class TMinitel {
       screen[0][column].copyFrom(kEmptyChar);
     }
     stateCode = 0;
+    _drcsPixelIndex = 0;
   }
 
   void clearScreenPreserveLine0() {
@@ -330,8 +343,13 @@ class TMinitel {
             stateCode = 0;
             break;
           case $us:
-            prevCode = currentCode;
-            stateCode = $us + 1;
+            if (currentCode == 0x23) {
+              _drcsHeaderStep = 0;
+              stateCode = kStateDrcsHeader;
+            } else {
+              prevCode = currentCode;
+              stateCode = $us + 1;
+            }
             break;
           case const ($us + 1):
             setCursorPosition(prevCode, currentCode);
@@ -386,6 +404,12 @@ class TMinitel {
             break;
           case kStateSequence:
             stateCode = handleSequence(currentCode);
+            break;
+          case kStateDrcsHeader:
+            _handleDrcsHeader(currentCode);
+            break;
+          case kStateDrcsData:
+            _handleDrcsData(currentCode);
             break;
         }
       }
@@ -1743,6 +1767,76 @@ class TMinitel {
       }
     }
     return leftPart + buffer.toString();
+  }
+
+  void _handleDrcsHeader(int code) {
+    if (_drcsHeaderStep == 0) {
+      if (code == 0x20) {
+        _drcsHeaderStep = 1;
+      } else if (code >= 0x21 && code <= 0x7E) {
+        // US 0x23 Y — data start, not a header
+        _drcsCurrentCode = code;
+        _drcsPixelIndex = 0;
+        _drcsPixels.fillRange(0, 80, 0);
+        stateCode = kStateDrcsData;
+      } else {
+        stateCode = 0;
+      }
+      return;
+    }
+    switch (_drcsHeaderStep) {
+      case 1:
+      case 2:
+        if (code == 0x20) {
+          _drcsHeaderStep++;
+        } else {
+          stateCode = 0;
+        }
+        break;
+      case 3:
+        if (code == 0x42) {
+          _drcsLoadingG1 = false;
+          _drcsHeaderStep++;
+        } else if (code == 0x43) {
+          _drcsLoadingG1 = true;
+          _drcsHeaderStep++;
+        } else {
+          stateCode = 0;
+        }
+        break;
+      case 4:
+        // Expect 0x49 to validate header; ignore bad bytes
+        stateCode = 0;
+        break;
+    }
+  }
+
+  void _handleDrcsData(int code) {
+    if (code == 0x30) {
+      // B1 separator: emit current glyph if any pixels received
+      if (_drcsPixelIndex > 0) {
+        _emitDrcsGlyph();
+        _drcsCurrentCode++;
+        _drcsPixels.fillRange(0, 80, 0);
+        _drcsPixelIndex = 0;
+      }
+    } else if (code >= 0x40 && code <= 0x7F) {
+      final bits = code & 0x3F;
+      for (int b = 0; b < 6 && _drcsPixelIndex < 80; b++) {
+        _drcsPixels[_drcsPixelIndex++] = (bits >> b) & 1;
+      }
+      if (_drcsPixelIndex >= 80) {
+        _emitDrcsGlyph();
+        _drcsCurrentCode++;
+        _drcsPixels.fillRange(0, 80, 0);
+        _drcsPixelIndex = 0;
+      }
+    }
+  }
+
+  void _emitDrcsGlyph() {
+    if (_drcsCurrentCode < 0x21 || _drcsCurrentCode > 0x7E) return;
+    onDrcsGlyph?.call(_drcsLoadingG1, _drcsCurrentCode, Uint8List.fromList(_drcsPixels));
   }
 }
 
