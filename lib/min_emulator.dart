@@ -145,6 +145,12 @@ class TMinitel {
   final  _drcsPixels      = Uint8List(80);
   void Function(bool isG1, int code, Uint8List pixels80)? onDrcsGlyph;
 
+  // ESC charset designation state
+  int    _escDesignator   = 0;   // 0x28 = G0, 0x29 = G1
+  int    _escIntermediate = 0;   // 0x20 if intermediate received, else 0
+  bool   _g0IsDrcs        = false;
+  bool   _g1IsDrcs        = false;
+
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
     if (_isEchoed != value) {
@@ -250,6 +256,8 @@ class TMinitel {
     }
     stateCode = 0;
     _drcsPixelIndex = 0;
+    _g0IsDrcs = false;
+    _g1IsDrcs = false;
   }
 
   void clearScreenPreserveLine0() {
@@ -369,7 +377,14 @@ class TMinitel {
             stateCode = 0;
             break;
           case const ($esc + 2):
-            if (!(currentCode >= 0x20 && currentCode <= 0x2F)) stateCode = 0;
+            if (currentCode == 0x20) {
+              _escIntermediate = 0x20;
+            } else if (currentCode >= 0x20 && currentCode <= 0x2F) {
+              // other intermediate: ignore, stay in state
+            } else {
+              _applyCharsetDesignation(currentCode);
+              stateCode = 0;
+            }
             break;
           case kStatePro1:
             handleProtocol1(currentCode);
@@ -1094,6 +1109,10 @@ class TMinitel {
     } else if (currentCode >= 0x35 && currentCode <= 0x37) {
       stateCode = $esc + 1;
     } else if (currentCode >= 0x20 && currentCode <= 0x2F) {
+      if (currentCode == 0x28 || currentCode == 0x29) {
+        _escDesignator   = currentCode;
+        _escIntermediate = 0;
+      }
       stateCode = $esc + 2;
     }
   }
@@ -1512,6 +1531,9 @@ class TMinitel {
     char.code = code;
 
     // Set special attributes
+    if (state.charset == kG1Charset ? _g1IsDrcs : _g0IsDrcs) {
+      char.lAttr |= kDRCSCharset;
+    }
     if (state.charset == kG1Charset) {
       // Set G1 global attributes
       char.gAttr |= kG1Charset;
@@ -1767,6 +1789,16 @@ class TMinitel {
       }
     }
     return leftPart + buffer.toString();
+  }
+
+  void _applyCharsetDesignation(int finalByte) {
+    if (_escDesignator == 0x28) {
+      if (_escIntermediate == 0    && finalByte == 0x40) _g0IsDrcs = false;
+      if (_escIntermediate == 0x20 && finalByte == 0x42) _g0IsDrcs = true;
+    } else if (_escDesignator == 0x29) {
+      if (_escIntermediate == 0    && finalByte == 0x63) _g1IsDrcs = false;
+      if (_escIntermediate == 0x20 && finalByte == 0x43) _g1IsDrcs = true;
+    }
   }
 
   void _handleDrcsHeader(int code) {
