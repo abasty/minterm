@@ -72,8 +72,8 @@ class MinSettings extends ChangeNotifier {
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
-  static late final ui.Image _fontG0p;
-  static late final ui.Image _fontG1p;
+  static late ui.Image _fontG0p;
+  static late ui.Image _fontG1p;
   Uint8List? _pixelsG0p;
   Uint8List? _pixelsG1p;
   static const durationMax = 400;
@@ -141,7 +141,7 @@ class MinSettings extends ChangeNotifier {
   ui.Image get fontG1p => _fontG1p;
 
   // pixels80: 80 values (0=off, 1=on), row-major 8×10, matching DRCS download order.
-  // Font grid stride is 128 px (16 cols × 8 px). charRect formula: x=(c~/16)*8, y=(c%16)*10.
+  // Font grid stride is 64 px (8 cols × 8 px). charRect formula: x=(c~/16)*8, y=(c%16)*10.
   void updateDrcsGlyph(bool isG1, int code, Uint8List pixels80) {
     final buf = isG1 ? _pixelsG1p : _pixelsG0p;
     if (buf == null) return;
@@ -150,14 +150,14 @@ class MinSettings extends ChangeNotifier {
     for (int row = 0; row < 10; row++) {
       for (int col = 0; col < 8; col++) {
         final v = pixels80[row * 8 + col] != 0 ? 0xFF : 0x00;
-        final offset = ((gy + row) * 128 + (gx + col)) * 4;
+        final offset = ((gy + row) * 64 + (gx + col)) * 4;
         buf[offset]     = v;
         buf[offset + 1] = v;
         buf[offset + 2] = v;
         buf[offset + 3] = v;
       }
     }
-    ui.decodeImageFromPixels(buf, 128, 160, ui.PixelFormat.rgba8888, (img) {
+    ui.decodeImageFromPixels(buf, 64, 160, ui.PixelFormat.rgba8888, (img) {
       if (isG1) {
         _fontG1p = img;
       } else {
