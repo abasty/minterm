@@ -61,6 +61,11 @@ class MinModel extends ChangeNotifier {
 
   bool get isConnected => _server != null;
 
+  void markScreenDirty() {
+    minitel.isDirty = true;
+    notifyListeners();
+  }
+
   bool get _isLinuxDesktop => !kIsWeb && Platform.isLinux;
 
   bool get isCaptureEnabled => _captureEnabled;

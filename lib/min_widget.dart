@@ -164,6 +164,7 @@ class MinSettings extends ChangeNotifier {
         _fontG0p = img;
       }
       notifyListeners();
+      MinModel().markScreenDirty();
     });
   }
 
