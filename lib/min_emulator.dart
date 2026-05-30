@@ -1853,15 +1853,11 @@ class TMinitel {
         _drcsPixelIndex = 0;
       }
     } else if (code >= 0x40 && code <= 0x7F) {
-      final bits = code & 0x3F;
-      for (int b = 0; b < 6 && _drcsPixelIndex < 80; b++) {
-        _drcsPixels[_drcsPixelIndex++] = (bits >> b) & 1;
-      }
-      if (_drcsPixelIndex >= 80) {
-        _emitDrcsGlyph();
-        _drcsCurrentCode++;
-        _drcsPixels.fillRange(0, 80, 0);
-        _drcsPixelIndex = 0;
+      if (_drcsPixelIndex < 80) {
+        final bits = code & 0x3F;
+        for (int b = 5; b >= 0 && _drcsPixelIndex < 80; b--) {
+          _drcsPixels[_drcsPixelIndex++] = (bits >> b) & 1;
+        }
       }
     }
   }
