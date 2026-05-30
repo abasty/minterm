@@ -72,6 +72,8 @@ class MinSettings extends ChangeNotifier {
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
+  static late final ui.Image _fontG0p;
+  static late final ui.Image _fontG1p;
   static const durationMax = 400;
   var scale = 1.5;
   var duration = durationMax;
@@ -101,6 +103,18 @@ class MinSettings extends ChangeNotifier {
       _loaded++;
       notifyListeners();
     });
+
+    loadUiImage('assets/g0g2.png').then((image) {
+      _fontG0p = image;
+      _loaded++;
+      notifyListeners();
+    });
+
+    loadUiImage('assets/g1.png').then((image) {
+      _fontG1p = image;
+      _loaded++;
+      notifyListeners();
+    });
   }
   List<Color> get colors => _colors;
 
@@ -113,7 +127,11 @@ class MinSettings extends ChangeNotifier {
 
   ui.Image get fontG1 => _fontG1;
 
-  bool get isLoaded => _loaded == 2;
+  ui.Image get fontG0p => _fontG0p;
+
+  ui.Image get fontG1p => _fontG1p;
+
+  bool get isLoaded => _loaded == 4;
 
   bool get keyboard => _keyboard;
 
