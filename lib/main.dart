@@ -7,11 +7,24 @@ import 'min_model.dart';
 import 'min_term.dart';
 import 'window_setup.dart' as window_setup;
 
-void main() async {
+/// Normalizes a URN by inserting `://` after the scheme if absent.
+/// For example: `tcp:localhost:1967` becomes `tcp://localhost:1967`.
+String _normalizeUrn(String urn) {
+  if (urn.contains('://')) return urn;
+  final colonIndex = urn.indexOf(':');
+  if (colonIndex == -1) return urn;
+  return '${urn.substring(0, colonIndex)}://${urn.substring(colonIndex + 1)}';
+}
+
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (!kIsWeb) {
     await window_setup.initializeWindow();
+  }
+
+  if (args.isNotEmpty) {
+    MinModel().serverAddress = _normalizeUrn(args[0]);
   }
 
   HardwareKeyboard.instance.addHandler((event) {
@@ -177,4 +190,10 @@ void main() async {
     ),
     home: MinTerm(),
   ));
+
+  if (args.isNotEmpty) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      MinModel().connect();
+    });
+  }
 }
