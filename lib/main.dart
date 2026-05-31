@@ -23,10 +23,6 @@ void main(List<String> args) async {
     await window_setup.initializeWindow();
   }
 
-  if (args.isNotEmpty) {
-    MinModel().serverAddress = _normalizeUrn(args[0]);
-  }
-
   HardwareKeyboard.instance.addHandler((event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey.keyLabel == '[') {
@@ -192,8 +188,7 @@ void main(List<String> args) async {
   ));
 
   if (args.isNotEmpty) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      MinModel().connect();
-    });
+    MinModel().serverAddress = _normalizeUrn(args[0]);
+    MinModel().connect();
   }
 }
