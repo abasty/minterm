@@ -59,6 +59,8 @@ class MinSettings extends ChangeNotifier {
   int _loaded = 0;
   bool _keyboard = false;
   bool _capslock = true;
+  bool _desktopImageKeyboardEnabled = false;
+  bool _mobileSystemKeyboardOpen = false;
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
 
@@ -94,6 +96,10 @@ class MinSettings extends ChangeNotifier {
   bool get keyboard => _keyboard;
 
   bool get capslock => _capslock;
+
+  bool get desktopImageKeyboardEnabled => _desktopImageKeyboardEnabled;
+
+  bool get mobileSystemKeyboardOpen => _mobileSystemKeyboardOpen;
 
   Color get appBackgroundColor => _appBackgroundColor;
 
@@ -134,6 +140,18 @@ class MinSettings extends ChangeNotifier {
 
   static void toggleCapslock() {
     _singleton._capslock = !_singleton._capslock;
+    _singleton.notifyListeners();
+  }
+
+  static void toggleDesktopImageKeyboard() {
+    _singleton._desktopImageKeyboardEnabled =
+        !_singleton._desktopImageKeyboardEnabled;
+    _singleton.notifyListeners();
+  }
+
+  static void setMobileSystemKeyboardOpen(bool value) {
+    if (_singleton._mobileSystemKeyboardOpen == value) return;
+    _singleton._mobileSystemKeyboardOpen = value;
     _singleton.notifyListeners();
   }
 
@@ -232,11 +250,6 @@ class MinScreenAndKeyboard extends StatelessWidget {
   const MinScreenAndKeyboard({super.key});
 
   bool get _isMobileTarget {
-    if (kDebugMode &&
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.linux) {
-      return true;
-    }
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
@@ -254,10 +267,13 @@ class MinScreenAndKeyboard extends StatelessWidget {
               const displayColumns = 80;
               const displayWidth = 8.0 * displayColumns;
               const displayHeight = displayWidth * 3.0 / 4.0;
-              final keyboardBaseHeight = _isMobileTarget &&
-                      minmodel.screenMode == TMinitelScreenMode.videotex40
-                  ? 500.0
-                  : 48.0;
+              final allowImageKeyboardOnMobile =
+                  _isMobileTarget && !settings.mobileSystemKeyboardOpen;
+              final imageKeyboardEnabled =
+                  minmodel.screenMode == TMinitelScreenMode.videotex40 &&
+                      (allowImageKeyboardOnMobile ||
+                          settings.desktopImageKeyboardEnabled);
+              final keyboardBaseHeight = imageKeyboardEnabled ? 500.0 : 48.0;
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -350,7 +366,7 @@ class _KeyboardWithReplayOverlay extends StatelessWidget {
       fit: StackFit.expand,
       alignment: Alignment.center,
       children: [
-        const MinKeyboard(),
+        MinKeyboard(scaleOverride: scale),
         ListenableBuilder(
           listenable: MinModel(),
           builder: (context, _) {
@@ -701,16 +717,14 @@ class _MinPainter extends CustomPainter {
 }
 
 class MinKeyboard extends StatelessWidget {
+  final double? scaleOverride;
+
   const MinKeyboard({
     super.key,
+    this.scaleOverride,
   });
 
   bool get _isMobileTarget {
-    if (kDebugMode &&
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.linux) {
-      return true;
-    }
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
@@ -722,12 +736,16 @@ class MinKeyboard extends StatelessWidget {
       listenable: MinModel(),
       builder: (context, child) {
         if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
-          return const MinVt100Keyboard();
+          return MinVt100Keyboard(scaleOverride: scaleOverride);
         }
-        if (_isMobileTarget) {
+        final allowImageKeyboardOnMobile =
+            _isMobileTarget && !MinSettings().mobileSystemKeyboardOpen;
+        final useImageKeyboard = allowImageKeyboardOnMobile ||
+            MinSettings().desktopImageKeyboardEnabled;
+        if (useImageKeyboard) {
           return const _MinMinitelImageKeyboard();
         }
-        return const MinMinitelKeyboard();
+        return MinMinitelKeyboard(scaleOverride: scaleOverride);
       },
     );
   }
@@ -1070,7 +1088,9 @@ class _MinImageKey extends StatelessWidget {
 
 /// Compact keyboard for Minitel 40-column mode.
 class MinMinitelKeyboard extends StatelessWidget {
-  const MinMinitelKeyboard({super.key});
+  final double? scaleOverride;
+
+  const MinMinitelKeyboard({super.key, this.scaleOverride});
 
   static const _row1 = [
     ['Cx/Fin', TMinitelKey.cxFin],
@@ -1099,7 +1119,7 @@ class MinMinitelKeyboard extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, child) {
-        final scale = MinSettings().scale;
+        final scale = scaleOverride ?? MinSettings().scale;
         return LayoutBuilder(
           builder: (context, constraints) {
             final displayColumns = 80;
@@ -1107,14 +1127,17 @@ class MinMinitelKeyboard extends StatelessWidget {
             final displayHeight = displayWidth * 3.0 / 4.0;
 
             final maxWidth = constraints.maxWidth;
-            final maxHeight = constraints.maxHeight;
             if (!maxWidth.isFinite) {
               return const SizedBox.shrink();
             }
 
-            final fittedScale =
-                math.min(maxWidth / displayWidth, maxHeight / displayHeight);
-            final keyboardWidth = displayWidth * fittedScale;
+            final keyboardWidth = scaleOverride != null
+                ? displayWidth * scaleOverride!
+                : displayWidth *
+                    math.min(
+                      maxWidth / displayWidth,
+                      constraints.maxHeight / displayHeight,
+                    );
 
             return Center(
               child: SizedBox(
@@ -1177,7 +1200,9 @@ class MinMinitelKeyboard extends StatelessWidget {
 
 /// Compact function-key bar shown in VT100 80-column mode.
 class MinVt100Keyboard extends StatelessWidget {
-  const MinVt100Keyboard({super.key});
+  final double? scaleOverride;
+
+  const MinVt100Keyboard({super.key, this.scaleOverride});
 
   static const _row1 = [
     ['ESC', '\x1b'],
@@ -1213,7 +1238,7 @@ class MinVt100Keyboard extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, child) {
-        final scale = MinSettings().scale;
+        final scale = scaleOverride ?? MinSettings().scale;
         return LayoutBuilder(
           builder: (context, constraints) {
             final displayColumns = 80;
@@ -1221,14 +1246,17 @@ class MinVt100Keyboard extends StatelessWidget {
             final displayHeight = displayWidth * 3.0 / 4.0;
 
             final maxWidth = constraints.maxWidth;
-            final maxHeight = constraints.maxHeight;
             if (!maxWidth.isFinite) {
               return const SizedBox.shrink();
             }
 
-            final fittedScale =
-                math.min(maxWidth / displayWidth, maxHeight / displayHeight);
-            final keyboardWidth = displayWidth * fittedScale;
+            final keyboardWidth = scaleOverride != null
+                ? displayWidth * scaleOverride!
+                : displayWidth *
+                    math.min(
+                      maxWidth / displayWidth,
+                      constraints.maxHeight / displayHeight,
+                    );
 
             return Center(
               child: SizedBox(

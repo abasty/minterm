@@ -80,6 +80,7 @@ class MinTerm extends StatelessWidget {
                 if (window_setup.isWindowControlsSupported)
                   const FullscreenToggleButton(),
                 if (_isMobileDevice) const MobileKeyboardButton(),
+                if (!_isMobileDevice) const DesktopKeyboardLayoutButton(),
                 const BackgroundButton(),
                 CaptureButton(),
                 ReplayCaptureIndicator(),
@@ -118,9 +119,11 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
   @override
   void initState() {
     super.initState();
+    MinSettings.setMobileSystemKeyboardOpen(false);
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus && _keyboardOpen) {
         _keyboardOpen = false;
+        MinSettings.setMobileSystemKeyboardOpen(false);
       }
       if (mounted) setState(() {});
     });
@@ -128,6 +131,7 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
 
   @override
   void dispose() {
+    MinSettings.setMobileSystemKeyboardOpen(false);
     _focusNode.dispose();
     _controller.dispose();
     super.dispose();
@@ -179,6 +183,7 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
         _keyboardOpen = true;
       });
     }
+    MinSettings.setMobileSystemKeyboardOpen(true);
     FocusScope.of(context).requestFocus(_focusNode);
     await Future<void>.delayed(const Duration(milliseconds: 16));
     await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
@@ -190,6 +195,7 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
         _keyboardOpen = false;
       });
     }
+    MinSettings.setMobileSystemKeyboardOpen(false);
     _focusNode.unfocus();
     await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     _clearing = true;
@@ -237,6 +243,25 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class DesktopKeyboardLayoutButton extends StatelessWidget {
+  const DesktopKeyboardLayoutButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final imageMode = MinSettings().desktopImageKeyboardEnabled;
+        return IconButton(
+          tooltip: imageMode ? 'Use compact keyboard' : 'Use image keyboard',
+          icon: Icon(imageMode ? Icons.keyboard_hide : Icons.keyboard),
+          onPressed: () => MinSettings.toggleDesktopImageKeyboard(),
+        );
+      },
     );
   }
 }
