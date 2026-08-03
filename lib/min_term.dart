@@ -113,17 +113,18 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _controller = TextEditingController();
   bool _clearing = false;
-  bool _keyboardOpen = false;
   String _lastInputValue = '';
 
   @override
   void initState() {
     super.initState();
-    MinSettings.setMobileSystemKeyboardOpen(false);
+    MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.bitmap);
     _focusNode.addListener(() {
-      if (!_focusNode.hasFocus && _keyboardOpen) {
-        _keyboardOpen = false;
-        MinSettings.setMobileSystemKeyboardOpen(false);
+      final mode = MinSettings().mobileKeyboardLayout;
+      if (!_focusNode.hasFocus &&
+          mode == MobileKeyboardLayoutMode.virtualCompact) {
+        MinSettings.setMobileKeyboardLayout(
+            MobileKeyboardLayoutMode.compactOnly);
       }
       if (mounted) setState(() {});
     });
@@ -131,7 +132,7 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
 
   @override
   void dispose() {
-    MinSettings.setMobileSystemKeyboardOpen(false);
+    MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.bitmap);
     _focusNode.dispose();
     _controller.dispose();
     super.dispose();
@@ -172,30 +173,19 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
     _lastInputValue = '';
     _clearing = false;
     // Re-open the keyboard: TextInputAction.done causes the IME to dismiss it.
-    if (_keyboardOpen) {
+    if (MinSettings().mobileKeyboardLayout ==
+        MobileKeyboardLayoutMode.virtualCompact) {
       _openKeyboard();
     }
   }
 
   Future<void> _openKeyboard() async {
-    if (mounted && !_keyboardOpen) {
-      setState(() {
-        _keyboardOpen = true;
-      });
-    }
-    MinSettings.setMobileSystemKeyboardOpen(true);
     FocusScope.of(context).requestFocus(_focusNode);
     await Future<void>.delayed(const Duration(milliseconds: 16));
     await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
   }
 
   Future<void> _closeKeyboard() async {
-    if (mounted && _keyboardOpen) {
-      setState(() {
-        _keyboardOpen = false;
-      });
-    }
-    MinSettings.setMobileSystemKeyboardOpen(false);
     _focusNode.unfocus();
     await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     _clearing = true;
@@ -204,20 +194,53 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
     _clearing = false;
   }
 
+  Future<void> _applyMobileKeyboardMode(MobileKeyboardLayoutMode mode) async {
+    MinSettings.setMobileKeyboardLayout(mode);
+    if (mode == MobileKeyboardLayoutMode.virtualCompact) {
+      await _openKeyboard();
+    } else {
+      await _closeKeyboard();
+    }
+    if (mounted) setState(() {});
+  }
+
+  MobileKeyboardLayoutMode _nextMobileKeyboardMode(
+      MobileKeyboardLayoutMode mode) {
+    switch (mode) {
+      case MobileKeyboardLayoutMode.bitmap:
+        return MobileKeyboardLayoutMode.virtualCompact;
+      case MobileKeyboardLayoutMode.virtualCompact:
+        return MobileKeyboardLayoutMode.compactOnly;
+      case MobileKeyboardLayoutMode.compactOnly:
+        return MobileKeyboardLayoutMode.bitmap;
+    }
+  }
+
+  (IconData, String) _modeVisuals(MobileKeyboardLayoutMode mode) {
+    switch (mode) {
+      case MobileKeyboardLayoutMode.bitmap:
+        return (
+          Icons.keyboard_alt_outlined,
+          'Mode clavier: bitmap (tap pour virtuel + compact)'
+        );
+      case MobileKeyboardLayoutMode.virtualCompact:
+        return (Icons.keyboard, 'Mode clavier: virtuel + compact');
+      case MobileKeyboardLayoutMode.compactOnly:
+        return (Icons.view_stream, 'Mode clavier: compact uniquement');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final mode = MinSettings().mobileKeyboardLayout;
+    final visuals = _modeVisuals(mode);
     return Stack(
       children: [
         IconButton(
-          tooltip:
-              _keyboardOpen ? 'Hide virtual keyboard' : 'Show virtual keyboard',
-          icon: Icon(_keyboardOpen ? Icons.keyboard_hide : Icons.keyboard),
+          tooltip: visuals.$2,
+          icon: Icon(visuals.$1),
           onPressed: () async {
-            if (_keyboardOpen) {
-              await _closeKeyboard();
-            } else {
-              await _openKeyboard();
-            }
+            await _applyMobileKeyboardMode(_nextMobileKeyboardMode(mode));
           },
         ),
         IgnorePointer(

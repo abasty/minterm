@@ -11,6 +11,12 @@ import 'package:provider/provider.dart';
 
 import 'min_emulator.dart';
 
+enum MobileKeyboardLayoutMode {
+  bitmap,
+  virtualCompact,
+  compactOnly,
+}
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -60,7 +66,8 @@ class MinSettings extends ChangeNotifier {
   bool _keyboard = false;
   bool _capslock = true;
   bool _desktopImageKeyboardEnabled = false;
-  bool _mobileSystemKeyboardOpen = false;
+  MobileKeyboardLayoutMode _mobileKeyboardLayout =
+      MobileKeyboardLayoutMode.bitmap;
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
 
@@ -99,7 +106,7 @@ class MinSettings extends ChangeNotifier {
 
   bool get desktopImageKeyboardEnabled => _desktopImageKeyboardEnabled;
 
-  bool get mobileSystemKeyboardOpen => _mobileSystemKeyboardOpen;
+  MobileKeyboardLayoutMode get mobileKeyboardLayout => _mobileKeyboardLayout;
 
   Color get appBackgroundColor => _appBackgroundColor;
 
@@ -149,9 +156,22 @@ class MinSettings extends ChangeNotifier {
     _singleton.notifyListeners();
   }
 
-  static void setMobileSystemKeyboardOpen(bool value) {
-    if (_singleton._mobileSystemKeyboardOpen == value) return;
-    _singleton._mobileSystemKeyboardOpen = value;
+  static void setMobileKeyboardLayout(MobileKeyboardLayoutMode mode) {
+    if (_singleton._mobileKeyboardLayout == mode) return;
+    _singleton._mobileKeyboardLayout = mode;
+    _singleton.notifyListeners();
+  }
+
+  static void cycleMobileKeyboardLayout() {
+    switch (_singleton._mobileKeyboardLayout) {
+      case MobileKeyboardLayoutMode.bitmap:
+        _singleton._mobileKeyboardLayout =
+            MobileKeyboardLayoutMode.virtualCompact;
+      case MobileKeyboardLayoutMode.virtualCompact:
+        _singleton._mobileKeyboardLayout = MobileKeyboardLayoutMode.compactOnly;
+      case MobileKeyboardLayoutMode.compactOnly:
+        _singleton._mobileKeyboardLayout = MobileKeyboardLayoutMode.bitmap;
+    }
     _singleton.notifyListeners();
   }
 
@@ -267,8 +287,9 @@ class MinScreenAndKeyboard extends StatelessWidget {
               const displayColumns = 80;
               const displayWidth = 8.0 * displayColumns;
               const displayHeight = displayWidth * 3.0 / 4.0;
-              final allowImageKeyboardOnMobile =
-                  _isMobileTarget && !settings.mobileSystemKeyboardOpen;
+              final allowImageKeyboardOnMobile = _isMobileTarget &&
+                  settings.mobileKeyboardLayout ==
+                      MobileKeyboardLayoutMode.bitmap;
               final imageKeyboardEnabled =
                   minmodel.screenMode == TMinitelScreenMode.videotex40 &&
                       (allowImageKeyboardOnMobile ||
@@ -738,8 +759,9 @@ class MinKeyboard extends StatelessWidget {
         if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
           return MinVt100Keyboard(scaleOverride: scaleOverride);
         }
-        final allowImageKeyboardOnMobile =
-            _isMobileTarget && !MinSettings().mobileSystemKeyboardOpen;
+        final allowImageKeyboardOnMobile = _isMobileTarget &&
+            MinSettings().mobileKeyboardLayout ==
+                MobileKeyboardLayoutMode.bitmap;
         final useImageKeyboard = allowImageKeyboardOnMobile ||
             MinSettings().desktopImageKeyboardEnabled;
         if (useImageKeyboard) {
