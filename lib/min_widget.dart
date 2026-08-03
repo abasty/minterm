@@ -231,6 +231,12 @@ class MinScreen extends StatelessWidget {
 class MinScreenAndKeyboard extends StatelessWidget {
   const MinScreenAndKeyboard({super.key});
 
+  bool get _isMobileTarget {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -243,7 +249,10 @@ class MinScreenAndKeyboard extends StatelessWidget {
               const displayColumns = 80;
               const displayWidth = 8.0 * displayColumns;
               const displayHeight = displayWidth * 3.0 / 4.0;
-              const keyboardBaseHeight = 48.0;
+                final keyboardBaseHeight = _isMobileTarget &&
+                        minmodel.screenMode == TMinitelScreenMode.videotex40
+                  ? 250.0
+                  : 48.0;
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -805,6 +814,12 @@ class MinKeyboard extends StatelessWidget {
     super.key,
   });
 
+  bool get _isMobileTarget {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -813,8 +828,338 @@ class MinKeyboard extends StatelessWidget {
         if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
           return const MinVt100Keyboard();
         }
+        if (_isMobileTarget) {
+          return const _MinMinitelImageKeyboard();
+        }
         return const MinMinitelKeyboard();
       },
+    );
+  }
+}
+
+class _MinMinitelImageKeyboard extends StatelessWidget {
+  const _MinMinitelImageKeyboard();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const baseWidth = 320.0;
+        const baseHeight = 250.0;
+
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight;
+        if (!availableWidth.isFinite || !availableHeight.isFinite) {
+          return const SizedBox.shrink();
+        }
+
+        final scale = math.min(
+          availableWidth / baseWidth,
+          availableHeight / baseHeight,
+        );
+        final keyboardWidth = baseWidth * scale;
+        final keyboardHeight = baseHeight * scale;
+
+        return Center(
+          child: SizedBox(
+            width: keyboardWidth,
+            height: keyboardHeight,
+            child: Stack(
+              children: [
+                const _MinKeyboardImage(),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      width: 0.5,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 5,
+                  top: 10,
+                  width: 35,
+                  k: TMinitelKey.cxFin,
+                ),
+                for (int i = 0; i < 4; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 66 + i * 40,
+                    top: 36,
+                    width: 35,
+                    k: [
+                      TMinitelKey.sommaire,
+                      TMinitelKey.annulation,
+                      TMinitelKey.retour,
+                      TMinitelKey.repetition,
+                    ][i],
+                    ks: [
+                      TMinitelKey.circonflexe,
+                      "\\",
+                      TMinitelKey.aigu,
+                      "{",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      TMinitelKey.livre,
+                      TMinitelKey.OE,
+                      TMinitelKey.oe,
+                    ][i],
+                  ),
+                for (int i = 0; i < 4; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 66 + i * 40,
+                    top: 63,
+                    width: 35,
+                    k: [
+                      TMinitelKey.guide,
+                      TMinitelKey.correction,
+                      TMinitelKey.suite,
+                      TMinitelKey.envoi,
+                    ][i],
+                    ks: [
+                      TMinitelKey.trema,
+                      TMinitelKey.paragraph,
+                      TMinitelKey.grave,
+                      "}",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      "${TMinitelKey.cedille}c",
+                      TMinitelKey.beta,
+                      "\x00",
+                    ][i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 8,
+                    k: "123"[i],
+                    ks: "!\"#"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 34,
+                    k: "456"[i],
+                    ks: "\$%&"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 60,
+                    k: "789"[i],
+                    ks: "'()"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 86,
+                    k: "*0#"[i],
+                    ks: [
+                      "[",
+                      TMinitelKey.flecheHaut,
+                      "]",
+                    ][i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 37,
+                  top: 120,
+                  k: '\x1b',
+                ),
+                for (int i = 0; i < 7; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 67 + i * 30,
+                    top: 120,
+                    k: ",.';-:?"[i],
+                    ks: "<>@+=*/"[i],
+                  ),
+                for (int i = 0; i < 10; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 26 + i * 28.8,
+                    top: 147,
+                    k: "AZERTYUIOP"[i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 6,
+                  top: 173,
+                  width: 25,
+                  k: "ctrl",
+                ),
+                for (int i = 0; i < 10; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 34 + i * 28.8,
+                    top: 173,
+                    k: "QSDFGHJKLM"[i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 20,
+                  top: 199,
+                  width: 25,
+                  k: "shift",
+                ),
+                for (int i = 0; i < 6; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 49 + i * 28.8,
+                    top: 199,
+                    k: "WXCVBN"[i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 221,
+                  top: 199,
+                  width: 25,
+                  k: "shift",
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 6,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowUp,
+                  ks: TMinitelKey.supL,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 35,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowDown,
+                  ks: TMinitelKey.insL,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 64,
+                  top: 225,
+                  width: 142,
+                  k: " ",
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 210,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowLeft,
+                  kc: "\x7f",
+                  ks: TMinitelKey.delC,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 239,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowRight,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 282,
+                  top: 226,
+                  width: 35,
+                  k: "\x0d",
+                  ks: TMinitelKey.home,
+                  kc: TMinitelKey.ePage,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MinKeyboardImage extends StatelessWidget {
+  const _MinKeyboardImage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/clavier.png'),
+          fit: BoxFit.fill,
+        ),
+      ),
+    );
+  }
+}
+
+class _MinImageKey extends StatelessWidget {
+  final double scale;
+  final double left;
+  final double top;
+  final double width;
+  final String k;
+  final String ks;
+  final String kc;
+
+  const _MinImageKey({
+    required this.scale,
+    this.left = 0,
+    this.top = 0,
+    this.width = 25,
+    this.k = '',
+    this.ks = '',
+    this.kc = '',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: left * scale,
+      top: top * scale,
+      width: width * scale,
+      height: 20 * scale,
+      child: InkWell(
+        hoverColor: Colors.grey,
+        splashColor: const ui.Color.fromARGB(255, 107, 66, 0),
+        child: kDebugMode
+            ? Container(
+                decoration: BoxDecoration(
+                  border: Border.all(width: 1, color: Colors.red),
+                ),
+              )
+            : null,
+        onTap: () {
+          final player = AudioPlayer();
+          player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+
+          final letters = RegExp(r'^[A-Z]$');
+          final shifted = MinModel().isShifted;
+          final ctrl = MinModel().isCtrl;
+          final upMode = MinSettings().capslock;
+          var key = '';
+          if (letters.hasMatch(k)) {
+            if (k.toUpperCase() == 'G' && ctrl) {
+              key = '\x07';
+            } else {
+              key = (shifted && upMode) || (!shifted && !upMode)
+                  ? k.toLowerCase()
+                  : k;
+            }
+          } else {
+            if (ctrl && kc.isNotEmpty) {
+              key = kc;
+            } else {
+              key = shifted && ks.isNotEmpty ? ks : k;
+            }
+          }
+          MinModel().handleKeys(key);
+        },
+      ),
     );
   }
 }
