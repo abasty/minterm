@@ -1071,10 +1071,12 @@ class _MinImageKeyState extends State<_MinImageKey> {
   static const _keyboardBaseWidth = 320.0;
   static const _keyboardBaseHeight = 250.0;
 
-  void _emitKey() {
+  void _playKeyClickSound() {
     final player = AudioPlayer();
     player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+  }
 
+  void _emitKey() {
     final letters = RegExp(r'^[A-Z]$');
     final shifted = MinModel().isShifted;
     final ctrl = MinModel().isCtrl;
@@ -1118,6 +1120,9 @@ class _MinImageKeyState extends State<_MinImageKey> {
         hoverColor: Colors.transparent,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
+        onTapDown: (_) {
+          _playKeyClickSound();
+        },
         onHighlightChanged: (value) {
           if (_pressed == value) return;
           setState(() {
