@@ -56,14 +56,15 @@ class MinTerm extends StatelessWidget {
                   Clear(),
                   Connection('3611', 'ws://3611.re/ws'),
                   Connection('3615', 'ws://3615co.de/ws'),
-                  Connection('Minipavi', 'tcp:go.minipavi.fr:516'),
+                  Connection(
+                    'Minipavi',
+                    'ws://go.minipavi.fr:8182',
+                    checkWebSocketAccept: false,
+                  ),
                   Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
                   Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
                   Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
-                  Connection(
-                    'WS/WSS Gateway (localhost:1963)',
-                    'tcp://127.0.0.1:1963',
-                  ),
+                  Connection('Zboub', 'tcp:abasty-retro.fr:1967'),
                   if (isSerialSupported) const ConnectionSerial(),
                 ],
               ),
@@ -736,13 +737,20 @@ class Clear extends StatelessWidget {
 class Connection extends StatelessWidget {
   final String uri;
   final String text;
-  const Connection(this.text, this.uri, {super.key});
+  final bool checkWebSocketAccept;
+  const Connection(
+    this.text,
+    this.uri, {
+    super.key,
+    this.checkWebSocketAccept = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
         MinModel().serverAddress = uri;
+        MinModel().checkWebSocketAccept = checkWebSocketAccept;
         MinModel().connect();
         Navigator.pop(context);
       },
