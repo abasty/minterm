@@ -11,6 +11,12 @@ import 'package:provider/provider.dart';
 
 import 'min_emulator.dart';
 
+enum MobileKeyboardLayoutMode {
+  bitmap,
+  virtualCompact,
+  compactOnly,
+}
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -59,6 +65,9 @@ class MinSettings extends ChangeNotifier {
   int _loaded = 0;
   bool _keyboard = false;
   bool _capslock = true;
+  bool _desktopImageKeyboardEnabled = false;
+  MobileKeyboardLayoutMode _mobileKeyboardLayout =
+      MobileKeyboardLayoutMode.bitmap;
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
 
@@ -94,6 +103,10 @@ class MinSettings extends ChangeNotifier {
   bool get keyboard => _keyboard;
 
   bool get capslock => _capslock;
+
+  bool get desktopImageKeyboardEnabled => _desktopImageKeyboardEnabled;
+
+  MobileKeyboardLayoutMode get mobileKeyboardLayout => _mobileKeyboardLayout;
 
   Color get appBackgroundColor => _appBackgroundColor;
 
@@ -134,6 +147,31 @@ class MinSettings extends ChangeNotifier {
 
   static void toggleCapslock() {
     _singleton._capslock = !_singleton._capslock;
+    _singleton.notifyListeners();
+  }
+
+  static void toggleDesktopImageKeyboard() {
+    _singleton._desktopImageKeyboardEnabled =
+        !_singleton._desktopImageKeyboardEnabled;
+    _singleton.notifyListeners();
+  }
+
+  static void setMobileKeyboardLayout(MobileKeyboardLayoutMode mode) {
+    if (_singleton._mobileKeyboardLayout == mode) return;
+    _singleton._mobileKeyboardLayout = mode;
+    _singleton.notifyListeners();
+  }
+
+  static void cycleMobileKeyboardLayout() {
+    switch (_singleton._mobileKeyboardLayout) {
+      case MobileKeyboardLayoutMode.bitmap:
+        _singleton._mobileKeyboardLayout =
+            MobileKeyboardLayoutMode.virtualCompact;
+      case MobileKeyboardLayoutMode.virtualCompact:
+        _singleton._mobileKeyboardLayout = MobileKeyboardLayoutMode.compactOnly;
+      case MobileKeyboardLayoutMode.compactOnly:
+        _singleton._mobileKeyboardLayout = MobileKeyboardLayoutMode.bitmap;
+    }
     _singleton.notifyListeners();
   }
 
@@ -231,6 +269,12 @@ class MinScreen extends StatelessWidget {
 class MinScreenAndKeyboard extends StatelessWidget {
   const MinScreenAndKeyboard({super.key});
 
+  bool get _isMobileTarget {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -243,7 +287,14 @@ class MinScreenAndKeyboard extends StatelessWidget {
               const displayColumns = 80;
               const displayWidth = 8.0 * displayColumns;
               const displayHeight = displayWidth * 3.0 / 4.0;
-              const keyboardBaseHeight = 48.0;
+              final allowImageKeyboardOnMobile = _isMobileTarget &&
+                  settings.mobileKeyboardLayout ==
+                      MobileKeyboardLayoutMode.bitmap;
+              final imageKeyboardEnabled =
+                  minmodel.screenMode == TMinitelScreenMode.videotex40 &&
+                      (allowImageKeyboardOnMobile ||
+                          settings.desktopImageKeyboardEnabled);
+              final keyboardBaseHeight = imageKeyboardEnabled ? 500.0 : 48.0;
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -336,15 +387,7 @@ class _KeyboardWithReplayOverlay extends StatelessWidget {
       fit: StackFit.expand,
       alignment: Alignment.center,
       children: [
-        ListenableBuilder(
-          listenable: MinModel(),
-          builder: (context, child) {
-            if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
-              return _SharedVt100Keyboard(scale: scale);
-            }
-            return _SharedMinitelKeyboard(scale: scale);
-          },
-        ),
+        MinKeyboard(scaleOverride: scale),
         ListenableBuilder(
           listenable: MinModel(),
           builder: (context, _) {
@@ -393,112 +436,6 @@ class _KeyboardWithReplayOverlay extends StatelessWidget {
           },
         ),
       ],
-    );
-  }
-}
-
-class _SharedMinitelKeyboard extends StatelessWidget {
-  final double scale;
-
-  const _SharedMinitelKeyboard({required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildRow(MinMinitelKeyboard._row1),
-        _buildRow(MinMinitelKeyboard._row2),
-      ],
-    );
-  }
-
-  Widget _buildRow(List<List<String>> keys) {
-    return Row(
-      children: keys.map((entry) {
-        final label = entry[0];
-        return Expanded(
-          flex: _minitelKeyFlex(label),
-          child: SizedBox(
-            height: 24 * scale,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey),
-                ),
-                backgroundColor: const Color(0xFF1E3A5F),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => MinModel().handleKeys(entry[1]),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  style: TextStyle(fontSize: 10 * scale),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  int _minitelKeyFlex(String label) {
-    if (label == 'Espace') return 3;
-    if (label == 'Esc') return 1;
-    return label == '↑' || label == '↓' || label == '←' || label == '→' ? 1 : 2;
-  }
-}
-
-class _SharedVt100Keyboard extends StatelessWidget {
-  final double scale;
-
-  const _SharedVt100Keyboard({required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildRow(MinVt100Keyboard._row1),
-        _buildRow(MinVt100Keyboard._row2),
-      ],
-    );
-  }
-
-  Widget _buildRow(List<List<String>> keys) {
-    return Row(
-      children: keys.map((entry) {
-        return Expanded(
-          child: SizedBox(
-            height: 24 * scale,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey),
-                ),
-                backgroundColor: const Color(0xFF212121),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => MinModel().handleKeys(entry[1]),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  entry[0],
-                  style: TextStyle(fontSize: 10 * scale),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }
@@ -801,9 +738,18 @@ class _MinPainter extends CustomPainter {
 }
 
 class MinKeyboard extends StatelessWidget {
+  final double? scaleOverride;
+
   const MinKeyboard({
     super.key,
+    this.scaleOverride,
   });
+
+  bool get _isMobileTarget {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -811,17 +757,440 @@ class MinKeyboard extends StatelessWidget {
       listenable: MinModel(),
       builder: (context, child) {
         if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
-          return const MinVt100Keyboard();
+          return MinVt100Keyboard(scaleOverride: scaleOverride);
         }
-        return const MinMinitelKeyboard();
+        final allowImageKeyboardOnMobile = _isMobileTarget &&
+            MinSettings().mobileKeyboardLayout ==
+                MobileKeyboardLayoutMode.bitmap;
+        final useImageKeyboard = allowImageKeyboardOnMobile ||
+            MinSettings().desktopImageKeyboardEnabled;
+        if (useImageKeyboard) {
+          return const _MinMinitelImageKeyboard();
+        }
+        return MinMinitelKeyboard(scaleOverride: scaleOverride);
       },
+    );
+  }
+}
+
+class _MinMinitelImageKeyboard extends StatelessWidget {
+  const _MinMinitelImageKeyboard();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const baseWidth = 320.0;
+        const baseHeight = 250.0;
+
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight;
+        if (!availableWidth.isFinite ||
+            !availableHeight.isFinite ||
+            availableWidth <= 0 ||
+            availableHeight <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final scale = math.min(
+          availableWidth / baseWidth,
+          availableHeight / baseHeight,
+        );
+        final keyboardWidth = baseWidth * scale;
+        final keyboardHeight = baseHeight * scale;
+
+        return Center(
+          child: SizedBox(
+            width: keyboardWidth,
+            height: keyboardHeight,
+            child: Stack(
+              children: [
+                const _MinKeyboardImage(),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      width: 0.5,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 5,
+                  top: 10,
+                  width: 35,
+                  k: TMinitelKey.cxFin,
+                ),
+                for (int i = 0; i < 4; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 66 + i * 40,
+                    top: 36,
+                    width: 35,
+                    k: [
+                      TMinitelKey.sommaire,
+                      TMinitelKey.annulation,
+                      TMinitelKey.retour,
+                      TMinitelKey.repetition,
+                    ][i],
+                    ks: [
+                      TMinitelKey.circonflexe,
+                      "\\",
+                      TMinitelKey.aigu,
+                      "{",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      TMinitelKey.livre,
+                      TMinitelKey.OE,
+                      TMinitelKey.oe,
+                    ][i],
+                  ),
+                for (int i = 0; i < 4; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 66 + i * 40,
+                    top: 63,
+                    width: 35,
+                    k: [
+                      TMinitelKey.guide,
+                      TMinitelKey.correction,
+                      TMinitelKey.suite,
+                      TMinitelKey.envoi,
+                    ][i],
+                    ks: [
+                      TMinitelKey.trema,
+                      TMinitelKey.paragraph,
+                      TMinitelKey.grave,
+                      "}",
+                    ][i],
+                    kc: [
+                      "\x00",
+                      "${TMinitelKey.cedille}c",
+                      TMinitelKey.beta,
+                      "\x00",
+                    ][i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 6,
+                    k: "123"[i],
+                    ks: "!\"#"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 32,
+                    k: "456"[i],
+                    ks: "\$%&"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 60,
+                    k: "789"[i],
+                    ks: "'()"[i],
+                  ),
+                for (int i = 0; i < 3; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 237 + i * 29,
+                    top: 86,
+                    k: "*0#"[i],
+                    ks: [
+                      "[",
+                      TMinitelKey.flecheHaut,
+                      "]",
+                    ][i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 37,
+                  top: 120,
+                  k: '\x1b',
+                ),
+                for (int i = 0; i < 7; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 67 + i * 30,
+                    top: 120,
+                    k: ",.';-:?"[i],
+                    ks: "<>@+=*/"[i],
+                  ),
+                for (int i = 0; i < 10; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 26 + i * 28.8,
+                    top: 147,
+                    k: "AZERTYUIOP"[i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 6,
+                  top: 173,
+                  width: 25,
+                  k: "ctrl",
+                ),
+                for (int i = 0; i < 10; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 34 + i * 28.8,
+                    top: 173,
+                    k: "QSDFGHJKLM"[i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 20,
+                  top: 197,
+                  width: 25,
+                  k: "shift",
+                ),
+                for (int i = 0; i < 6; i++)
+                  _MinImageKey(
+                    scale: scale,
+                    left: 49 + i * 28.8,
+                    top: 197,
+                    k: "WXCVBN"[i],
+                  ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 221,
+                  top: 197,
+                  width: 25,
+                  k: "shift",
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 6,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowUp,
+                  ks: TMinitelKey.supL,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 35,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowDown,
+                  ks: TMinitelKey.insL,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 64,
+                  top: 225,
+                  width: 142,
+                  k: " ",
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 210,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowLeft,
+                  kc: "\x7f",
+                  ks: TMinitelKey.delC,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 239,
+                  top: 225,
+                  width: 25,
+                  k: TMinitelKey.arrowRight,
+                ),
+                _MinImageKey(
+                  scale: scale,
+                  left: 282,
+                  top: 226,
+                  width: 35,
+                  k: "\x0d",
+                  ks: TMinitelKey.home,
+                  kc: TMinitelKey.ePage,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MinKeyboardImage extends StatelessWidget {
+  const _MinKeyboardImage();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFFF2F2F2) : const Color(0xFFE6E6E6),
+        border: isDarkTheme
+            ? Border.all(color: const Color(0xFFB0B0B0), width: 0.5)
+            : null,
+        image: const DecorationImage(
+          image: AssetImage('assets/clavier.png'),
+          fit: BoxFit.fill,
+        ),
+      ),
+    );
+  }
+}
+
+class _MinImageKey extends StatefulWidget {
+  final double scale;
+  final double left;
+  final double top;
+  final double width;
+  final String k;
+  final String ks;
+  final String kc;
+
+  const _MinImageKey({
+    required this.scale,
+    this.left = 0,
+    this.top = 0,
+    this.width = 25,
+    this.k = '',
+    this.ks = '',
+    this.kc = '',
+  });
+
+  @override
+  State<_MinImageKey> createState() => _MinImageKeyState();
+}
+
+class _MinImageKeyState extends State<_MinImageKey> {
+  static const _pressDuration = Duration(milliseconds: 90);
+  bool _pressed = false;
+
+  static const _keyboardBaseWidth = 320.0;
+  static const _keyboardBaseHeight = 250.0;
+
+  void _playKeyClickSound() {
+    final player = AudioPlayer();
+    player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+  }
+
+  void _emitKey() {
+    final letters = RegExp(r'^[A-Z]$');
+    final shifted = MinModel().isShifted;
+    final ctrl = MinModel().isCtrl;
+    final upMode = MinSettings().capslock;
+    var key = '';
+    if (letters.hasMatch(widget.k)) {
+      if (widget.k.toUpperCase() == 'G' && ctrl) {
+        key = '\x07';
+      } else {
+        key = (shifted && upMode) || (!shifted && !upMode)
+            ? widget.k.toLowerCase()
+            : widget.k;
+      }
+    } else {
+      if (ctrl && widget.kc.isNotEmpty) {
+        key = widget.kc;
+      } else {
+        key = shifted && widget.ks.isNotEmpty ? widget.ks : widget.k;
+      }
+    }
+    MinModel().handleKeys(key);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scaledKeyWidth = widget.width * widget.scale;
+    final scaledKeyHeight = 20 * widget.scale;
+    final scaledKeyboardWidth = _keyboardBaseWidth * widget.scale;
+    final scaledKeyboardHeight = _keyboardBaseHeight * widget.scale;
+    final pressOffset = 0.9 * widget.scale;
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    final keyRestBackground =
+        isDarkTheme ? const Color(0xFFF2F2F2) : const Color(0xFFE6E6E6);
+
+    return Positioned(
+      left: widget.left * widget.scale,
+      top: widget.top * widget.scale,
+      width: scaledKeyWidth,
+      height: scaledKeyHeight,
+      child: InkWell(
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        onTapDown: (_) {
+          _playKeyClickSound();
+        },
+        onHighlightChanged: (value) {
+          if (_pressed == value) return;
+          setState(() {
+            _pressed = value;
+          });
+        },
+        onTap: _emitKey,
+        child: AnimatedContainer(
+          clipBehavior: Clip.hardEdge,
+          duration: _pressDuration,
+          curve: Curves.easeOut,
+          transform: Matrix4.identity(),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border.all(
+              width: _pressed ? 0.7 : 0.5,
+              color: kDebugMode
+                  ? Colors.red
+                  : (_pressed
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.transparent),
+            ),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_pressed)
+                Container(
+                  color: keyRestBackground,
+                ),
+              if (_pressed)
+                Transform.translate(
+                  offset: Offset(pressOffset, pressOffset),
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topLeft,
+                      minWidth: scaledKeyboardWidth,
+                      maxWidth: scaledKeyboardWidth,
+                      minHeight: scaledKeyboardHeight,
+                      maxHeight: scaledKeyboardHeight,
+                      child: Transform.translate(
+                        offset: Offset(
+                          -widget.left * widget.scale,
+                          -widget.top * widget.scale,
+                        ),
+                        child: Image.asset(
+                          'assets/clavier.png',
+                          width: scaledKeyboardWidth,
+                          height: scaledKeyboardHeight,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
 /// Compact keyboard for Minitel 40-column mode.
 class MinMinitelKeyboard extends StatelessWidget {
-  const MinMinitelKeyboard({super.key});
+  final double? scaleOverride;
+
+  const MinMinitelKeyboard({super.key, this.scaleOverride});
 
   static const _row1 = [
     ['Cx/Fin', TMinitelKey.cxFin],
@@ -850,7 +1219,7 @@ class MinMinitelKeyboard extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, child) {
-        final scale = MinSettings().scale;
+        final scale = scaleOverride ?? MinSettings().scale;
         return LayoutBuilder(
           builder: (context, constraints) {
             final displayColumns = 80;
@@ -858,14 +1227,17 @@ class MinMinitelKeyboard extends StatelessWidget {
             final displayHeight = displayWidth * 3.0 / 4.0;
 
             final maxWidth = constraints.maxWidth;
-            final maxHeight = constraints.maxHeight;
             if (!maxWidth.isFinite) {
               return const SizedBox.shrink();
             }
 
-            final fittedScale =
-                math.min(maxWidth / displayWidth, maxHeight / displayHeight);
-            final keyboardWidth = displayWidth * fittedScale;
+            final keyboardWidth = scaleOverride != null
+                ? displayWidth * scaleOverride!
+                : displayWidth *
+                    math.min(
+                      maxWidth / displayWidth,
+                      constraints.maxHeight / displayHeight,
+                    );
 
             return Center(
               child: SizedBox(
@@ -928,7 +1300,9 @@ class MinMinitelKeyboard extends StatelessWidget {
 
 /// Compact function-key bar shown in VT100 80-column mode.
 class MinVt100Keyboard extends StatelessWidget {
-  const MinVt100Keyboard({super.key});
+  final double? scaleOverride;
+
+  const MinVt100Keyboard({super.key, this.scaleOverride});
 
   static const _row1 = [
     ['ESC', '\x1b'],
@@ -964,7 +1338,7 @@ class MinVt100Keyboard extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, child) {
-        final scale = MinSettings().scale;
+        final scale = scaleOverride ?? MinSettings().scale;
         return LayoutBuilder(
           builder: (context, constraints) {
             final displayColumns = 80;
@@ -972,14 +1346,17 @@ class MinVt100Keyboard extends StatelessWidget {
             final displayHeight = displayWidth * 3.0 / 4.0;
 
             final maxWidth = constraints.maxWidth;
-            final maxHeight = constraints.maxHeight;
             if (!maxWidth.isFinite) {
               return const SizedBox.shrink();
             }
 
-            final fittedScale =
-                math.min(maxWidth / displayWidth, maxHeight / displayHeight);
-            final keyboardWidth = displayWidth * fittedScale;
+            final keyboardWidth = scaleOverride != null
+                ? displayWidth * scaleOverride!
+                : displayWidth *
+                    math.min(
+                      maxWidth / displayWidth,
+                      constraints.maxHeight / displayHeight,
+                    );
 
             return Center(
               child: SizedBox(
