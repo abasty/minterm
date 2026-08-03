@@ -43,6 +43,7 @@ class MinModel extends ChangeNotifier {
   bool showBlink = true;
   int endKeyTap = 0;
   int _activeConnectionId = 0;
+  bool _checkWebSocketAccept = true;
 
   factory MinModel() {
     return _singleton;
@@ -118,6 +119,10 @@ class MinModel extends ChangeNotifier {
 
   set serverAddress(String? value) {
     _serverAddress = value;
+  }
+
+  set checkWebSocketAccept(bool value) {
+    _checkWebSocketAccept = value;
   }
 
   TMinitelScreenMode get screenMode => minitel.screenMode;
@@ -574,7 +579,11 @@ class MinModel extends ChangeNotifier {
     }
 
     if (uri.scheme == 'ws' || uri.scheme == 'wss') {
-      connectWebSocket(uri, connectionId);
+      connectWebSocket(
+        uri,
+        connectionId,
+        checkWebSocketAccept: _checkWebSocketAccept,
+      );
     }
 
     if (uri.scheme == 'tcp' || uri.scheme == 'udp') {
@@ -680,7 +689,11 @@ class MinModel extends ChangeNotifier {
     );
   }
 
-  void connectWebSocket(Uri uri, int connectionId) {
+  void connectWebSocket(
+    Uri uri,
+    int connectionId, {
+    required bool checkWebSocketAccept,
+  }) {
     if (kIsWeb) {
       _server = WebSocketChannel.connect(uri);
       (_server as WebSocketChannel).stream.listen(
@@ -708,6 +721,7 @@ class MinModel extends ChangeNotifier {
     _TextWebSocketConnection.connect(
       wsUri,
       timeout: const Duration(seconds: 12),
+      checkWebSocketAccept: checkWebSocketAccept,
     ).then((ws) {
       if (connectionId != _activeConnectionId) {
         ws.close();
@@ -871,6 +885,7 @@ class _TextWebSocketConnection {
   static Future<_TextWebSocketConnection> connect(
     Uri uri, {
     Duration timeout = const Duration(seconds: 12),
+    bool checkWebSocketAccept = true,
   }) async {
     final host = uri.host;
     final port = uri.hasPort ? uri.port : (uri.scheme == 'wss' ? 443 : 80);
@@ -922,16 +937,16 @@ class _TextWebSocketConnection {
 
     final expectedAccept = _expectedAccept(wsKey);
     final responseAccept = headers['sec-websocket-accept']?.trim();
-    if (responseAccept != expectedAccept) {
-      if (_allowBrokenAcceptForHost(uri.host)) {
-        debugPrint(
-          'WebSocket warning for ${uri.host}: non-compliant '
-          'Sec-WebSocket-Accept (expected $expectedAccept, got $responseAccept)',
-        );
-      } else {
-        throw SocketException(
-            'Invalid Sec-WebSocket-Accept in handshake response');
-      }
+    if (responseAccept != expectedAccept && checkWebSocketAccept) {
+      throw SocketException(
+          'Invalid Sec-WebSocket-Accept in handshake response');
+    }
+
+    if (responseAccept != expectedAccept && !checkWebSocketAccept) {
+      debugPrint(
+        'WebSocket warning for ${uri.host}: skipped '
+        'Sec-WebSocket-Accept check (expected $expectedAccept, got $responseAccept)',
+      );
     }
 
     final remaining = allHeaderBytes.sublist(headerEnd + 4);
@@ -1163,11 +1178,6 @@ class _TextWebSocketConnection {
     return headerValue
         .split(',')
         .any((part) => part.trim().toLowerCase() == expected);
-  }
-
-  static bool _allowBrokenAcceptForHost(String host) {
-    final normalized = host.toLowerCase();
-    return normalized == 'go.minipavi.fr';
   }
 
   static List<int> _sha1(List<int> bytes) {
