@@ -875,7 +875,7 @@ class _MinMinitelImageKeyboard extends StatelessWidget {
                   _MinImageKey(
                     scale: scale,
                     left: 237 + i * 29,
-                    top: 8,
+                    top: 6,
                     k: "123"[i],
                     ks: "!\"#"[i],
                   ),
@@ -883,7 +883,7 @@ class _MinMinitelImageKeyboard extends StatelessWidget {
                   _MinImageKey(
                     scale: scale,
                     left: 237 + i * 29,
-                    top: 34,
+                    top: 32,
                     k: "456"[i],
                     ks: "\$%&"[i],
                   ),
@@ -945,7 +945,7 @@ class _MinMinitelImageKeyboard extends StatelessWidget {
                 _MinImageKey(
                   scale: scale,
                   left: 20,
-                  top: 199,
+                  top: 197,
                   width: 25,
                   k: "shift",
                 ),
@@ -953,13 +953,13 @@ class _MinMinitelImageKeyboard extends StatelessWidget {
                   _MinImageKey(
                     scale: scale,
                     left: 49 + i * 28.8,
-                    top: 199,
+                    top: 197,
                     k: "WXCVBN"[i],
                   ),
                 _MinImageKey(
                   scale: scale,
                   left: 221,
-                  top: 199,
+                  top: 197,
                   width: 25,
                   k: "shift",
                 ),
@@ -1041,7 +1041,7 @@ class _MinKeyboardImage extends StatelessWidget {
   }
 }
 
-class _MinImageKey extends StatelessWidget {
+class _MinImageKey extends StatefulWidget {
   final double scale;
   final double left;
   final double top;
@@ -1061,48 +1061,121 @@ class _MinImageKey extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: left * scale,
-      top: top * scale,
-      width: width * scale,
-      height: 20 * scale,
-      child: InkWell(
-        hoverColor: Colors.grey,
-        splashColor: const ui.Color.fromARGB(255, 107, 66, 0),
-        child: kDebugMode
-            ? Container(
-                decoration: BoxDecoration(
-                  border: Border.all(width: 1, color: Colors.red),
-                ),
-              )
-            : null,
-        onTap: () {
-          final player = AudioPlayer();
-          player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+  State<_MinImageKey> createState() => _MinImageKeyState();
+}
 
-          final letters = RegExp(r'^[A-Z]$');
-          final shifted = MinModel().isShifted;
-          final ctrl = MinModel().isCtrl;
-          final upMode = MinSettings().capslock;
-          var key = '';
-          if (letters.hasMatch(k)) {
-            if (k.toUpperCase() == 'G' && ctrl) {
-              key = '\x07';
-            } else {
-              key = (shifted && upMode) || (!shifted && !upMode)
-                  ? k.toLowerCase()
-                  : k;
-            }
-          } else {
-            if (ctrl && kc.isNotEmpty) {
-              key = kc;
-            } else {
-              key = shifted && ks.isNotEmpty ? ks : k;
-            }
-          }
-          MinModel().handleKeys(key);
+class _MinImageKeyState extends State<_MinImageKey> {
+  static const _pressDuration = Duration(milliseconds: 90);
+  bool _pressed = false;
+
+  static const _keyboardBaseWidth = 320.0;
+  static const _keyboardBaseHeight = 250.0;
+
+  void _emitKey() {
+    final player = AudioPlayer();
+    player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+
+    final letters = RegExp(r'^[A-Z]$');
+    final shifted = MinModel().isShifted;
+    final ctrl = MinModel().isCtrl;
+    final upMode = MinSettings().capslock;
+    var key = '';
+    if (letters.hasMatch(widget.k)) {
+      if (widget.k.toUpperCase() == 'G' && ctrl) {
+        key = '\x07';
+      } else {
+        key = (shifted && upMode) || (!shifted && !upMode)
+            ? widget.k.toLowerCase()
+            : widget.k;
+      }
+    } else {
+      if (ctrl && widget.kc.isNotEmpty) {
+        key = widget.kc;
+      } else {
+        key = shifted && widget.ks.isNotEmpty ? widget.ks : widget.k;
+      }
+    }
+    MinModel().handleKeys(key);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scaledKeyWidth = widget.width * widget.scale;
+    final scaledKeyHeight = 20 * widget.scale;
+    final scaledKeyboardWidth = _keyboardBaseWidth * widget.scale;
+    final scaledKeyboardHeight = _keyboardBaseHeight * widget.scale;
+    final pressOffset = 0.9 * widget.scale;
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    final keyRestBackground =
+        isDarkTheme ? const Color(0xFFF2F2F2) : const Color(0xFFE6E6E6);
+
+    return Positioned(
+      left: widget.left * widget.scale,
+      top: widget.top * widget.scale,
+      width: scaledKeyWidth,
+      height: scaledKeyHeight,
+      child: InkWell(
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        onHighlightChanged: (value) {
+          if (_pressed == value) return;
+          setState(() {
+            _pressed = value;
+          });
         },
+        onTap: _emitKey,
+        child: AnimatedContainer(
+          clipBehavior: Clip.hardEdge,
+          duration: _pressDuration,
+          curve: Curves.easeOut,
+          transform: Matrix4.identity(),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border.all(
+              width: _pressed ? 0.7 : 0.5,
+              color: kDebugMode
+                  ? Colors.red
+                  : (_pressed
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.transparent),
+            ),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_pressed)
+                Container(
+                  color: keyRestBackground,
+                ),
+              if (_pressed)
+                Transform.translate(
+                  offset: Offset(pressOffset, pressOffset),
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topLeft,
+                      minWidth: scaledKeyboardWidth,
+                      maxWidth: scaledKeyboardWidth,
+                      minHeight: scaledKeyboardHeight,
+                      maxHeight: scaledKeyboardHeight,
+                      child: Transform.translate(
+                        offset: Offset(
+                          -widget.left * widget.scale,
+                          -widget.top * widget.scale,
+                        ),
+                        child: Image.asset(
+                          'assets/clavier.png',
+                          width: scaledKeyboardWidth,
+                          height: scaledKeyboardHeight,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
