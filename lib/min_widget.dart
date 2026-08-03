@@ -232,6 +232,11 @@ class MinScreenAndKeyboard extends StatelessWidget {
   const MinScreenAndKeyboard({super.key});
 
   bool get _isMobileTarget {
+    if (kDebugMode &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.linux) {
+      return true;
+    }
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
@@ -249,9 +254,9 @@ class MinScreenAndKeyboard extends StatelessWidget {
               const displayColumns = 80;
               const displayWidth = 8.0 * displayColumns;
               const displayHeight = displayWidth * 3.0 / 4.0;
-                final keyboardBaseHeight = _isMobileTarget &&
-                        minmodel.screenMode == TMinitelScreenMode.videotex40
-                  ? 250.0
+              final keyboardBaseHeight = _isMobileTarget &&
+                      minmodel.screenMode == TMinitelScreenMode.videotex40
+                  ? 500.0
                   : 48.0;
 
               return LayoutBuilder(
@@ -345,15 +350,7 @@ class _KeyboardWithReplayOverlay extends StatelessWidget {
       fit: StackFit.expand,
       alignment: Alignment.center,
       children: [
-        ListenableBuilder(
-          listenable: MinModel(),
-          builder: (context, child) {
-            if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
-              return _SharedVt100Keyboard(scale: scale);
-            }
-            return _SharedMinitelKeyboard(scale: scale);
-          },
-        ),
+        const MinKeyboard(),
         ListenableBuilder(
           listenable: MinModel(),
           builder: (context, _) {
@@ -402,112 +399,6 @@ class _KeyboardWithReplayOverlay extends StatelessWidget {
           },
         ),
       ],
-    );
-  }
-}
-
-class _SharedMinitelKeyboard extends StatelessWidget {
-  final double scale;
-
-  const _SharedMinitelKeyboard({required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildRow(MinMinitelKeyboard._row1),
-        _buildRow(MinMinitelKeyboard._row2),
-      ],
-    );
-  }
-
-  Widget _buildRow(List<List<String>> keys) {
-    return Row(
-      children: keys.map((entry) {
-        final label = entry[0];
-        return Expanded(
-          flex: _minitelKeyFlex(label),
-          child: SizedBox(
-            height: 24 * scale,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey),
-                ),
-                backgroundColor: const Color(0xFF1E3A5F),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => MinModel().handleKeys(entry[1]),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  style: TextStyle(fontSize: 10 * scale),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  int _minitelKeyFlex(String label) {
-    if (label == 'Espace') return 3;
-    if (label == 'Esc') return 1;
-    return label == '↑' || label == '↓' || label == '←' || label == '→' ? 1 : 2;
-  }
-}
-
-class _SharedVt100Keyboard extends StatelessWidget {
-  final double scale;
-
-  const _SharedVt100Keyboard({required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildRow(MinVt100Keyboard._row1),
-        _buildRow(MinVt100Keyboard._row2),
-      ],
-    );
-  }
-
-  Widget _buildRow(List<List<String>> keys) {
-    return Row(
-      children: keys.map((entry) {
-        return Expanded(
-          child: SizedBox(
-            height: 24 * scale,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey),
-                ),
-                backgroundColor: const Color(0xFF212121),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => MinModel().handleKeys(entry[1]),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  entry[0],
-                  style: TextStyle(fontSize: 10 * scale),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }
@@ -815,6 +706,11 @@ class MinKeyboard extends StatelessWidget {
   });
 
   bool get _isMobileTarget {
+    if (kDebugMode &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.linux) {
+      return true;
+    }
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
@@ -849,7 +745,10 @@ class _MinMinitelImageKeyboard extends StatelessWidget {
 
         final availableWidth = constraints.maxWidth;
         final availableHeight = constraints.maxHeight;
-        if (!availableWidth.isFinite || !availableHeight.isFinite) {
+        if (!availableWidth.isFinite ||
+            !availableHeight.isFinite ||
+            availableWidth <= 0 ||
+            availableHeight <= 0) {
           return const SizedBox.shrink();
         }
 
@@ -1086,9 +985,14 @@ class _MinKeyboardImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFFF2F2F2) : const Color(0xFFE6E6E6),
+        border: isDarkTheme
+            ? Border.all(color: const Color(0xFFB0B0B0), width: 0.5)
+            : null,
+        image: const DecorationImage(
           image: AssetImage('assets/clavier.png'),
           fit: BoxFit.fill,
         ),
