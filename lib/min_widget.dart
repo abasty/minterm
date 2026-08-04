@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:minterm/min_model.dart';
 import 'package:provider/provider.dart';
@@ -130,7 +131,16 @@ class MinSettings extends ChangeNotifier {
     final fittedScale = math.min(maxWidth / baseWidth, maxHeight / baseHeight);
     scale = math.max(1.0, math.min(4.0, fittedScale));
     _startupScaleInitialized = true;
-    notifyListeners();
+
+    // This method is called from LayoutBuilder; defer change notifications if
+    // a frame is currently being built to avoid markNeedsBuild assertions.
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.idle) {
+      notifyListeners();
+    } else {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    }
   }
 
   // Toggles between two color schemes
