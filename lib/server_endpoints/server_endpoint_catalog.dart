@@ -31,9 +31,8 @@ class ServerEndpointCatalog extends ChangeNotifier {
   bool get isLoaded => _loaded;
 
   UnmodifiableListView<ServerEndpoint> get endpoints {
-    final list = List<ServerEndpoint>.from(_endpoints)
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return UnmodifiableListView<ServerEndpoint>(list);
+    return UnmodifiableListView<ServerEndpoint>(
+        List<ServerEndpoint>.from(_endpoints));
   }
 
   List<ServerEndpoint> get recentEndpoints {
@@ -169,6 +168,90 @@ class ServerEndpointCatalog extends ChangeNotifier {
     }
     await _saveInternal();
     notifyListeners();
+  }
+
+  Future<void> duplicateEndpoint(String id) async {
+    await ensureLoaded();
+    ServerEndpoint? original;
+    for (final endpoint in _endpoints) {
+      if (endpoint.id == id) {
+        original = endpoint;
+        break;
+      }
+    }
+    if (original == null) return;
+
+    final now = DateTime.now().toUtc();
+    final duplicated = ServerEndpoint(
+      id: _newId(),
+      name: '${original.name} (copie)',
+      url: original.url,
+      checkWebSocketAccept: original.checkWebSocketAccept,
+      lastUsedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final current = List<ServerEndpoint>.from(_endpoints);
+    final index = current.indexWhere((e) => e.id == id);
+    if (index < 0) {
+      current.add(duplicated);
+    } else {
+      current.insert(index + 1, duplicated);
+    }
+
+    _endpoints = current;
+    await _saveInternal();
+    notifyListeners();
+  }
+
+  Future<void> reorderEndpoint(int oldIndex, int newIndex) async {
+    await ensureLoaded();
+    if (oldIndex < 0 || oldIndex >= _endpoints.length) return;
+    if (newIndex < 0 || newIndex > _endpoints.length) return;
+
+    final targetIndex = oldIndex < newIndex ? newIndex - 1 : newIndex;
+    if (targetIndex == oldIndex) return;
+
+    final current = List<ServerEndpoint>.from(_endpoints);
+    final item = current.removeAt(oldIndex);
+    current.insert(targetIndex, item);
+    _endpoints = current;
+    await _saveInternal();
+    notifyListeners();
+  }
+
+  String exportJson() {
+    final payload = <String, dynamic>{
+      'version': _storageVersion,
+      'endpoints': _endpoints.map((e) => e.toJson()).toList(growable: false),
+    };
+    return json.encode(payload);
+  }
+
+  Future<String?> importJson(String jsonText) async {
+    await ensureLoaded();
+
+    dynamic decoded;
+    try {
+      decoded = json.decode(jsonText);
+    } catch (_) {
+      return 'Le fichier JSON est invalide.';
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      return 'Le format JSON est invalide.';
+    }
+
+    final imported = _deserialize(decoded);
+    if (imported.isEmpty) {
+      return 'Aucun serveur valide dans le fichier.';
+    }
+
+    _endpoints = imported;
+    await _saveInternal();
+    notifyListeners();
+    return null;
   }
 
   Future<void> markEndpointUsed(String id) async {

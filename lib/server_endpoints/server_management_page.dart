@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../min_model.dart';
 import 'server_endpoint.dart';
 import 'server_endpoint_catalog.dart';
+import 'server_list_exchange_stub.dart'
+    if (dart.library.html) 'server_list_exchange_web.dart'
+    if (dart.library.io) 'server_list_exchange_io.dart' as list_exchange;
 
 class ServerManagementPage extends StatefulWidget {
   const ServerManagementPage({super.key});
@@ -80,11 +83,54 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
     }
   }
 
+  Future<void> _duplicate(ServerEndpoint endpoint) async {
+    await catalog.duplicateEndpoint(endpoint.id);
+  }
+
+  Future<void> _exportList() async {
+    final jsonText = catalog.exportJson();
+    final ok = await list_exchange.exportServerListJson(
+      jsonText,
+      'minterm_server_endpoints.json',
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Liste des serveurs exportee.' : 'Export annule.'),
+      ),
+    );
+  }
+
+  Future<void> _importList() async {
+    final jsonText = await list_exchange.importServerListJson();
+    if (jsonText == null || jsonText.trim().isEmpty) return;
+
+    final error = await catalog.importJson(jsonText);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ?? 'Liste des serveurs importee.'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Connexions'),
+        actions: [
+          IconButton(
+            tooltip: 'Importer',
+            icon: const Icon(Icons.file_upload_outlined),
+            onPressed: _importList,
+          ),
+          IconButton(
+            tooltip: 'Exporter',
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: _exportList,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openEditor(),
@@ -99,9 +145,11 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
           }
 
           final endpoints = catalog.endpoints;
-          return ListView.separated(
+          return ReorderableListView.builder(
             itemCount: endpoints.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            onReorder: (oldIndex, newIndex) {
+              unawaited(catalog.reorderEndpoint(oldIndex, newIndex));
+            },
             itemBuilder: (context, index) {
               final endpoint = endpoints[index];
               final info = <String>[endpoint.url];
@@ -109,29 +157,45 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
                 info.add('Sec-WebSocket-Accept: OFF');
               }
 
-              return ListTile(
-                title: Text(endpoint.name),
-                subtitle: Text(info.join('  •  ')),
-                onTap: () => _connect(endpoint),
-                leading: IconButton(
-                  tooltip: 'Connecter',
-                  onPressed: () => _connect(endpoint),
-                  icon: const Icon(Icons.play_arrow),
+              return Container(
+                key: ValueKey(endpoint.id),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                      width: 0.6,
+                    ),
+                  ),
                 ),
-                trailing: Wrap(
-                  spacing: 4,
-                  children: [
-                    IconButton(
-                      tooltip: 'Modifier',
-                      onPressed: () => _openEditor(endpoint: endpoint),
-                      icon: const Icon(Icons.edit),
-                    ),
-                    IconButton(
-                      tooltip: 'Supprimer',
-                      onPressed: () => _delete(endpoint),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                  ],
+                child: ListTile(
+                  title: Text(endpoint.name),
+                  subtitle: Text(info.join('  •  ')),
+                  onTap: () => _connect(endpoint),
+                  leading: IconButton(
+                    tooltip: 'Connecter',
+                    onPressed: () => _connect(endpoint),
+                    icon: const Icon(Icons.play_arrow),
+                  ),
+                  trailing: Wrap(
+                    spacing: 2,
+                    children: [
+                      IconButton(
+                        tooltip: 'Dupliquer',
+                        onPressed: () => _duplicate(endpoint),
+                        icon: const Icon(Icons.copy),
+                      ),
+                      IconButton(
+                        tooltip: 'Modifier',
+                        onPressed: () => _openEditor(endpoint: endpoint),
+                        icon: const Icon(Icons.edit),
+                      ),
+                      IconButton(
+                        tooltip: 'Supprimer',
+                        onPressed: () => _delete(endpoint),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
