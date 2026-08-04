@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_serial.dart';
+import 'server_endpoints/server_menu_section.dart';
 import 'serial_support.dart';
 import 'min_widget.dart';
 import 'window_setup.dart' as window_setup;
@@ -54,17 +55,7 @@ class MinTerm extends StatelessWidget {
                   // ),
                   Divider(),
                   Clear(),
-                  Connection('3611', 'ws://3611.re/ws'),
-                  Connection('3615', 'ws://3615co.de/ws'),
-                  Connection(
-                    'Minipavi',
-                    'ws://go.minipavi.fr:8182',
-                    checkWebSocketAccept: false,
-                  ),
-                  Connection('Hacker', 'ws://mntl.joher.com:2018/?echo'),
-                  Connection('Galaxy', 'ws://galaxy.microtel.fr:50124'),
-                  Connection('BASTOS (localhost:1967)', 'tcp://127.0.0.1:1967'),
-                  Connection('Zboub', 'tcp:abasty-retro.fr:1967'),
+                  const RecentConnectionsSection(),
                   if (isSerialSupported) const ConnectionSerial(),
                 ],
               ),
@@ -730,31 +721,6 @@ class Clear extends StatelessWidget {
         Navigator.pop(context);
       },
       title: const Text('Clear'),
-    );
-  }
-}
-
-class Connection extends StatelessWidget {
-  final String uri;
-  final String text;
-  final bool checkWebSocketAccept;
-  const Connection(
-    this.text,
-    this.uri, {
-    super.key,
-    this.checkWebSocketAccept = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        MinModel().serverAddress = uri;
-        MinModel().checkWebSocketAccept = checkWebSocketAccept;
-        MinModel().connect();
-        Navigator.pop(context);
-      },
-      title: Text(text),
     );
   }
 }
