@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../min_model.dart';
+import '../min_widget.dart';
 import 'server_endpoint.dart';
 import 'server_endpoint_catalog.dart';
 import 'server_list_exchange_stub.dart'
@@ -25,6 +26,26 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
     unawaited(catalog.ensureLoaded());
   }
 
+  ThemeData _serverTheme(BuildContext context) {
+    final background = MinSettings().appBackgroundColor;
+    final isDark = background.computeLuminance() < 0.5;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: Colors.blue,
+      brightness: isDark ? Brightness.dark : Brightness.light,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: isDark ? Brightness.dark : Brightness.light,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: isDark ? Colors.black : Colors.white,
+        foregroundColor: isDark ? Colors.white : Colors.black,
+      ),
+    );
+  }
+
   Future<void> _connect(ServerEndpoint endpoint) async {
     MinModel().serverAddress = endpoint.url;
     MinModel().checkWebSocketAccept = endpoint.checkWebSocketAccept;
@@ -38,7 +59,10 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
   Future<void> _openEditor({ServerEndpoint? endpoint}) async {
     final result = await showDialog<_ServerEditorResult>(
       context: context,
-      builder: (context) => _ServerEditorDialog(endpoint: endpoint),
+      builder: (dialogContext) => Theme(
+        data: _serverTheme(context),
+        child: _ServerEditorDialog(endpoint: endpoint),
+      ),
     );
 
     if (result == null) return;
@@ -62,19 +86,22 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
   Future<void> _delete(ServerEndpoint endpoint) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer ce serveur ?'),
-        content: Text('${endpoint.name}\n${endpoint.url}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
+      builder: (dialogContext) => Theme(
+        data: _serverTheme(context),
+        child: AlertDialog(
+          title: const Text('Supprimer ce serveur ?'),
+          content: Text('${endpoint.name}\n${endpoint.url}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Supprimer'),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -116,92 +143,100 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Connexions'),
-        actions: [
-          IconButton(
-            tooltip: 'Importer',
-            icon: const Icon(Icons.file_upload_outlined),
-            onPressed: _importList,
-          ),
-          IconButton(
-            tooltip: 'Exporter',
-            icon: const Icon(Icons.file_download_outlined),
-            onPressed: _exportList,
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(),
-        icon: const Icon(Icons.add),
-        label: const Text('Ajouter'),
-      ),
-      body: ListenableBuilder(
-        listenable: catalog,
-        builder: (context, _) {
-          if (!catalog.isLoaded) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final endpoints = catalog.endpoints;
-          return ReorderableListView.builder(
-            itemCount: endpoints.length,
-            onReorder: (oldIndex, newIndex) {
-              unawaited(catalog.reorderEndpoint(oldIndex, newIndex));
-            },
-            itemBuilder: (context, index) {
-              final endpoint = endpoints[index];
-              final info = <String>[endpoint.url];
-              if (!endpoint.checkWebSocketAccept) {
-                info.add('Sec-WebSocket-Accept: OFF');
-              }
-
-              return Container(
-                key: ValueKey(endpoint.id),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(context).dividerColor,
-                      width: 0.6,
-                    ),
-                  ),
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        return Theme(
+          data: _serverTheme(context),
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Connexions'),
+              actions: [
+                IconButton(
+                  tooltip: 'Importer',
+                  icon: const Icon(Icons.file_upload_outlined),
+                  onPressed: _importList,
                 ),
-                child: ListTile(
-                  title: Text(endpoint.name),
-                  subtitle: Text(info.join('  •  ')),
-                  onTap: () => _connect(endpoint),
-                  leading: IconButton(
-                    tooltip: 'Connecter',
-                    onPressed: () => _connect(endpoint),
-                    icon: const Icon(Icons.play_arrow),
-                  ),
-                  trailing: Wrap(
-                    spacing: 2,
-                    children: [
-                      IconButton(
-                        tooltip: 'Dupliquer',
-                        onPressed: () => _duplicate(endpoint),
-                        icon: const Icon(Icons.copy),
-                      ),
-                      IconButton(
-                        tooltip: 'Modifier',
-                        onPressed: () => _openEditor(endpoint: endpoint),
-                        icon: const Icon(Icons.edit),
-                      ),
-                      IconButton(
-                        tooltip: 'Supprimer',
-                        onPressed: () => _delete(endpoint),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
+                IconButton(
+                  tooltip: 'Exporter',
+                  icon: const Icon(Icons.file_download_outlined),
+                  onPressed: _exportList,
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _openEditor(),
+              icon: const Icon(Icons.add),
+              label: const Text('Ajouter'),
+            ),
+            body: ListenableBuilder(
+              listenable: catalog,
+              builder: (context, _) {
+                if (!catalog.isLoaded) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final endpoints = catalog.endpoints;
+                return ReorderableListView.builder(
+                  itemCount: endpoints.length,
+                  onReorder: (oldIndex, newIndex) {
+                    unawaited(catalog.reorderEndpoint(oldIndex, newIndex));
+                  },
+                  itemBuilder: (context, index) {
+                    final endpoint = endpoints[index];
+                    final info = <String>[endpoint.url];
+                    if (!endpoint.checkWebSocketAccept) {
+                      info.add('Sec-WebSocket-Accept: OFF');
+                    }
+
+                    return Container(
+                      key: ValueKey(endpoint.id),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(context).dividerColor,
+                            width: 0.6,
+                          ),
+                        ),
+                      ),
+                      child: ListTile(
+                        title: Text(endpoint.name),
+                        subtitle: Text(info.join('  •  ')),
+                        onTap: () => _connect(endpoint),
+                        leading: IconButton(
+                          tooltip: 'Connecter',
+                          onPressed: () => _connect(endpoint),
+                          icon: const Icon(Icons.play_arrow),
+                        ),
+                        trailing: Wrap(
+                          spacing: 2,
+                          children: [
+                            IconButton(
+                              tooltip: 'Dupliquer',
+                              onPressed: () => _duplicate(endpoint),
+                              icon: const Icon(Icons.copy),
+                            ),
+                            IconButton(
+                              tooltip: 'Modifier',
+                              onPressed: () => _openEditor(endpoint: endpoint),
+                              icon: const Icon(Icons.edit),
+                            ),
+                            IconButton(
+                              tooltip: 'Supprimer',
+                              onPressed: () => _delete(endpoint),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -276,10 +311,11 @@ class _ServerEditorDialogState extends State<_ServerEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AlertDialog(
-      title: Text(widget.endpoint == null
-          ? 'Ajouter un serveur'
-          : 'Modifier le serveur'),
+      title: Text(
+        widget.endpoint == null ? 'Ajouter un serveur' : 'Modifier le serveur',
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -308,7 +344,7 @@ class _ServerEditorDialogState extends State<_ServerEditorDialog> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: theme.colorScheme.error),
                 ),
               ),
           ],
