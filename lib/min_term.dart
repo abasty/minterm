@@ -1,16 +1,16 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_serial.dart';
+import 'min_widget.dart';
 import 'server_endpoints/server_menu_section.dart';
 import 'serial_support.dart';
-import 'min_widget.dart';
 import 'window_setup.dart' as window_setup;
 
 class MinTerm extends StatelessWidget {
@@ -29,64 +29,50 @@ class MinTerm extends StatelessWidget {
       builder: (context, _) {
         final appBackground = MinSettings().appBackgroundColor;
         final isDarkMode = appBackground.computeLuminance() < 0.5;
-        return ExcludeFocus(
-          excluding: !_isMobileDevice,
-          child: Scaffold(
-            backgroundColor: appBackground,
-            drawer: Drawer(
-              child: ListView(
-                children: [
-                  CloseMenu(),
-                  Divider(),
-                  SetBps(),
-                  SetScreenMode(),
-                  CaptureToggle(),
-                  ReplayCaptureAction(),
-                  ImportCaptureAction(),
-                  ExportCaptureAction(),
-                  SetColors(),
-                  SetBackground(),
-                  // ListTile(
-                  //   title: const Text('Keyboard'),
-                  //   onTap: () {
-                  //     MinSettings.toggleKeyboard();
-                  //     Navigator.pop(context);
-                  //   },
-                  // ),
-                  Divider(),
-                  Clear(),
-                  const RecentConnectionsSection(),
-                  if (isSerialSupported) const ConnectionSerial(),
-                ],
-              ),
-            ),
-            appBar: AppBar(
-              backgroundColor: isDarkMode ? Colors.black : Colors.white,
-              foregroundColor: isDarkMode ? Colors.white : Colors.black,
-              title: const Text('Minterm'),
-              actions: [
-                // IconButton(
-                //   icon: const Icon(Icons.keyboard),
-                //   onPressed: () => MinSettings.toggleKeyboard(),
-                // ),
-                if (window_setup.isWindowControlsSupported)
-                  const FullscreenToggleButton(),
-                if (_isMobileDevice) const MobileKeyboardButton(),
-                if (!_isMobileDevice) const DesktopKeyboardLayoutButton(),
-                const BackgroundButton(),
-                CaptureButton(),
-                ReplayCaptureIndicator(),
-                ColorsButton(),
-              ],
-            ),
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        return Scaffold(
+          backgroundColor: appBackground,
+          drawer: Drawer(
+            child: ListView(
               children: [
-                const Expanded(
-                  child: MinScreenAndKeyboard(),
-                ),
+                CloseMenu(),
+                Divider(),
+                SetBps(),
+                SetScreenMode(),
+                CaptureToggle(),
+                ReplayCaptureAction(),
+                ImportCaptureAction(),
+                ExportCaptureAction(),
+                SetColors(),
+                SetBackground(),
+                Divider(),
+                Clear(),
+                const RecentConnectionsSection(),
+                if (isSerialSupported) const ConnectionSerial(),
               ],
             ),
+          ),
+          appBar: AppBar(
+            backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            foregroundColor: isDarkMode ? Colors.white : Colors.black,
+            title: const Text('Minterm'),
+            actions: [
+              if (window_setup.isWindowControlsSupported)
+                const FullscreenToggleButton(),
+              if (_isMobileDevice) const MobileKeyboardButton(),
+              if (!_isMobileDevice) const DesktopKeyboardLayoutButton(),
+              const BackgroundButton(),
+              CaptureButton(),
+              ReplayCaptureIndicator(),
+              ColorsButton(),
+            ],
+          ),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Expanded(
+                child: MinScreenAndKeyboard(),
+              ),
+            ],
           ),
         );
       },

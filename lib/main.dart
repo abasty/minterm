@@ -7,6 +7,20 @@ import 'min_model.dart';
 import 'min_term.dart';
 import 'window_setup.dart' as window_setup;
 
+bool _hasEditableTextFocus() {
+  final focusedContext = FocusManager.instance.primaryFocus?.context;
+  if (focusedContext == null) return false;
+
+  if (focusedContext.widget is EditableText) return true;
+  if (focusedContext.findAncestorWidgetOfExactType<EditableText>() != null) {
+    return true;
+  }
+  if (focusedContext.findAncestorStateOfType<EditableTextState>() != null) {
+    return true;
+  }
+  return false;
+}
+
 /// Normalizes a URN by inserting `://` after the scheme if absent.
 /// For example: `tcp:localhost:1967` becomes `tcp://localhost:1967`.
 String _normalizeUrn(String urn) {
@@ -24,6 +38,10 @@ void main(List<String> args) async {
   }
 
   HardwareKeyboard.instance.addHandler((event) {
+    if (_hasEditableTextFocus()) {
+      return false;
+    }
+
     if (event is KeyDownEvent) {
       if (event.logicalKey.keyLabel == '[') {
         var shift = HardwareKeyboard.instance.isShiftPressed;
