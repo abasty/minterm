@@ -52,18 +52,30 @@ class MinTerm extends StatelessWidget {
             ),
           ),
           appBar: AppBar(
+            leading: Builder(
+              builder: (context) => _PointerOnlyFocus(
+                child: IconButton(
+                  tooltip:
+                      MaterialLocalizations.of(context).openAppDrawerTooltip,
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
+            ),
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
             foregroundColor: isDarkMode ? Colors.white : Colors.black,
             title: const Text('Minterm'),
             actions: [
               if (window_setup.isWindowControlsSupported)
-                const FullscreenToggleButton(),
-              if (_isMobileDevice) const MobileKeyboardButton(),
-              if (!_isMobileDevice) const DesktopKeyboardLayoutButton(),
-              const BackgroundButton(),
-              CaptureButton(),
-              ReplayCaptureIndicator(),
-              ColorsButton(),
+                const _PointerOnlyFocus(child: FullscreenToggleButton()),
+              if (_isMobileDevice)
+                const _PointerOnlyFocus(child: MobileKeyboardButton()),
+              if (!_isMobileDevice)
+                const _PointerOnlyFocus(child: DesktopKeyboardLayoutButton()),
+              const _PointerOnlyFocus(child: BackgroundButton()),
+              _PointerOnlyFocus(child: CaptureButton()),
+              const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
+              const _PointerOnlyFocus(child: ColorsButton()),
             ],
           ),
           body: Column(
@@ -76,6 +88,22 @@ class MinTerm extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _PointerOnlyFocus extends StatelessWidget {
+  final Widget child;
+
+  const _PointerOnlyFocus({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      descendantsAreFocusable: false,
+      skipTraversal: true,
+      child: child,
     );
   }
 }

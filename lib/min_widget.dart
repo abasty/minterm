@@ -1275,23 +1275,28 @@ class MinMinitelKeyboard extends StatelessWidget {
           flex: _keyFlex(label),
           child: SizedBox(
             height: 24 * scale,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey),
+            child: Focus(
+              canRequestFocus: false,
+              descendantsAreFocusable: false,
+              skipTraversal: true,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.grey),
+                  ),
+                  backgroundColor: const Color(0xFF1E3A5F),
+                  foregroundColor: Colors.white,
                 ),
-                backgroundColor: const Color(0xFF1E3A5F),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => MinModel().handleKeys(entry[1]),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  style: TextStyle(fontSize: 10 * scale),
+                onPressed: () => MinModel().handleKeys(entry[1]),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: TextStyle(fontSize: 10 * scale),
+                  ),
                 ),
               ),
             ),
@@ -1392,23 +1397,28 @@ class MinVt100Keyboard extends StatelessWidget {
         return Expanded(
           child: SizedBox(
             height: 24 * scale,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.grey),
+            child: Focus(
+              canRequestFocus: false,
+              descendantsAreFocusable: false,
+              skipTraversal: true,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.grey),
+                  ),
+                  backgroundColor: const Color(0xFF212121),
+                  foregroundColor: Colors.white,
                 ),
-                backgroundColor: const Color(0xFF212121),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => MinModel().handleKeys(entry[1]),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  entry[0],
-                  style: TextStyle(fontSize: 10 * scale),
+                onPressed: () => MinModel().handleKeys(entry[1]),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    entry[0],
+                    style: TextStyle(fontSize: 10 * scale),
+                  ),
                 ),
               ),
             ),
