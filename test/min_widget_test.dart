@@ -141,7 +141,8 @@ void main() {
     expect(find.byType(MinScreen), findsOneWidget);
   });
 
-  testWidgets('Virtual keyboard is hidden in VT100 mode', (
+  testWidgets(
+      'Compact Minitel keyboard is also shown in VT100 (80-column) mode', (
     WidgetTester tester,
   ) async {
     MinModel().setScreenMode(TMinitelScreenMode.vt10080);
@@ -154,8 +155,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Sommaire'), findsNothing);
-    expect(find.text('F1'), findsOneWidget);
+    // Le clavier VT100 dédié (F1, etc.) a été supprimé : on utilise le même
+    // clavier compact qu'en mode 40 colonnes.
+    expect(find.text('F1'), findsNothing);
+    expect(find.text('Sommaire'), findsOneWidget);
   });
 
   testWidgets('Compact Minitel keyboard is shown in 40-column mode', (
