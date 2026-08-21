@@ -448,5 +448,41 @@ void main() {
       minitel.emulate('B'.codeUnits);
       expect(minitel.screen[2][1].lAttr & kAttrInverse, kAttrInverse);
     });
+
+    // Régression BASTOS : édition de ligne (backspace / écrasement) en 80
+    // colonnes doit se comporter exactement comme un terminal ASCII simple,
+    // sans passer par une séquence d'effacement CSI/ANSI.
+    test('Correction: BS SP BS erases last char and moves cursor back', () {
+      minitel.emulate('AB'.codeUnits);
+      expect(minitel.state.c, 3);
+
+      minitel.emulate([0x08, 0x20, 0x08]);
+
+      expect(readChar(minitel, 0, 1), 'A');
+      expect(readChar(minitel, 1, 1), ' ');
+      expect(minitel.state.c, 2);
+    });
+
+    test('Mid-line insertion: retype tail then BS overwrites in place', () {
+      minitel.emulate('AC'.codeUnits);
+      minitel.emulate([0x08]); // cursor back between A and C
+      expect(minitel.state.c, 2);
+
+      minitel.emulate('BC'.codeUnits);
+      minitel.emulate([0x08]);
+
+      expect(readLine(minitel, 1, 3), 'ABC');
+      expect(minitel.state.c, 3);
+    });
+
+    test('Annulation: BS BS SP SP BS BS clears line and restores cursor', () {
+      minitel.emulate('AB'.codeUnits);
+      expect(minitel.state.c, 3);
+
+      minitel.emulate([0x08, 0x08, 0x20, 0x20, 0x08, 0x08]);
+
+      expect(readLine(minitel, 1, 2), '  ');
+      expect(minitel.state.c, 1);
+    });
   });
 }
