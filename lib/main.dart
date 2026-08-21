@@ -90,24 +90,12 @@ void main(List<String> args) async {
           break;
         case LogicalKeyboardKey.enter:
         case LogicalKeyboardKey.numpadEnter:
-          // Entrée in VT100 mode, Envoi/Home/ePage in Minitel mode.
+          // Shift/Ctrl+Entrée envoient les mêmes codes en 40 et 80 colonnes.
+          // Entrée seule : Envoi en Minitel, \r en VT100.
           if (shift) {
-            // Home : CSI H fonctionne identiquement dans les deux modes
-            // (reconnu comme séquence spéciale en Videotex, et comme CUP
-            // en VT100).
-            MinModel().handleKeys(TMinitelKey.home);
+            MinModel().handleKeys('\x1E'); // 30
           } else if (ctrl) {
-            if (isVt100) {
-              // CLS en 80 colonnes : ED (CSI 2J) n'efface l'écran que sans
-              // replacer le curseur (sémantique ANSI normale). Il faut donc
-              // aussi envoyer Home pour obtenir un vrai CLS.
-              MinModel().handleKeys(TMinitelKey.home);
-              MinModel().handleKeys(TMinitelKey.ePage);
-            } else {
-              // En Videotex, ePage est reconnu comme séquence spéciale et
-              // fait déjà un clearScreen() qui replace le curseur en (1,1).
-              MinModel().handleKeys(TMinitelKey.ePage);
-            }
+            MinModel().handleKeys('\x0C'); // 12
           } else if (isVt100) {
             MinModel().handleKeys('\r');
           } else {
