@@ -156,6 +156,8 @@ class TMinitel {
     _screenMode = mode;
     if (mode == TMinitelScreenMode.videotex40) {
       scrollOn = false;
+      // Sur Minitel réel, repasser en 40 colonnes éteint le curseur.
+      cursorOn = false;
     }
     _columns = mode == TMinitelScreenMode.vt10080 ? 80 : 40;
     _initScreen();

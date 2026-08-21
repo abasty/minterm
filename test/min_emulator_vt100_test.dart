@@ -46,6 +46,29 @@ void main() {
       expect(minitel.screenMode, TMinitelScreenMode.videotex40);
       expect(minitel.columns, 40);
     });
+
+    test('switching from 80 to 40 columns turns the cursor off', () {
+      // Comportement du vrai Minitel : repasser en mode 40 colonnes
+      // (Videotex) éteint le curseur, même s'il était allumé en 80 colonnes.
+      final minitel = TMinitel();
+      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      expect(minitel.cursorOn, isTrue);
+
+      minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+      expect(minitel.cursorOn, isFalse);
+    });
+
+    test('switching from 40 to 80 columns turns the cursor on', () {
+      final minitel = TMinitel();
+      expect(minitel.cursorOn, isFalse);
+
+      minitel.emulate([0x1B, 0x3A, 0x32, 0x7D]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.vt10080);
+      expect(minitel.cursorOn, isTrue);
+    });
   });
 
   group('TMinitel Videotex', () {
