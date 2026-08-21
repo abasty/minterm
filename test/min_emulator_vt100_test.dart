@@ -429,6 +429,32 @@ void main() {
       expect(minitel.screen[1][1].gAttr & kColorMask, kColorBlack);
     });
 
+    test('ED alone (CSI 2J) clears the screen but does not move the cursor',
+        () {
+      // Sémantique ANSI standard : ED n'affecte jamais la position du
+      // curseur. Un vrai CLS nécessite donc Home + ED (voir test suivant).
+      minitel.emulate('\x1b[10;10H'.codeUnits);
+      minitel.emulate('\x1b[2J'.codeUnits);
+
+      expect(minitel.state.l, 10);
+      expect(minitel.state.c, 10);
+    });
+
+    test(
+        'Ctrl+Entrée en 80 colonnes (Home puis ED) fait un vrai CLS '
+        '(écran effacé + curseur en (1,1))', () {
+      minitel.emulate('\x1b[10;10H'.codeUnits);
+      minitel.emulate('X'.codeUnits);
+
+      // Séquence envoyée par Ctrl+Entrée en mode 80 colonnes.
+      minitel.emulate([0x1B, 0x5B, 0x48]); // TMinitelKey.home
+      minitel.emulate([0x1B, 0x5B, 0x32, 0x4A]); // TMinitelKey.ePage
+
+      expect(minitel.state.l, 1);
+      expect(minitel.state.c, 1);
+      expect(readChar(minitel, 9, 10), ' ');
+    });
+
     test('supports US @ Pc to access line 0', () {
       minitel.emulate([0x1F, 0x40, 0x0A]);
       minitel.emulate('S'.codeUnits);
