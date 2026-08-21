@@ -142,10 +142,11 @@ void main() {
   });
 
   testWidgets(
-      'Compact Minitel keyboard is also shown in VT100 (80-column) mode', (
+      'Compact Minitel keyboard is also shown in Téléinformatique (80-column) mode',
+      (
     WidgetTester tester,
   ) async {
-    MinModel().setScreenMode(TMinitelScreenMode.vt10080);
+    MinModel().setScreenMode(TMinitelScreenMode.teleinfo80);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -155,7 +156,7 @@ void main() {
       ),
     );
 
-    // Le clavier VT100 dédié (F1, etc.) a été supprimé : on utilise le même
+    // Le clavier Téléinformatique dédié (F1, etc.) a été supprimé : on utilise le même
     // clavier compact qu'en mode 40 colonnes.
     expect(find.text('F1'), findsNothing);
     expect(find.text('Sommaire'), findsOneWidget);

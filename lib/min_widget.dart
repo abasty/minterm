@@ -544,8 +544,9 @@ class _MinPainter extends CustomPainter {
 
     final statusCode = minmodel.isConnected ? 0x43 : 0x46;
     // En mode 80 cols, la lettre F/C en ligne 0 n'est pas en vidéo inverse
-    final statusLAttr =
-        minmodel.minitel.isVt100Mode ? kColorWhite : kAttrInverse + kColorWhite;
+    final statusLAttr = minmodel.minitel.isTeleinfoMode
+        ? kColorWhite
+        : kAttrInverse + kColorWhite;
     final statusChar = TMinitelChar(0, statusLAttr, statusCode);
     final statusColumn = minmodel.minitel.columns >= 40
         ? minmodel.minitel.columns - 3
@@ -572,7 +573,7 @@ class _MinPainter extends CustomPainter {
     double dpr = 1.0,
   }) {
     final palette =
-        minmodel.minitel.isVt100Mode ? MinGrey : MinSettings().colors;
+        minmodel.minitel.isTeleinfoMode ? MinGrey : MinSettings().colors;
     var fgColor = palette[char.lAttr & kColorMask];
     var bgColor = palette[char.gAttr & kColorMask];
 
@@ -581,7 +582,9 @@ class _MinPainter extends CustomPainter {
         (minmodel.minitel.state.c - 1) * cellWidth == x &&
         minmodel.minitel.state.l * cellHeight == y;
     // En mode Videotex, le curseur est un bloc en vidéo inverse
-    if (isCursorHere && minmodel.showBlink && !minmodel.minitel.isVt100Mode) {
+    if (isCursorHere &&
+        minmodel.showBlink &&
+        !minmodel.minitel.isTeleinfoMode) {
       fgColor = palette[7 - (char.lAttr & kColorMask)];
       bgColor = palette[7 - (char.gAttr & kColorMask)];
     }
@@ -682,8 +685,8 @@ class _MinPainter extends CustomPainter {
       );
     }
 
-    // En mode VT100/80 cols, le curseur est un trait de soulignement clignotant
-    if (minmodel.minitel.isVt100Mode && isCursorHere && minmodel.showBlink) {
+    // En mode Téléinformatique/80 cols, le curseur est un trait de soulignement clignotant
+    if (minmodel.minitel.isTeleinfoMode && isCursorHere && minmodel.showBlink) {
       canvas.drawRect(
         _snapRect(
           x,
@@ -693,7 +696,8 @@ class _MinPainter extends CustomPainter {
           dpr,
         ),
         Paint()
-          ..color = MinGrey[2] // même gris que la couleur fg par défaut VT100
+          ..color = MinGrey[
+              2] // même gris que la couleur fg par défaut Téléinformatique
           ..isAntiAlias = false,
       );
     }

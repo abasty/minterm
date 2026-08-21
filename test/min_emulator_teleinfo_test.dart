@@ -14,20 +14,20 @@ String readChar(TMinitel minitel, int x, int y) {
 
 void main() {
   group('TMinitel mode switching sequences', () {
-    test('ESC : 2 } switches to VT100 80 columns', () {
+    test('ESC : 2 } switches to Téléinformatique 80 columns', () {
       final minitel = TMinitel();
       expect(minitel.screenMode, TMinitelScreenMode.videotex40);
       expect(minitel.columns, 40);
 
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7D]);
 
-      expect(minitel.screenMode, TMinitelScreenMode.vt10080);
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
       expect(minitel.columns, 80);
     });
 
     test('ESC : 2 ~ switches back to Videotex 40 columns', () {
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
       expect(minitel.columns, 80);
 
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]);
@@ -38,7 +38,7 @@ void main() {
 
     test('ESC 9 7F switches back to Videotex 40 columns', () {
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
       expect(minitel.columns, 80);
 
       minitel.emulate([0x1B, 0x39, 0x7F]);
@@ -51,7 +51,7 @@ void main() {
       // Comportement du vrai Minitel : repasser en mode 40 colonnes
       // (Videotex) éteint le curseur, même s'il était allumé en 80 colonnes.
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
       expect(minitel.cursorOn, isTrue);
 
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]);
@@ -66,13 +66,13 @@ void main() {
 
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7D]);
 
-      expect(minitel.screenMode, TMinitelScreenMode.vt10080);
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
       expect(minitel.cursorOn, isTrue);
     });
 
     test('switching from 80 to 40 columns resets keyboard to majuscules', () {
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
       minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
       expect(minitel.keyboardLowercase, isTrue);
 
@@ -129,12 +129,12 @@ void main() {
     });
   });
 
-  group('TMinitel VT100', () {
+  group('TMinitel Téléinformatique', () {
     late TMinitel minitel;
 
     setUp(() {
       minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
     });
 
     test('switches to 80-column mode and clears screen', () {
@@ -179,7 +179,7 @@ void main() {
       expect(readLine(minitel, 1, 5), 'AB   ');
     });
 
-    test('default fg color is 2 in VT100 mode', () {
+    test('default fg color is 2 in Téléinformatique mode', () {
       // En mode 80 cols la couleur par défaut est 2 (pas kColorWhite=7)
       expect(minitel.state.fgColor, 2);
 
@@ -205,7 +205,7 @@ void main() {
       expect(minitel.screen[1][1].lAttr & kColorMask, 2);
     });
 
-    test('SGR 0 resets fg color to 2 (VT100 default)', () {
+    test('SGR 0 resets fg color to 2 (Téléinformatique default)', () {
       minitel.emulate('\x1b[1m'.codeUnits); // bold ON
       minitel.emulate('\x1b[0m'.codeUnits); // reset
 
@@ -456,7 +456,9 @@ void main() {
       expect(minitel.state.c, 1);
     });
 
-    test('LF exits line 0 and restores previous VT100 cursor position', () {
+    test(
+        'LF exits line 0 and restores previous Téléinformatique cursor position',
+        () {
       minitel.emulate('\x1b[5;12H'.codeUnits);
       minitel.emulate([0x1F, 0x40, 0x4A]);
 
@@ -471,7 +473,7 @@ void main() {
 
     test('SI (0x0F) does not reset inverse SGR attribute', () {
       // Un serveur Minitel envoie typiquement SI en fin de ligne pour revenir
-      // au charset G0. En mode VT100, cela ne doit pas désactiver l'inverse.
+      // au charset G0. En mode Téléinformatique, cela ne doit pas désactiver l'inverse.
       minitel.emulate('\x1b[7m'.codeUnits); // activer inverse
       minitel.emulate([0x0F]); // SI — charset G0, mais inverse intact
       expect(minitel.state.inverse, kAttrInverse);

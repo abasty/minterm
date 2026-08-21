@@ -34,9 +34,7 @@ String _resolveKeyboardCaseChar(KeyEvent event, bool shift) {
     return event.character ?? '';
   }
   final upMode = !MinModel().minitel.keyboardLowercase;
-  return (shift && upMode) || (!shift && !upMode)
-      ? label.toLowerCase()
-      : label;
+  return (shift && upMode) || (!shift && !upMode) ? label.toLowerCase() : label;
 }
 
 /// Normalizes a URN by inserting `://` after the scheme if absent.
@@ -70,7 +68,7 @@ void main(List<String> args) async {
       }
       var ctrl = HardwareKeyboard.instance.isControlPressed;
       var shift = HardwareKeyboard.instance.isShiftPressed;
-      final isVt100 = MinModel().screenMode == TMinitelScreenMode.vt10080;
+      final isTeleinfo = MinModel().screenMode == TMinitelScreenMode.teleinfo80;
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
           // Suite, que ce soit en 40 ou 80 colonnes.
@@ -139,9 +137,9 @@ void main(List<String> args) async {
           }
           break;
         case LogicalKeyboardKey.keyC:
-          // Ctrl+C in VT100 mode, CX/Fin in Minitel mode
+          // Ctrl+C in Téléinformatique mode, CX/Fin in Minitel mode
           if (ctrl) {
-            MinModel().handleKeys(isVt100 ? '\x03' : TMinitelKey.cxFin);
+            MinModel().handleKeys(isTeleinfo ? '\x03' : TMinitelKey.cxFin);
           } else {
             MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
