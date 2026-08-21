@@ -21,6 +21,24 @@ bool _hasEditableTextFocus() {
   return false;
 }
 
+final _letterKeyLabel = RegExp(r'^[A-Z]$');
+
+/// Resolves the character to send for a letter key given the physical Shift
+/// state and the Minitel keyboard case mode: when [keyboardLowercase] is
+/// false (majuscule seule, l'état par défaut du Minitel), une touche seule
+/// envoie une majuscule et Shift+touche envoie une minuscule (inverse du
+/// clavier PC standard). Non-letter keys just pass through `event.character`.
+String _resolveKeyboardCaseChar(KeyEvent event, bool shift) {
+  final label = event.logicalKey.keyLabel;
+  if (!_letterKeyLabel.hasMatch(label)) {
+    return event.character ?? '';
+  }
+  final upMode = !MinModel().minitel.keyboardLowercase;
+  return (shift && upMode) || (!shift && !upMode)
+      ? label.toLowerCase()
+      : label;
+}
+
 /// Normalizes a URN by inserting `://` after the scheme if absent.
 /// For example: `tcp:localhost:1967` becomes `tcp://localhost:1967`.
 String _normalizeUrn(String urn) {
@@ -133,7 +151,7 @@ void main(List<String> args) async {
           if (ctrl) {
             MinModel().handleKeys(TMinitelKey.annulation);
           } else {
-            MinModel().handleKeys(event.character!);
+            MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
           break;
         case LogicalKeyboardKey.keyC:
@@ -141,7 +159,7 @@ void main(List<String> args) async {
           if (ctrl) {
             MinModel().handleKeys(isVt100 ? '\x03' : TMinitelKey.cxFin);
           } else {
-            MinModel().handleKeys(event.character!);
+            MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
           break;
         case LogicalKeyboardKey.keyG:
@@ -149,7 +167,7 @@ void main(List<String> args) async {
           if (ctrl) {
             MinModel().handleKeys('\x07');
           } else {
-            MinModel().handleKeys(event.character!);
+            MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
           break;
         default:
@@ -184,7 +202,7 @@ void main(List<String> args) async {
                 MinModel().handleKeys(TMinitelKey.degree);
                 break;
               default:
-                MinModel().handleKeys(event.character!);
+                MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
                 break;
             }
           }

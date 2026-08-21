@@ -71,7 +71,7 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
     supporter au niveau de l'émulateur
 * [x] LIST : il faut print les caractères graphiques et envoyer G0 / G1 à
   l'écran
-* [ ] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
+* [x] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
 * [ ] Émulation mode 80 colonnes et mode mixte
 * [ ] Connexion to Minitel (output)
 * [ ] Ajouter BASTOS

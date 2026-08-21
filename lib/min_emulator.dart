@@ -110,6 +110,7 @@ class TMinitel {
   int lastCharset = kG0Charset;
   bool scrollOn = false;
   bool cursorOn = false;
+  bool keyboardLowercase = false;
   bool speedChanged = false;
   int speed = 1200;
   bool bip = false;
@@ -156,8 +157,10 @@ class TMinitel {
     _screenMode = mode;
     if (mode == TMinitelScreenMode.videotex40) {
       scrollOn = false;
-      // Sur Minitel réel, repasser en 40 colonnes éteint le curseur.
+      // Sur Minitel réel, repasser en 40 colonnes éteint le curseur et
+      // remet le clavier en majuscules seules.
       cursorOn = false;
+      keyboardLowercase = false;
     }
     _columns = mode == TMinitelScreenMode.vt10080 ? 80 : 40;
     _initScreen();
@@ -1108,6 +1111,17 @@ class TMinitel {
           break;
         case 0x6A:
           scrollOn = false;
+          break;
+      }
+    } else if (y == 0x45) {
+      // Minuscules : PRO2 START/STOP + MINUSCULES (0x45) bascule le clavier
+      // entre émission minuscule/majuscule et majuscule seule (par défaut).
+      switch (x) {
+        case 0x69:
+          keyboardLowercase = true;
+          break;
+        case 0x6A:
+          keyboardLowercase = false;
           break;
       }
     } else if (x == 0x73) {

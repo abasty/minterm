@@ -1090,7 +1090,9 @@ class _MinImageKeyState extends State<_MinImageKey> {
     final letters = RegExp(r'^[A-Z]$');
     final shifted = MinModel().isShifted;
     final ctrl = MinModel().isCtrl;
-    final upMode = MinSettings().capslock;
+    // Sur Minitel réel, en mode majuscule seule (keyboardLowercase == false),
+    // une touche seule envoie une majuscule et Shift+touche une minuscule.
+    final upMode = !MinModel().minitel.keyboardLowercase;
     var key = '';
     if (letters.hasMatch(widget.k)) {
       if (widget.k.toUpperCase() == 'G' && ctrl) {

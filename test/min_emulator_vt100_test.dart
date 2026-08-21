@@ -69,6 +69,18 @@ void main() {
       expect(minitel.screenMode, TMinitelScreenMode.vt10080);
       expect(minitel.cursorOn, isTrue);
     });
+
+    test('switching from 80 to 40 columns resets keyboard to majuscules', () {
+      final minitel = TMinitel();
+      minitel.setScreenMode(TMinitelScreenMode.vt10080);
+      minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
+      expect(minitel.keyboardLowercase, isTrue);
+
+      minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]); // ESC : 2 ~ → 40 colonnes
+
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+      expect(minitel.keyboardLowercase, isFalse);
+    });
   });
 
   group('TMinitel Videotex', () {
@@ -89,6 +101,17 @@ void main() {
       expect(minitel.state.charset, kG0Charset);
       expect(minitel.state.bgColor, kColorBlack);
       expect(minitel.state.needAttrSpace, isFalse);
+    });
+
+    test('PRO2 START/STOP MINUSCULES toggles keyboard lowercase mode', () {
+      final minitel = TMinitel();
+      expect(minitel.keyboardLowercase, isFalse);
+
+      minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // ESC : i E → minuscules
+      expect(minitel.keyboardLowercase, isTrue);
+
+      minitel.emulate([0x1B, 0x3A, 0x6A, 0x45]); // ESC : j E → majuscules
+      expect(minitel.keyboardLowercase, isFalse);
     });
 
     test('FF clears screen without clearing line 0', () {
@@ -323,6 +346,16 @@ void main() {
       expect(minitel.scrollOn, isFalse);
       minitel.emulate([0x1B, 0x3A, 0x73, 0x02]); // bit 0x02 = 1 → rouleau
       expect(minitel.scrollOn, isTrue);
+    });
+
+    test(
+        'ESC : i E / ESC : j E toggles keyboard lowercase mode '
+        '(même séquence qu\'en 40 cols)', () {
+      expect(minitel.keyboardLowercase, isFalse);
+      minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
+      expect(minitel.keyboardLowercase, isTrue);
+      minitel.emulate([0x1B, 0x3A, 0x6A, 0x45]); // PRO2 STOP MINUSCULES
+      expect(minitel.keyboardLowercase, isFalse);
     });
 
     test('scroll-up new line is plain empty (no SGR attrs)', () {
