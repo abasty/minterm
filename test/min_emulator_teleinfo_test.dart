@@ -70,6 +70,16 @@ void main() {
       expect(minitel.cursorOn, isTrue);
     });
 
+    test('switching from 40 to 80 columns sets keyboard to minuscules', () {
+      final minitel = TMinitel();
+      expect(minitel.keyboardLowercase, isFalse);
+
+      minitel.emulate([0x1B, 0x3A, 0x32, 0x7D]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+      expect(minitel.keyboardLowercase, isTrue);
+    });
+
     test('switching from 80 to 40 columns resets keyboard to majuscules', () {
       final minitel = TMinitel();
       minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
@@ -351,11 +361,12 @@ void main() {
     test(
         'ESC : i E / ESC : j E toggles keyboard lowercase mode '
         '(même séquence qu\'en 40 cols)', () {
-      expect(minitel.keyboardLowercase, isFalse);
-      minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
+      // Le mode téléinformatique configure déjà le clavier en minuscules.
       expect(minitel.keyboardLowercase, isTrue);
       minitel.emulate([0x1B, 0x3A, 0x6A, 0x45]); // PRO2 STOP MINUSCULES
       expect(minitel.keyboardLowercase, isFalse);
+      minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
+      expect(minitel.keyboardLowercase, isTrue);
     });
 
     test('scroll-up new line is plain empty (no SGR attrs)', () {

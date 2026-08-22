@@ -88,12 +88,14 @@ void main(List<String> args) async {
           break;
         case LogicalKeyboardKey.enter:
         case LogicalKeyboardKey.numpadEnter:
-          // Mêmes codes en 40 et 80 colonnes : Envoi (Entrée seule),
-          // 30/0x1E (Shift+Entrée), 12/0x0C (Ctrl+Entrée).
+          // Shift/Ctrl+Entrée envoient les mêmes codes en 40 et 80 colonnes.
+          // Entrée seule : Envoi en Minitel, \r en téléinformatique.
           if (shift) {
             MinModel().handleKeys('\x1E'); // 30
           } else if (ctrl) {
             MinModel().handleKeys('\x0C'); // 12
+          } else if (isTeleinfo) {
+            MinModel().handleKeys('\r');
           } else {
             MinModel().handleKeys(TMinitelKey.envoi);
           }

@@ -161,6 +161,9 @@ class TMinitel {
       // remet le clavier en majuscules seules.
       cursorOn = false;
       keyboardLowercase = false;
+    } else if (mode == TMinitelScreenMode.teleinfo80) {
+      // Passer en mode téléinformatique configure le clavier en minuscules.
+      keyboardLowercase = true;
     }
     _columns = mode == TMinitelScreenMode.teleinfo80 ? 80 : 40;
     _initScreen();
