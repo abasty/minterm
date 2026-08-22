@@ -34,9 +34,7 @@ String _resolveKeyboardCaseChar(KeyEvent event, bool shift) {
     return event.character ?? '';
   }
   final upMode = !MinModel().minitel.keyboardLowercase;
-  return (shift && upMode) || (!shift && !upMode)
-      ? label.toLowerCase()
-      : label;
+  return (shift && upMode) || (!shift && !upMode) ? label.toLowerCase() : label;
 }
 
 /// Normalizes a URN by inserting `://` after the scheme if absent.
@@ -70,53 +68,39 @@ void main(List<String> args) async {
       }
       var ctrl = HardwareKeyboard.instance.isControlPressed;
       var shift = HardwareKeyboard.instance.isShiftPressed;
-      final isVt100 = MinModel().screenMode == TMinitelScreenMode.vt10080;
+      final isTeleinfo = MinModel().screenMode == TMinitelScreenMode.teleinfo80;
       switch (event.logicalKey) {
         case LogicalKeyboardKey.pageDown:
-          // PgDn in VT100 mode, Suite in Minitel mode
-          MinModel().handleKeys(isVt100 ? '\x1b[6~' : TMinitelKey.suite);
+          // Suite, que ce soit en 40 ou 80 colonnes.
+          MinModel().handleKeys(TMinitelKey.suite);
           break;
         case LogicalKeyboardKey.pageUp:
-          // PgUp in VT100 mode, Retour in Minitel mode
-          MinModel().handleKeys(isVt100 ? '\x1b[5~' : TMinitelKey.retour);
+          // Retour, que ce soit en 40 ou 80 colonnes.
+          MinModel().handleKeys(TMinitelKey.retour);
           break;
         case LogicalKeyboardKey.f1:
           // Guide
           MinModel().handleKeys(TMinitelKey.guide);
           break;
         case LogicalKeyboardKey.backspace:
-          // BackSp in VT100 mode, Correction in Minitel mode
-          MinModel().handleKeys(isVt100 ? '\x7f' : TMinitelKey.correction);
+          // Correction, que ce soit en 40 ou 80 colonnes.
+          MinModel().handleKeys(TMinitelKey.correction);
           break;
         case LogicalKeyboardKey.enter:
         case LogicalKeyboardKey.numpadEnter:
-          // Shift/Ctrl+Entrée envoient les mêmes codes en 40 et 80 colonnes.
-          // Entrée seule : Envoi en Minitel, \r en VT100.
+          // Mêmes codes en 40 et 80 colonnes : Envoi (Entrée seule),
+          // 30/0x1E (Shift+Entrée), 12/0x0C (Ctrl+Entrée).
           if (shift) {
             MinModel().handleKeys('\x1E'); // 30
           } else if (ctrl) {
             MinModel().handleKeys('\x0C'); // 12
-          } else if (isVt100) {
-            MinModel().handleKeys('\r');
           } else {
             MinModel().handleKeys(TMinitelKey.envoi);
           }
           break;
-        case LogicalKeyboardKey.delete:
-          // Del in VT100 mode
-          if (isVt100) {
-            MinModel().handleKeys('\x1b[3~');
-          }
-          break;
         case LogicalKeyboardKey.home:
-          // Home in VT100 mode, Sommaire in Minitel mode
-          MinModel().handleKeys(isVt100 ? '\x1b[H' : TMinitelKey.sommaire);
-          break;
-        case LogicalKeyboardKey.end:
-          // End in VT100 mode
-          if (isVt100) {
-            MinModel().handleKeys('\x1b[F');
-          }
+          // Sommaire, que ce soit en 40 ou 80 colonnes.
+          MinModel().handleKeys(TMinitelKey.sommaire);
           break;
         case LogicalKeyboardKey.arrowLeft:
           if (shift) {
@@ -153,9 +137,9 @@ void main(List<String> args) async {
           }
           break;
         case LogicalKeyboardKey.keyC:
-          // Ctrl+C in VT100 mode, CX/Fin in Minitel mode
+          // Ctrl+C in Téléinformatique mode, CX/Fin in Minitel mode
           if (ctrl) {
-            MinModel().handleKeys(isVt100 ? '\x03' : TMinitelKey.cxFin);
+            MinModel().handleKeys(isTeleinfo ? '\x03' : TMinitelKey.cxFin);
           } else {
             MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }

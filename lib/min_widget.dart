@@ -544,8 +544,9 @@ class _MinPainter extends CustomPainter {
 
     final statusCode = minmodel.isConnected ? 0x43 : 0x46;
     // En mode 80 cols, la lettre F/C en ligne 0 n'est pas en vidéo inverse
-    final statusLAttr =
-        minmodel.minitel.isVt100Mode ? kColorWhite : kAttrInverse + kColorWhite;
+    final statusLAttr = minmodel.minitel.isTeleinfoMode
+        ? kColorWhite
+        : kAttrInverse + kColorWhite;
     final statusChar = TMinitelChar(0, statusLAttr, statusCode);
     final statusColumn = minmodel.minitel.columns >= 40
         ? minmodel.minitel.columns - 3
@@ -572,7 +573,7 @@ class _MinPainter extends CustomPainter {
     double dpr = 1.0,
   }) {
     final palette =
-        minmodel.minitel.isVt100Mode ? MinGrey : MinSettings().colors;
+        minmodel.minitel.isTeleinfoMode ? MinGrey : MinSettings().colors;
     var fgColor = palette[char.lAttr & kColorMask];
     var bgColor = palette[char.gAttr & kColorMask];
 
@@ -581,7 +582,9 @@ class _MinPainter extends CustomPainter {
         (minmodel.minitel.state.c - 1) * cellWidth == x &&
         minmodel.minitel.state.l * cellHeight == y;
     // En mode Videotex, le curseur est un bloc en vidéo inverse
-    if (isCursorHere && minmodel.showBlink && !minmodel.minitel.isVt100Mode) {
+    if (isCursorHere &&
+        minmodel.showBlink &&
+        !minmodel.minitel.isTeleinfoMode) {
       fgColor = palette[7 - (char.lAttr & kColorMask)];
       bgColor = palette[7 - (char.gAttr & kColorMask)];
     }
@@ -682,8 +685,8 @@ class _MinPainter extends CustomPainter {
       );
     }
 
-    // En mode VT100/80 cols, le curseur est un trait de soulignement clignotant
-    if (minmodel.minitel.isVt100Mode && isCursorHere && minmodel.showBlink) {
+    // En mode Téléinformatique/80 cols, le curseur est un trait de soulignement clignotant
+    if (minmodel.minitel.isTeleinfoMode && isCursorHere && minmodel.showBlink) {
       canvas.drawRect(
         _snapRect(
           x,
@@ -693,7 +696,8 @@ class _MinPainter extends CustomPainter {
           dpr,
         ),
         Paint()
-          ..color = MinGrey[2] // même gris que la couleur fg par défaut VT100
+          ..color = MinGrey[
+              2] // même gris que la couleur fg par défaut Téléinformatique
           ..isAntiAlias = false,
       );
     }
@@ -766,9 +770,6 @@ class MinKeyboard extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinModel(),
       builder: (context, child) {
-        if (MinModel().screenMode == TMinitelScreenMode.vt10080) {
-          return MinVt100Keyboard(scaleOverride: scaleOverride);
-        }
         final allowImageKeyboardOnMobile = _isMobileTarget &&
             MinSettings().mobileKeyboardLayout ==
                 MobileKeyboardLayoutMode.bitmap;
@@ -1312,121 +1313,5 @@ class MinMinitelKeyboard extends StatelessWidget {
     if (label == 'Espace') return 3;
     if (label == 'Esc') return 1;
     return label == '↑' || label == '↓' || label == '←' || label == '→' ? 1 : 2;
-  }
-}
-
-/// Compact function-key bar shown in VT100 80-column mode.
-class MinVt100Keyboard extends StatelessWidget {
-  final double? scaleOverride;
-
-  const MinVt100Keyboard({super.key, this.scaleOverride});
-
-  static const _row1 = [
-    ['ESC', '\x1b'],
-    ['F1', '\x1bOP'],
-    ['F2', '\x1bOQ'],
-    ['F3', '\x1bOR'],
-    ['F4', '\x1bOS'],
-    ['F5', '\x1b[15~'],
-    ['F6', '\x1b[17~'],
-    ['F7', '\x1b[18~'],
-    ['F8', '\x1b[19~'],
-    ['F9', '\x1b[20~'],
-    ['F10', '\x1b[21~'],
-  ];
-
-  static const _row2 = [
-    ['Tab', '\t'],
-    ['BackSp', '\x7f'],
-    ['\u2191', '\x1b[A'],
-    ['\u2193', '\x1b[B'],
-    ['\u2190', '\x1b[D'],
-    ['\u2192', '\x1b[C'],
-    ['Home', '\x1b[H'],
-    ['End', '\x1b[F'],
-    ['PgUp', '\x1b[5~'],
-    ['PgDn', '\x1b[6~'],
-    ['Del', '\x1b[3~'],
-    ['Entr\u00e9e', '\r'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: MinSettings(),
-      builder: (context, child) {
-        final scale = scaleOverride ?? MinSettings().scale;
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final displayColumns = 80;
-            final displayWidth = 8.0 * displayColumns;
-            final displayHeight = displayWidth * 3.0 / 4.0;
-
-            final maxWidth = constraints.maxWidth;
-            if (!maxWidth.isFinite) {
-              return const SizedBox.shrink();
-            }
-
-            final keyboardWidth = scaleOverride != null
-                ? displayWidth * scaleOverride!
-                : displayWidth *
-                    math.min(
-                      maxWidth / displayWidth,
-                      constraints.maxHeight / displayHeight,
-                    );
-
-            return Center(
-              child: SizedBox(
-                width: keyboardWidth,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildRow(_row1, scale),
-                    _buildRow(_row2, scale),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildRow(List<List<String>> keys, double scale) {
-    return Row(
-      children: keys.map((entry) {
-        return Expanded(
-          child: SizedBox(
-            height: 24 * scale,
-            child: Focus(
-              canRequestFocus: false,
-              descendantsAreFocusable: false,
-              skipTraversal: true,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: const RoundedRectangleBorder(
-                    side: BorderSide(color: Colors.grey),
-                  ),
-                  backgroundColor: const Color(0xFF212121),
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => MinModel().handleKeys(entry[1]),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    entry[0],
-                    style: TextStyle(fontSize: 10 * scale),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
   }
 }

@@ -15,12 +15,12 @@ const int kStatePro1 = 110;
 const int kStatePro2 = 120;
 const int kStatePro3 = 130;
 const int kStateSequence = 150;
-const int kStateVtEsc = 200;
-const int kStateVtCsi = 201;
-const int kStateVtPro1 = 202;
-const int kStateVtPro2 = 203;
-const int kStateVtUs = 204;
-const int kStateVtUsAt = 205;
+const int kStateTeleinfoEsc = 200;
+const int kStateTeleinfoCsi = 201;
+const int kStateTeleinfoPro1 = 202;
+const int kStateTeleinfoPro2 = 203;
+const int kStateTeleinfoUs = 204;
+const int kStateTeleinfoUsAt = 205;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -95,7 +95,7 @@ typedef TMinitelScreen = List<List<TMinitelChar>>;
 
 enum TMinitelScreenMode {
   videotex40,
-  vt10080,
+  teleinfo80,
 }
 
 class TMinitel {
@@ -120,15 +120,15 @@ class TMinitel {
   List<int> reply = [];
   TMinitelScreenMode _screenMode = TMinitelScreenMode.videotex40;
   int _columns = 40;
-  StringBuffer _vtCsiBuffer = StringBuffer();
-  // Marqueur intermédiaire CSI : 0=aucun, 0x3F='?' (VT100), 0x3C='<' (Minitel 80 cols)
-  int _vtCsiIntermediate = 0;
-  int _vtPro2Prefix = -1;
-  int _vtSavedRow = 1;
-  int _vtSavedColumn = 1;
-  int _vtLine0ReturnRow = 1;
-  int _vtLine0ReturnColumn = 1;
-  bool _vtInsertMode = false;
+  StringBuffer _teleinfoCsiBuffer = StringBuffer();
+  // Marqueur intermédiaire CSI : 0=aucun, 0x3F='?' (Téléinformatique), 0x3C='<' (Minitel 80 cols)
+  int _teleinfoCsiIntermediate = 0;
+  int _teleinfoPro2Prefix = -1;
+  int _teleinfoSavedRow = 1;
+  int _teleinfoSavedColumn = 1;
+  int _teleinfoLine0ReturnRow = 1;
+  int _teleinfoLine0ReturnColumn = 1;
+  bool _teleinfoInsertMode = false;
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -150,7 +150,7 @@ class TMinitel {
 
   int get _dirtyColumn => _columns + 1;
 
-  bool get isVt100Mode => _screenMode == TMinitelScreenMode.vt10080;
+  bool get isTeleinfoMode => _screenMode == TMinitelScreenMode.teleinfo80;
 
   void setScreenMode(TMinitelScreenMode mode) {
     if (_screenMode == mode) return;
@@ -162,7 +162,7 @@ class TMinitel {
       cursorOn = false;
       keyboardLowercase = false;
     }
-    _columns = mode == TMinitelScreenMode.vt10080 ? 80 : 40;
+    _columns = mode == TMinitelScreenMode.teleinfo80 ? 80 : 40;
     _initScreen();
     clearScreen();
   }
@@ -170,7 +170,7 @@ class TMinitel {
   void toggleScreenMode() {
     setScreenMode(
       _screenMode == TMinitelScreenMode.videotex40
-          ? TMinitelScreenMode.vt10080
+          ? TMinitelScreenMode.teleinfo80
           : TMinitelScreenMode.videotex40,
     );
   }
@@ -207,16 +207,16 @@ class TMinitel {
   }
 
   void clearScreen() {
-    if (!isVt100Mode) {
+    if (!isTeleinfoMode) {
       state.resetAttr();
     }
-    if (isVt100Mode) {
+    if (isTeleinfoMode) {
       scrollOn = true;
       cursorOn = true;
-      _vtInsertMode = false;
-      _vtLine0ReturnRow = 1;
-      _vtLine0ReturnColumn = 1;
-      state.fgColor = 2; // couleur par défaut VT100
+      _teleinfoInsertMode = false;
+      _teleinfoLine0ReturnRow = 1;
+      _teleinfoLine0ReturnColumn = 1;
+      state.fgColor = 2; // couleur par défaut Téléinformatique
     }
     state.l = 1;
     state.c = 1;
@@ -255,8 +255,8 @@ class TMinitel {
   }
 
   void emulate(List<int> codes) {
-    if (isVt100Mode) {
-      emulateVt100(codes);
+    if (isTeleinfoMode) {
+      emulateTeleinfo(codes);
       return;
     }
 
@@ -304,8 +304,8 @@ class TMinitel {
     line = state.l;
     codeIndex = 0;
     while (codeIndex < codes.length) {
-      if (isVt100Mode) {
-        emulateVt100(codes.sublist(codeIndex));
+      if (isTeleinfoMode) {
+        emulateTeleinfo(codes.sublist(codeIndex));
         break;
       }
       currentCode = codes[codeIndex];
@@ -391,41 +391,41 @@ class TMinitel {
     }
   }
 
-  void emulateVt100(List<int> codes) {
+  void emulateTeleinfo(List<int> codes) {
     int line = state.l;
     int column = state.c;
     bool cursor = cursorOn;
 
     for (int i = 0; i < codes.length; i++) {
-      if (!isVt100Mode) {
+      if (!isTeleinfoMode) {
         emulate(codes.sublist(i));
         break;
       }
 
       final code = codes[i];
       currentCode = code;
-      if (stateCode == kStateVtPro1) {
+      if (stateCode == kStateTeleinfoPro1) {
         handleProtocol1(code);
-      } else if (stateCode == kStateVtPro2) {
-        _handleVtPro2(code);
-      } else if (stateCode == kStateVtUs) {
-        _handleVtUs(code);
-      } else if (stateCode == kStateVtUsAt) {
-        _handleVtUsAt(code);
-      } else if (stateCode == kStateVtEsc) {
-        _handleVtEscape(code);
-      } else if (stateCode == kStateVtCsi) {
-        _handleVtCsi(code);
+      } else if (stateCode == kStateTeleinfoPro2) {
+        _handleTeleinfoPro2(code);
+      } else if (stateCode == kStateTeleinfoUs) {
+        _handleTeleinfoUs(code);
+      } else if (stateCode == kStateTeleinfoUsAt) {
+        _handleTeleinfoUsAt(code);
+      } else if (stateCode == kStateTeleinfoEsc) {
+        _handleTeleinfoEscape(code);
+      } else if (stateCode == kStateTeleinfoCsi) {
+        _handleTeleinfoCsi(code);
       } else if (code == $esc) {
-        stateCode = kStateVtEsc;
+        stateCode = kStateTeleinfoEsc;
       } else if (code < $space) {
-        _handleVtControl(code);
+        _handleTeleinfoControl(code);
       } else if (code != 0x7F) {
-        if (_vtInsertMode) {
-          _vtInsertChars(1);
+        if (_teleinfoInsertMode) {
+          _teleinfoInsertChars(1);
         }
-        _putCharVt100(code);
-        _setCursorForwardVt100();
+        _putCharTeleinfo(code);
+        _setCursorForwardTeleinfo();
       }
 
       if (cursor != cursorOn) {
@@ -441,7 +441,7 @@ class TMinitel {
     }
   }
 
-  void _handleVtControl(int code) {
+  void _handleTeleinfoControl(int code) {
     switch (code) {
       case 0x07:
         handleBell();
@@ -458,7 +458,7 @@ class TMinitel {
       case 0x0A:
       case 0x0B:
       case 0x0C:
-        _vtLineFeed();
+        _teleinfoLineFeed();
         break;
       case 0x0D:
         state.c = 1;
@@ -473,14 +473,14 @@ class TMinitel {
         break;
       case $can:
       case $sub:
-        _putCharVt100(0x7F);
-        _setCursorForwardVt100();
+        _putCharTeleinfo(0x7F);
+        _setCursorForwardTeleinfo();
         break;
       case $rs:
         _setCursorClamped(1, 1);
         break;
       case $us:
-        stateCode = kStateVtUs;
+        stateCode = kStateTeleinfoUs;
         return;
       default:
         break;
@@ -488,34 +488,34 @@ class TMinitel {
     stateCode = 0;
   }
 
-  void _handleVtUs(int code) {
+  void _handleTeleinfoUs(int code) {
     if (code == 0x40) {
-      stateCode = kStateVtUsAt;
+      stateCode = kStateTeleinfoUsAt;
       return;
     }
     // US ignoré (hors séquence ligne 0) : re-traite le byte courant normalement
     stateCode = 0;
     if (code == $esc) {
-      stateCode = kStateVtEsc;
+      stateCode = kStateTeleinfoEsc;
     } else if (code < $space) {
-      _handleVtControl(code);
+      _handleTeleinfoControl(code);
     } else if (code != 0x7F) {
-      if (_vtInsertMode) {
-        _vtInsertChars(1);
+      if (_teleinfoInsertMode) {
+        _teleinfoInsertChars(1);
       }
-      _putCharVt100(code);
-      _setCursorForwardVt100();
+      _putCharTeleinfo(code);
+      _setCursorForwardTeleinfo();
     }
   }
 
-  void _handleVtUsAt(int code) {
+  void _handleTeleinfoUsAt(int code) {
     if (code >= 0x40) {
       code -= 0x40;
     }
     if (code > 0 && code < 64) {
       if (state.l != 0) {
-        _vtLine0ReturnRow = state.l;
-        _vtLine0ReturnColumn = state.c;
+        _teleinfoLine0ReturnRow = state.l;
+        _teleinfoLine0ReturnColumn = state.c;
       }
       state.l = 0;
       state.c = code;
@@ -523,45 +523,45 @@ class TMinitel {
     stateCode = 0;
   }
 
-  void _handleVtEscape(int code) {
+  void _handleTeleinfoEscape(int code) {
     if (code == $pro1) {
-      stateCode = kStateVtPro1;
+      stateCode = kStateTeleinfoPro1;
       return;
     }
 
     if (code == $pro2) {
-      _vtPro2Prefix = -1;
-      stateCode = kStateVtPro2;
+      _teleinfoPro2Prefix = -1;
+      stateCode = kStateTeleinfoPro2;
       return;
     }
 
     if (code == 0x5B) {
-      _vtCsiBuffer = StringBuffer();
-      _vtCsiIntermediate = 0;
-      stateCode = kStateVtCsi;
+      _teleinfoCsiBuffer = StringBuffer();
+      _teleinfoCsiIntermediate = 0;
+      stateCode = kStateTeleinfoCsi;
       return;
     }
 
     switch (code) {
       case 0x37: // DECSC
-        _vtSavedRow = state.l;
-        _vtSavedColumn = state.c;
+        _teleinfoSavedRow = state.l;
+        _teleinfoSavedColumn = state.c;
         break;
       case 0x38: // DECRC
-        _setCursorClamped(_vtSavedRow, _vtSavedColumn);
+        _setCursorClamped(_teleinfoSavedRow, _teleinfoSavedColumn);
         break;
       case 0x44: // IND
-        _vtLineFeed();
+        _teleinfoLineFeed();
         break;
       case 0x45: // NEL
         state.c = 1;
-        _vtLineFeed();
+        _teleinfoLineFeed();
         break;
       case 0x4D: // RI
         if (state.l > 1) {
           state.l--;
         } else {
-          _vtScrollDown();
+          _teleinfoScrollDown();
         }
         break;
       case 0x63: // RIS
@@ -573,55 +573,56 @@ class TMinitel {
     stateCode = 0;
   }
 
-  void _handleVtPro2(int code) {
-    if (_vtPro2Prefix < 0) {
-      _vtPro2Prefix = code;
-      stateCode = kStateVtPro2;
+  void _handleTeleinfoPro2(int code) {
+    if (_teleinfoPro2Prefix < 0) {
+      _teleinfoPro2Prefix = code;
+      stateCode = kStateTeleinfoPro2;
       return;
     }
 
-    if (_vtPro2Prefix == 0x32) {
+    if (_teleinfoPro2Prefix == 0x32) {
       if (code == 0x7D) {
-        setScreenMode(TMinitelScreenMode.vt10080);
+        setScreenMode(TMinitelScreenMode.teleinfo80);
       } else if (code == 0x7E) {
         setScreenMode(TMinitelScreenMode.videotex40);
       }
     } else {
       // Délégation aux séquences protocole 2 communes (ex. rouleau/page)
-      handleProtocol2(_vtPro2Prefix, code);
+      handleProtocol2(_teleinfoPro2Prefix, code);
     }
 
-    _vtPro2Prefix = -1;
+    _teleinfoPro2Prefix = -1;
     stateCode = 0;
   }
 
-  void _handleVtCsi(int code) {
+  void _handleTeleinfoCsi(int code) {
     if ((code >= 0x30 && code <= 0x39) || code == 0x3B) {
-      _vtCsiBuffer.writeCharCode(code);
+      _teleinfoCsiBuffer.writeCharCode(code);
       return;
     }
-    // Marqueurs intermédiaires : '?' (VT100) et '<' (Minitel 80 cols)
+    // Marqueurs intermédiaires : '?' (Téléinformatique) et '<' (Minitel 80 cols)
     if ((code == 0x3F || code == 0x3C) &&
-        _vtCsiBuffer.isEmpty &&
-        _vtCsiIntermediate == 0) {
-      _vtCsiIntermediate = code;
+        _teleinfoCsiBuffer.isEmpty &&
+        _teleinfoCsiIntermediate == 0) {
+      _teleinfoCsiIntermediate = code;
       return;
     }
     if (code >= 0x40 && code <= 0x7E) {
-      _executeVtCsi(code, _vtParseParams(_vtCsiBuffer.toString()));
-      _vtCsiBuffer = StringBuffer();
-      _vtCsiIntermediate = 0;
+      _executeTeleinfoCsi(
+          code, _teleinfoParseParams(_teleinfoCsiBuffer.toString()));
+      _teleinfoCsiBuffer = StringBuffer();
+      _teleinfoCsiIntermediate = 0;
       stateCode = 0;
       return;
     }
 
     // Unsupported CSI fragment: reset state to avoid getting stuck.
-    _vtCsiBuffer = StringBuffer();
-    _vtCsiIntermediate = 0;
+    _teleinfoCsiBuffer = StringBuffer();
+    _teleinfoCsiIntermediate = 0;
     stateCode = 0;
   }
 
-  List<int> _vtParseParams(String raw) {
+  List<int> _teleinfoParseParams(String raw) {
     if (raw.isEmpty) return [];
     return raw.split(';').map((s) {
       if (s.isEmpty) return 0;
@@ -629,55 +630,56 @@ class TMinitel {
     }).toList();
   }
 
-  int _vtParam(List<int> params, int index, int fallback) {
+  int _teleinfoParam(List<int> params, int index, int fallback) {
     if (index >= params.length || params[index] == 0) return fallback;
     return params[index];
   }
 
-  void _executeVtCsi(int finalCode, List<int> params) {
+  void _executeTeleinfoCsi(int finalCode, List<int> params) {
     switch (finalCode) {
       case 0x41: // CUU
-        _setCursorClamped(state.l - _vtParam(params, 0, 1), state.c);
+        _setCursorClamped(state.l - _teleinfoParam(params, 0, 1), state.c);
         break;
       case 0x42: // CUD
-        _setCursorClamped(state.l + _vtParam(params, 0, 1), state.c);
+        _setCursorClamped(state.l + _teleinfoParam(params, 0, 1), state.c);
         break;
       case 0x43: // CUF
-        _setCursorClamped(state.l, state.c + _vtParam(params, 0, 1));
+        _setCursorClamped(state.l, state.c + _teleinfoParam(params, 0, 1));
         break;
       case 0x44: // CUB
-        _setCursorClamped(state.l, state.c - _vtParam(params, 0, 1));
+        _setCursorClamped(state.l, state.c - _teleinfoParam(params, 0, 1));
         break;
       case 0x47: // CHA
-        _setCursorClamped(state.l, _vtParam(params, 0, 1));
+        _setCursorClamped(state.l, _teleinfoParam(params, 0, 1));
         break;
       case 0x48: // CUP
       case 0x66: // HVP
-        _setCursorClamped(_vtParam(params, 0, 1), _vtParam(params, 1, 1));
+        _setCursorClamped(
+            _teleinfoParam(params, 0, 1), _teleinfoParam(params, 1, 1));
         break;
       case 0x64: // VPA
-        _setCursorClamped(_vtParam(params, 0, 1), state.c);
+        _setCursorClamped(_teleinfoParam(params, 0, 1), state.c);
         break;
       case 0x4A: // ED
-        _vtEraseDisplay(_vtParam(params, 0, 0));
+        _teleinfoEraseDisplay(_teleinfoParam(params, 0, 0));
         break;
       case 0x4B: // EL
-        _vtEraseLine(_vtParam(params, 0, 0));
+        _teleinfoEraseLine(_teleinfoParam(params, 0, 0));
         break;
       case 0x40: // ICH
-        _vtInsertChars(_vtParam(params, 0, 1));
+        _teleinfoInsertChars(_teleinfoParam(params, 0, 1));
         break;
       case 0x4C: // IL
-        _vtInsertLines(_vtParam(params, 0, 1));
+        _teleinfoInsertLines(_teleinfoParam(params, 0, 1));
         break;
       case 0x4D: // DL
-        _vtDeleteLines(_vtParam(params, 0, 1));
+        _teleinfoDeleteLines(_teleinfoParam(params, 0, 1));
         break;
       case 0x50: // DCH
-        _vtDeleteChars(_vtParam(params, 0, 1));
+        _teleinfoDeleteChars(_teleinfoParam(params, 0, 1));
         break;
       case 0x6D: // SGR
-        _vtSetSgr(params);
+        _teleinfoSetSgr(params);
         break;
       case 0x6E: // DSR
         if (params.isNotEmpty && params.first == 6) {
@@ -689,17 +691,17 @@ class TMinitel {
         }
         break;
       case 0x73: // SCP
-        _vtSavedRow = state.l;
-        _vtSavedColumn = state.c;
+        _teleinfoSavedRow = state.l;
+        _teleinfoSavedColumn = state.c;
         break;
       case 0x75: // RCP
-        _setCursorClamped(_vtSavedRow, _vtSavedColumn);
+        _setCursorClamped(_teleinfoSavedRow, _teleinfoSavedColumn);
         break;
       case 0x68: // SM
       case 0x6C: // RM
         final enable = finalCode == 0x68;
-        if (_vtCsiIntermediate == 0x3F && params.isNotEmpty) {
-          // Séquences VT100 privées : CSI ? Pn h/l
+        if (_teleinfoCsiIntermediate == 0x3F && params.isNotEmpty) {
+          // Séquences Téléinformatique privées : CSI ? Pn h/l
           switch (params.first) {
             case 1:
               cursorOn = enable;
@@ -708,7 +710,7 @@ class TMinitel {
               setScreenMode(
                 enable
                     ? TMinitelScreenMode.videotex40
-                    : TMinitelScreenMode.vt10080,
+                    : TMinitelScreenMode.teleinfo80,
               );
               break;
             case 4:
@@ -717,7 +719,7 @@ class TMinitel {
             default:
               break;
           }
-        } else if (_vtCsiIntermediate == 0x3C && params.isNotEmpty) {
+        } else if (_teleinfoCsiIntermediate == 0x3C && params.isNotEmpty) {
           // Séquences Minitel 80 cols : CSI < Pn h/l
           // Convention inversée : l (0x6C) = ON, h (0x68) = OFF
           final minitelEnable = finalCode == 0x6C;
@@ -732,7 +734,7 @@ class TMinitel {
               break;
           }
         } else if (params.isNotEmpty && params.first == 4) {
-          _vtInsertMode = enable;
+          _teleinfoInsertMode = enable;
         }
         break;
       default:
@@ -740,7 +742,7 @@ class TMinitel {
     }
   }
 
-  void _vtInsertChars(int count) {
+  void _teleinfoInsertChars(int count) {
     final n = count < 1 ? 1 : count;
     final l = state.l;
     if (l < 1 || l > lastLine) return;
@@ -754,7 +756,7 @@ class TMinitel {
     }
   }
 
-  void _vtDeleteChars(int count) {
+  void _teleinfoDeleteChars(int count) {
     final n = count < 1 ? 1 : count;
     final l = state.l;
     if (l < 1 || l > lastLine) return;
@@ -768,7 +770,7 @@ class TMinitel {
     }
   }
 
-  void _vtInsertLines(int count) {
+  void _teleinfoInsertLines(int count) {
     final n = count < 1 ? 1 : count;
     final start = state.l;
     if (start < 1 || start > lastLine) return;
@@ -784,7 +786,7 @@ class TMinitel {
     screen[0][_dirtyColumn].code |= kIsDirty;
   }
 
-  void _vtDeleteLines(int count) {
+  void _teleinfoDeleteLines(int count) {
     final n = count < 1 ? 1 : count;
     final start = state.l;
     if (start < 1 || start > lastLine) return;
@@ -800,13 +802,14 @@ class TMinitel {
     screen[0][_dirtyColumn].code |= kIsDirty;
   }
 
-  void _vtSetSgr(List<int> params) {
+  void _teleinfoSetSgr(List<int> params) {
     final effective = params.isEmpty ? [0] : params;
     for (final param in effective) {
       switch (param) {
         case 0:
           state.resetAttr();
-          state.fgColor = 2; // couleur par défaut VT100 (pas kColorWhite)
+          state.fgColor =
+              2; // couleur par défaut Téléinformatique (pas kColorWhite)
           break;
         case 1:
           state.fgColor = kColorWhite; // surintensité → couleur 7
@@ -836,7 +839,7 @@ class TMinitel {
           state.fgColor = param - 30;
           break;
         case 39:
-          state.fgColor = 2; // couleur fg par défaut VT100
+          state.fgColor = 2; // couleur fg par défaut Téléinformatique
           break;
         case >= 40 && <= 47:
           state.bgColor = param - 40;
@@ -851,45 +854,45 @@ class TMinitel {
     state.needAttrSpace = false;
   }
 
-  void _vtEraseDisplay(int mode) {
+  void _teleinfoEraseDisplay(int mode) {
     switch (mode) {
       case 1:
         for (int line = 1; line < state.l; ++line) {
-          _vtClearLine(line, 1, lastColumn);
+          _teleinfoClearLine(line, 1, lastColumn);
         }
-        _vtClearLine(state.l, 1, state.c);
+        _teleinfoClearLine(state.l, 1, state.c);
         break;
       case 2:
         for (int line = 1; line <= lastLine; ++line) {
-          _vtClearLine(line, 1, lastColumn);
+          _teleinfoClearLine(line, 1, lastColumn);
         }
         break;
       case 0:
       default:
-        _vtClearLine(state.l, state.c, lastColumn);
+        _teleinfoClearLine(state.l, state.c, lastColumn);
         for (int line = state.l + 1; line <= lastLine; ++line) {
-          _vtClearLine(line, 1, lastColumn);
+          _teleinfoClearLine(line, 1, lastColumn);
         }
         break;
     }
   }
 
-  void _vtEraseLine(int mode) {
+  void _teleinfoEraseLine(int mode) {
     switch (mode) {
       case 1:
-        _vtClearLine(state.l, 1, state.c);
+        _teleinfoClearLine(state.l, 1, state.c);
         break;
       case 2:
-        _vtClearLine(state.l, 1, lastColumn);
+        _teleinfoClearLine(state.l, 1, lastColumn);
         break;
       case 0:
       default:
-        _vtClearLine(state.l, state.c, lastColumn);
+        _teleinfoClearLine(state.l, state.c, lastColumn);
         break;
     }
   }
 
-  void _vtClearLine(int line, int fromColumn, int toColumn) {
+  void _teleinfoClearLine(int line, int fromColumn, int toColumn) {
     final start = fromColumn < 1 ? 1 : fromColumn;
     final end = toColumn > lastColumn ? lastColumn : toColumn;
     for (int column = start; column <= end; ++column) {
@@ -898,7 +901,7 @@ class TMinitel {
     }
   }
 
-  void _putCharVt100(int code) {
+  void _putCharTeleinfo(int code) {
     final l = state.l;
     final c = state.c;
     final char = screen[l][c];
@@ -908,32 +911,32 @@ class TMinitel {
     markCharAsDirty(l, c);
   }
 
-  void _setCursorForwardVt100() {
+  void _setCursorForwardTeleinfo() {
     if (state.c < lastColumn) {
       state.c++;
     }
   }
 
-  void _vtLineFeed() {
+  void _teleinfoLineFeed() {
     if (state.l == 0) {
-      _setCursorClamped(_vtLine0ReturnRow, _vtLine0ReturnColumn);
+      _setCursorClamped(_teleinfoLine0ReturnRow, _teleinfoLine0ReturnColumn);
       return;
     }
     if (state.l < lastLine) {
       state.l++;
     } else if (scrollOn) {
-      _vtScrollUp();
+      _teleinfoScrollUp();
     } else {
       // Mode page : retour en ligne 1 (même comportement qu'en 40 cols)
       state.l = 1;
     }
   }
 
-  void _vtScrollUp({int fromLine = 1}) {
+  void _teleinfoScrollUp({int fromLine = 1}) {
     scrollUp(fromLine: fromLine);
   }
 
-  void _vtScrollDown({int fromLine = 1}) {
+  void _teleinfoScrollDown({int fromLine = 1}) {
     scrollDown(fromLine: fromLine);
   }
 
@@ -1139,7 +1142,7 @@ class TMinitel {
       }
     } else if (x == 0x32) {
       if (y == 0x7D) {
-        setScreenMode(TMinitelScreenMode.vt10080);
+        setScreenMode(TMinitelScreenMode.teleinfo80);
       } else if (y == 0x7E) {
         setScreenMode(TMinitelScreenMode.videotex40);
       }
@@ -1163,7 +1166,7 @@ class TMinitel {
         setScreenMode(TMinitelScreenMode.videotex40);
       },
       [0x1b, 0x5b, 0x3f, 0x33, 0x6c]: () {
-        setScreenMode(TMinitelScreenMode.vt10080);
+        setScreenMode(TMinitelScreenMode.teleinfo80);
       },
     };
 
