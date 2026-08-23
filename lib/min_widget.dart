@@ -300,10 +300,8 @@ class MinScreenAndKeyboard extends StatelessWidget {
               final allowImageKeyboardOnMobile = _isMobileTarget &&
                   settings.mobileKeyboardLayout ==
                       MobileKeyboardLayoutMode.bitmap;
-              final imageKeyboardEnabled =
-                  minmodel.screenMode == TMinitelScreenMode.videotex40 &&
-                      (allowImageKeyboardOnMobile ||
-                          settings.desktopImageKeyboardEnabled);
+              final imageKeyboardEnabled = allowImageKeyboardOnMobile ||
+                  settings.desktopImageKeyboardEnabled;
               final keyboardBaseHeight = imageKeyboardEnabled ? 500.0 : 48.0;
 
               return LayoutBuilder(
@@ -1130,6 +1128,7 @@ class _MinImageKeyState extends State<_MinImageKey> {
       width: scaledKeyWidth,
       height: scaledKeyHeight,
       child: InkWell(
+        canRequestFocus: false,
         hoverColor: Colors.transparent,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,

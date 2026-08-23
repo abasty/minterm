@@ -128,7 +128,8 @@ class TMinitel {
   int _teleinfoSavedColumn = 1;
   int _teleinfoLine0ReturnRow = 1;
   int _teleinfoLine0ReturnColumn = 1;
-  bool _teleinfoInsertMode = false;
+  // Mode insertion caractère (ESC[4h/l), partagé Videotex 40 cols et Téléinformatique 80 cols.
+  bool _insertMode = false;
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -213,10 +214,10 @@ class TMinitel {
     if (!isTeleinfoMode) {
       state.resetAttr();
     }
+    _insertMode = false;
     if (isTeleinfoMode) {
       scrollOn = true;
       cursorOn = true;
-      _teleinfoInsertMode = false;
       _teleinfoLine0ReturnRow = 1;
       _teleinfoLine0ReturnColumn = 1;
       state.fgColor = 2; // couleur par défaut Téléinformatique
@@ -424,7 +425,7 @@ class TMinitel {
       } else if (code < $space) {
         _handleTeleinfoControl(code);
       } else if (code != 0x7F) {
-        if (_teleinfoInsertMode) {
+        if (_insertMode) {
           _teleinfoInsertChars(1);
         }
         _putCharTeleinfo(code);
@@ -503,7 +504,7 @@ class TMinitel {
     } else if (code < $space) {
       _handleTeleinfoControl(code);
     } else if (code != 0x7F) {
-      if (_teleinfoInsertMode) {
+      if (_insertMode) {
         _teleinfoInsertChars(1);
       }
       _putCharTeleinfo(code);
@@ -737,7 +738,7 @@ class TMinitel {
               break;
           }
         } else if (params.isNotEmpty && params.first == 4) {
-          _teleinfoInsertMode = enable;
+          _insertMode = enable;
         }
         break;
       default:
@@ -998,6 +999,9 @@ class TMinitel {
 
   void handleChar() {
     lastCharset = state.charset;
+    if (_insertMode) {
+      insertChar();
+    }
     putChar(currentCode);
     lastCode = currentCode;
     setCursorForward();
@@ -1170,6 +1174,12 @@ class TMinitel {
       },
       [0x1b, 0x5b, 0x3f, 0x33, 0x6c]: () {
         setScreenMode(TMinitelScreenMode.teleinfo80);
+      },
+      [0x1b, 0x5b, 0x34, 0x68]: () {
+        _insertMode = true;
+      },
+      [0x1b, 0x5b, 0x34, 0x6c]: () {
+        _insertMode = false;
       },
     };
 
@@ -1553,6 +1563,16 @@ class TMinitel {
       screen[l][column] = screen[l][column + 1];
     }
     screen[l][lastColumn] = TMinitelChar.from(kEmptyChar);
+    propagateAndMakeDirty(l, c);
+  }
+
+  void insertChar() {
+    final l = state.l;
+    final c = state.c;
+    for (int column = lastColumn; column > c; --column) {
+      screen[l][column] = screen[l][column - 1];
+    }
+    screen[l][c] = TMinitelChar.from(kEmptyChar);
     propagateAndMakeDirty(l, c);
   }
 
