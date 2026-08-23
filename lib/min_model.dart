@@ -773,10 +773,12 @@ class MinModel extends ChangeNotifier {
 
     if (keys == 'shift') {
       _isShifted = !_isShifted;
+      notifyListeners();
       return;
     }
     if (keys == 'ctrl') {
       _isCtrl = !_isCtrl;
+      notifyListeners();
       return;
     }
 

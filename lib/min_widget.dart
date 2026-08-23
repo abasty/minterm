@@ -774,7 +774,7 @@ class MinKeyboard extends StatelessWidget {
         final useImageKeyboard = allowImageKeyboardOnMobile ||
             MinSettings().desktopImageKeyboardEnabled;
         if (useImageKeyboard) {
-          return const _MinMinitelImageKeyboard();
+          return _MinMinitelImageKeyboard();
         }
         return MinMinitelKeyboard(scaleOverride: scaleOverride);
       },
@@ -1121,6 +1121,9 @@ class _MinImageKeyState extends State<_MinImageKey> {
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final keyRestBackground =
         isDarkTheme ? const Color(0xFFF2F2F2) : const Color(0xFFE6E6E6);
+    final isToggleActive = widget.k == 'ctrl'
+        ? MinModel().isCtrl
+        : widget.k == 'shift' && MinModel().isShifted;
 
     return Positioned(
       left: widget.left * widget.scale,
@@ -1187,6 +1190,17 @@ class _MinImageKeyState extends State<_MinImageKey> {
                           fit: BoxFit.fill,
                         ),
                       ),
+                    ),
+                  ),
+                ),
+              if (isToggleActive)
+                Center(
+                  child: Container(
+                    width: 4 * widget.scale,
+                    height: 4 * widget.scale,
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
                     ),
                   ),
                 ),
