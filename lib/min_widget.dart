@@ -1093,7 +1093,12 @@ class _MinImageKeyState extends State<_MinImageKey> {
     // une touche seule envoie une majuscule et Shift+touche une minuscule.
     final upMode = !MinModel().minitel.keyboardLowercase;
     var key = '';
-    if (letters.hasMatch(widget.k)) {
+    if (widget.k == TMinitelKey.arrowRight && shifted) {
+      // Bascule mode insertion caractère.
+      key = MinModel().minitel.insertMode
+          ? TMinitelKey.insCOff
+          : TMinitelKey.insCOn;
+    } else if (letters.hasMatch(widget.k)) {
       if (widget.k.toUpperCase() == 'G' && ctrl) {
         key = '\x07';
       } else {

@@ -114,7 +114,16 @@ void main(List<String> args) async {
           }
           break;
         case LogicalKeyboardKey.arrowRight:
-          MinModel().handleKeys(TMinitelKey.arrowRight);
+          if (shift) {
+            // Bascule mode insertion caractère.
+            MinModel().handleKeys(
+              MinModel().minitel.insertMode
+                  ? TMinitelKey.insCOff
+                  : TMinitelKey.insCOn,
+            );
+          } else {
+            MinModel().handleKeys(TMinitelKey.arrowRight);
+          }
           break;
         case LogicalKeyboardKey.arrowDown:
           if (shift) {

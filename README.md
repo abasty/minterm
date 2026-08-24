@@ -38,10 +38,11 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 
 * [x] **Série : Ajouter configuration par défaut (1200)**
 * [x] **Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max**
-* [ ] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
+* [x] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
 
 ## TODO
 
+* [ ] En mode 80 cols, il faut supporter le jeu de caractère approprié
 * [ ] Vitesse en mode web non respectée
 * Penser à Ctrl+X pour CX/Fin
 * [ ] Bug rendu des caractères disjoints (en x2.5 et x3.5 pas en x3 ou x4).
@@ -52,8 +53,12 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
 * [ ] Voir ce que font insl, dell, insc, delc en ligne 0 sur un M1B et corriger
   l'émulateur
 * [ ] Support touches Ctrl + A-Z
+* [ ] Connexion to Minitel (output)
+* [ ] Ajouter BASTOS
+* [ ] Mode vidéo inverse (bof, pour BASTOS / VP100)
+* [ ] Implémenter clavier zx81 étendu
 * [x] Répondre à demande vitesse (PRO1 74 (t))
-* [ ] Touches de direction : génère un ESC + 2 caractères ([Touches en mode
+* [x] Touches de direction : génère un ESC + 2 caractères ([Touches en mode
   clavier étendu](#touches-en-mode-clavier-%C3%A9tendu))
   * [x] Implémenter dans minterm (clavier virtuel et physique)
   * [x] Implémenter dans `os_get_key()`
@@ -67,16 +72,12 @@ Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
     faire des déplacements attendus : Ajouter support à l'émulateur
   * [x] Touches de direction + Shift (SUPL: 1b5b4d, INSL: 1b5b4c, SUPC: 1b5b50)
   * [x] Support pour SUPL, INSL, SUPC : Même codes que les touches
-  * [ ] Touches de direction + Shift (INSC_ON: 1b5b3468, INSC_OFF: 1b5b346c)
+  * [x] Touches de direction + Shift (INSC_ON: 1b5b3468, INSC_OFF: 1b5b346c)
     supporter au niveau de l'émulateur
 * [x] LIST : il faut print les caractères graphiques et envoyer G0 / G1 à
   l'écran
-* [x] Mode minuscules/majuscules : support au niveau proto dans l'emulateur
-* [ ] Émulation mode 80 colonnes et mode mixte
-* [ ] Connexion to Minitel (output)
-* [ ] Ajouter BASTOS
-* [ ] Mode vidéo inverse (bof, pour BASTOS / VP100)
-* [ ] Implémenter clavier zx81 étendu
+* [x] Mode minuscules/majuscules : support au niveau proto dans l'émulateur
+* [x] Émulation mode 80 colonnes et mode mixte
 * [x] Implémenter blink et cursor blinking
 * [x] Support ws et tcp
 * [x] Clavier minitel 1b

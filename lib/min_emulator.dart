@@ -84,6 +84,8 @@ class TMinitelKey {
   static const supL = '\x1b\x5b\x4d';
   static const insL = '\x1b\x5b\x4c';
   static const delC = '\x1b\x5b\x50';
+  static const insCOn = '\x1b[4h';
+  static const insCOff = '\x1b[4l';
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
@@ -152,6 +154,8 @@ class TMinitel {
   int get _dirtyColumn => _columns + 1;
 
   bool get isTeleinfoMode => _screenMode == TMinitelScreenMode.teleinfo80;
+
+  bool get insertMode => _insertMode;
 
   void setScreenMode(TMinitelScreenMode mode) {
     if (_screenMode == mode) return;
