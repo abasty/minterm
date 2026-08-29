@@ -2,6 +2,8 @@
 
 Encore un émulateur Minitel ! En Flutter & Dart.
 
+📖 [Manuel d'utilisation](docs/EMULATOR-MANUAL-fr.md)
+
 ## Build/launch Linux en release
 
 ```
