@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -49,9 +48,10 @@ String _normalizeUrn(String urn) {
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (!kIsWeb) {
-    await window_setup.initializeWindow();
-  }
+  await window_setup.initializeWindow();
+  window_setup.setEscapeInFullscreenHandler(() {
+    MinModel().handleKeys('\x1b');
+  });
 
   HardwareKeyboard.instance.addHandler((event) {
     if (_hasEditableTextFocus()) {
@@ -59,6 +59,11 @@ void main(List<String> args) async {
     }
 
     if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.f11) {
+        // Ne pas consommer F11 : laisser le navigateur basculer en plein
+        // écran nativement en mode web (sinon preventDefault bloque Chrome).
+        return false;
+      }
       if (event.logicalKey.keyLabel == '[') {
         var shift = HardwareKeyboard.instance.isShiftPressed;
         MinModel().handleKeys(
@@ -70,6 +75,11 @@ void main(List<String> args) async {
       var shift = HardwareKeyboard.instance.isShiftPressed;
       final isTeleinfo = MinModel().screenMode == TMinitelScreenMode.teleinfo80;
       switch (event.logicalKey) {
+        case LogicalKeyboardKey.escape:
+          // En Flutter web, event.character est souvent nul pour Echap :
+          // on la gère explicitement plutôt que via le fallback event.character.
+          MinModel().handleKeys('\x1b');
+          break;
         case LogicalKeyboardKey.pageDown:
           // Suite, que ce soit en 40 ou 80 colonnes.
           MinModel().handleKeys(TMinitelKey.suite);

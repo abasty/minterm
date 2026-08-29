@@ -36,3 +36,8 @@ Future<void> toggleFullscreen() async {
   await windowManager.setFullScreen(nextState);
   fullscreenListenable.value = nextState;
 }
+
+void setEscapeInFullscreenHandler(void Function() handler) {
+  // Sans objet hors web : Échap ne quitte pas le plein écran nativement,
+  // le clavier Flutter reçoit toujours l'évènement normalement.
+}
