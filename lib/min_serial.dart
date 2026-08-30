@@ -10,7 +10,7 @@ class ConnectionSerial extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: const Text('Ports série'),
+      title: const Text('Ports série...'),
       onTap: () {
         Navigator.push(
           context,
