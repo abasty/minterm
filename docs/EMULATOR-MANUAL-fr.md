@@ -30,8 +30,8 @@ relancer d'un tap. Un choix de services connus est proposé par défaut : 3611,
 3615, Minipavi, Hacker, Galaxy...
 
 Pour ajouter, modifier, dupliquer, réordonner ou supprimer une connexion,
-ouvrez **Autre... → Gérer toutes les connexions**. Chaque connexion est
-définie par :
+ouvrez **Services...**, qui donne accès à la gestion complète des connexions.
+Chaque connexion est définie par :
 
 - un **nom** ;
 - une **URL**, sous la forme `ws://hôte/chemin`, `wss://hôte/chemin` (WebSocket
@@ -45,21 +45,22 @@ La liste des connexions peut être exportée/importée au format JSON (icônes e
 haut de l'écran de gestion), pratique pour la transférer d'un appareil à
 l'autre.
 
-**Vitesse (bps)** — dans le menu, l'entrée **Speed** fait défiler les vitesses
-disponibles (300, 1200, 4800, 9600, ou *max*), pour simuler un Minitel plus
-lent ou laisser filer la connexion à sa vitesse réelle. Le service connecté
-peut aussi commander ce changement lui-même par une commande protocole ; dans
-ce cas l'entrée Speed se met à jour automatiquement pour refléter la vitesse
-demandée.
+**Vitesse (bps)** — dans le menu, l'entrée **Vitesse** fait défiler les
+vitesses disponibles (300, 1200, 4800, 9600, ou *max*), pour simuler un
+Minitel plus lent ou laisser filer la connexion à sa vitesse réelle. Le
+service connecté peut aussi commander ce changement lui-même par une commande
+protocole ; dans ce cas l'entrée Vitesse se met à jour automatiquement pour
+refléter la vitesse demandée. Ce réglage est mémorisé et réappliqué
+automatiquement au prochain lancement de l'application.
 
 ### Port série (dispositif physique)
 
-Sur Linux desktop, l'entrée **Serial ports** du menu liste les ports série
+Sur Linux desktop, l'entrée **Ports série** du menu liste les ports série
 disponibles (adaptateur USB-série relié à un vrai Minitel, par exemple).
 Sélectionner un port l'ouvre en lecture/écriture à la place d'une connexion
 réseau.
 
-Dans ce cas, l'entrée **Speed** du menu configure aussi la vitesse (bps) du
+Dans ce cas, l'entrée **Vitesse** du menu configure aussi la vitesse (bps) du
 port série lui-même : à régler avant de se connecter au port. Si le
 dispositif connecté demande ensuite un changement de vitesse par commande
 protocole, le port série est reconfiguré automatiquement à la nouvelle
@@ -67,10 +68,11 @@ vitesse.
 
 ## Basculer entre les deux modes d'écran
 
-L'entrée **Mode écran** du menu bascule manuellement entre **Minitel 40**
-(Videotex) et **Téléinfo 80** (Téléinformatique). Le service auquel vous êtes
-connecté peut aussi demander ce changement automatiquement (séquence
-protocole), l'émulateur suit alors la demande.
+L'interrupteur **80 cols** du menu bascule manuellement entre **Minitel 40**
+(Videotex, interrupteur désactivé — le mode par défaut) et **Téléinformatique
+80 colonnes** (interrupteur activé). Le service auquel vous êtes connecté
+peut aussi demander ce changement automatiquement (séquence protocole),
+l'émulateur suit alors la demande et l'interrupteur reflète l'état courant.
 
 Passer en 80 colonnes configure le clavier en minuscules par défaut (comme
 sur un Minitel 1B) ; repasser en 40 colonnes remet le clavier en majuscules
@@ -101,6 +103,8 @@ correspondances suivantes vers les touches fonctionnelles du Minitel :
 | Flèche haut / bas / gauche / droite | Déplacement du curseur |
 | Retour arrière (Backspace) | Correction |
 | Entrée | Envoi (40 colonnes) / retour chariot (80 colonnes) |
+| Shift+Entrée | Sommaire (identique dans les deux modes) |
+| Ctrl+Entrée | Effacement page (identique dans les deux modes) |
 | Origine (Home) | Sommaire |
 | Page suivante / précédente | Suite / Retour |
 | F1 | Guide |
@@ -112,6 +116,12 @@ correspondances suivantes vers les touches fonctionnelles du Minitel :
 Les accents et caractères spéciaux du clavier Minitel sont produits à partir
 des touches mortes/lettres du clavier français : `à`, `é`, `è`, `ù`, `ç`, `Ç`,
 `£`, `§`, `°`.
+
+En mode Téléinformatique (80 colonnes), le clavier est configuré en
+minuscules par défaut : une touche seule envoie une minuscule, Shift+touche
+une majuscule (comme sur un clavier PC classique). En mode Minitel 40
+colonnes, c'est l'inverse (comme sur un vrai Minitel en majuscules seules) :
+une touche seule envoie une majuscule, Shift+touche une minuscule.
 
 ### Touches d'édition avancées
 
@@ -128,12 +138,36 @@ physique comme sur le clavier bitmap :
 
 ## Affichage
 
-- **Couleurs** (icône palette) : bascule entre l'affichage couleur normal et
-  un rendu en niveaux de gris.
-- **Fond** (icône soleil/lune) : bascule le fond de l'application entre
-  blanc et noir.
+- **Couleur** (icône palette dans la barre d'outils, ou interrupteur
+  **Couleur** dans le menu) : bascule entre l'affichage couleur normal et un
+  rendu en niveaux de gris.
+- **Fond clair** (icône soleil/lune dans la barre d'outils, ou interrupteur
+  **Fond clair** dans le menu) : bascule le fond de l'application entre noir
+  (défaut) et blanc.
 - L'écran et le clavier se redimensionnent automatiquement à la taille de la
   fenêtre.
+
+Ces deux réglages, ainsi que la Vitesse et le Son (voir plus bas), sont
+mémorisés automatiquement et réappliqués au lancement suivant de
+l'application — aucune action de sauvegarde n'est nécessaire.
+
+### Son
+
+L'interrupteur **Son** du menu fait défiler 4 modes, chacun représenté par
+une icône :
+
+| Icône | Mode | Effet |
+|---|---|---|
+| 🔇 (volume coupé) | Aucun | Ni bip, ni son de touche |
+| 🔊 (volume) | Bip + Clavier | Bip et son de touche (réglage par défaut) |
+| ⌨️ (clavier) | Clavier | Son de touche uniquement |
+| 🔔 (notification) | Bip | Bip uniquement |
+
+Le bip correspond au signal sonore (`BEL`) envoyé par le service distant,
+ainsi qu'à l'action **Effacer l'écran** des outils de capture (voir
+ci-dessous). Le son de touche accompagne chaque frappe, que ce soit au
+clavier physique du PC, sur le clavier virtuel bitmap ou sur le clavier
+compact.
 
 ## Plein écran
 
@@ -156,26 +190,31 @@ Le comportement diffère selon la plateforme :
 
 Le menu et la barre d'outils proposent d'enregistrer une session :
 
-- **Capture** (icône ●) : démarre/arrête l'enregistrement de tout ce qui
-  s'affiche à l'écran dans un fichier au format `.vdt` (format Videotex,
-  compatible avec d'autres outils Minitel).
-- **Replay capture** (icône ▶) : rejoue la dernière capture enregistrée,
-  caractère par caractère. Pendant la relecture, appuyer sur n'importe quelle
-  touche ou toucher l'écran met en pause (bandeau rouge affiché) ; retoucher
-  reprend la lecture, **Échap** l'arrête.
-- **Import capture** / **Export capture** : charger un fichier `.vdt`
-  existant ou sauvegarder la capture courante sur le disque (ou en
-  téléchargement, en mode web).
+- **Capture** (icône ●) : interrupteur qui démarre/arrête l'enregistrement de
+  tout ce qui s'affiche à l'écran dans un fichier au format `.vdt` (format
+  Videotex, compatible avec d'autres outils Minitel).
+- Juste en dessous, une rangée d'icônes rassemble les outils liés à cette
+  capture :
+  - ▶ **Rejouer** : rejoue la dernière capture enregistrée, caractère par
+    caractère. Pendant la relecture, appuyer sur n'importe quelle touche ou
+    toucher l'écran met en pause (bandeau rouge affiché) ; retoucher reprend
+    la lecture, **Échap** l'arrête.
+  - ⬆ **Importer** : charge un fichier `.vdt` existant.
+  - ⬇ **Exporter** : sauvegarde la capture courante sur le disque (ou en
+    téléchargement, en mode web).
+  - ⏻ **Effacer l'écran** : efface l'écran et repositionne le curseur avec un
+    signal sonore, comme lors d'une mise sous tension d'un Minitel 1B.
 
 La capture et la relecture sont mutuellement exclusives : on ne peut pas
-lancer une relecture pendant qu'une capture est active.
+lancer une relecture pendant qu'une capture est active — les icônes
+correspondantes sont alors grisées.
 
 ## Menu et autres réglages
 
-- **Clear** : ferme la connexion en cours, efface l'écran et repositionne le
-  curseur, avec un signal sonore.
-- Un bip sonore accompagne chaque frappe de touche et les cloches (`BEL`)
-  envoyées par le service distant.
+Le menu regroupe l'essentiel des réglages sous forme d'interrupteurs et de
+rangées d'icônes plutôt que de longues listes textuelles : Vitesse, 80 cols,
+Couleur, Fond clair, Son, puis Capture et ses outils. Une icône ✕ en haut du
+menu permet de le refermer.
 
 ## Annexe : table des touches spéciales
 
@@ -189,6 +228,8 @@ colonnes) :
 | Suppression de caractère (Shift+←) | `1B 5B 50` (`ESC [ P`) |
 | Mode insertion ON (Shift+→, bascule) | `1B 5B 34 68` (`ESC [ 4 h`) |
 | Mode insertion OFF (Shift+→, bascule) | `1B 5B 34 6C` (`ESC [ 4 l`) |
+| Sommaire (Shift+Entrée) | `1E` (30 décimal) |
+| Effacement page (Ctrl+Entrée) | `0C` (12 décimal) |
 
 ## Liens utiles
 
