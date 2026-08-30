@@ -72,6 +72,10 @@ class MinSettings extends ChangeNotifier {
 
   static late final ui.Image _fontG0G2;
   static late final ui.Image _fontG1;
+  static late ui.Image _fontG0p;
+  static late ui.Image _fontG1p;
+  Uint8List? _pixelsG0p;
+  Uint8List? _pixelsG1p;
   static const durationMax = 400;
   var scale = 1.5;
   var duration = durationMax;
@@ -90,6 +94,7 @@ class MinSettings extends ChangeNotifier {
     return _singleton;
   }
   MinSettings._internal() {
+    MinModel().minitel.onDrcsGlyph = updateDrcsGlyph;
     loadUiImage('assets/g0g2.png').then((image) {
       _fontG0G2 = image;
       _loaded++;
@@ -100,6 +105,24 @@ class MinSettings extends ChangeNotifier {
       _fontG1 = image;
       _loaded++;
       notifyListeners();
+    });
+
+    loadUiImage('assets/g0g2.png').then((image) {
+      _fontG0p = image;
+      image.toByteData(format: ui.ImageByteFormat.rawRgba).then((bd) {
+        _pixelsG0p = Uint8List.fromList(bd!.buffer.asUint8List());
+        _loaded++;
+        notifyListeners();
+      });
+    });
+
+    loadUiImage('assets/g1.png').then((image) {
+      _fontG1p = image;
+      image.toByteData(format: ui.ImageByteFormat.rawRgba).then((bd) {
+        _pixelsG1p = Uint8List.fromList(bd!.buffer.asUint8List());
+        _loaded++;
+        notifyListeners();
+      });
     });
   }
   List<Color> get colors => _colors;
@@ -113,7 +136,39 @@ class MinSettings extends ChangeNotifier {
 
   ui.Image get fontG1 => _fontG1;
 
-  bool get isLoaded => _loaded == 2;
+  ui.Image get fontG0p => _fontG0p;
+
+  ui.Image get fontG1p => _fontG1p;
+
+  // pixels80: 80 values (0=off, 1=on), row-major 8×10, matching DRCS download order.
+  // Font grid stride is 64 px (8 cols × 8 px). charRect formula: x=(c~/16)*8, y=(c%16)*10.
+  void updateDrcsGlyph(bool isG1, int code, Uint8List pixels80) {
+    final buf = isG1 ? _pixelsG1p : _pixelsG0p;
+    if (buf == null) return;
+    final gx = (code ~/ 16) * 8;
+    final gy = (code % 16) * 10;
+    for (int row = 0; row < 10; row++) {
+      for (int col = 0; col < 8; col++) {
+        final v = pixels80[row * 8 + col] != 0 ? 0xFF : 0x00;
+        final offset = ((gy + row) * 64 + (gx + col)) * 4;
+        buf[offset]     = v;
+        buf[offset + 1] = v;
+        buf[offset + 2] = v;
+        buf[offset + 3] = v;
+      }
+    }
+    ui.decodeImageFromPixels(buf, 64, 160, ui.PixelFormat.rgba8888, (img) {
+      if (isG1) {
+        _fontG1p = img;
+      } else {
+        _fontG0p = img;
+      }
+      notifyListeners();
+      MinModel().markScreenDirty();
+    });
+  }
+
+  bool get isLoaded => _loaded == 4;
 
   bool get keyboard => _keyboard;
 
@@ -669,9 +724,14 @@ class _MinPainter extends CustomPainter {
     );
 
     // Draw the character in the foreground color
-    final ui.Image font = (char.gAttr & kCharsetMask) != kG1Charset
-        ? MinSettings().fontG0G2
-        : MinSettings().fontG1;
+    final bool isDrcs = (char.lAttr & kDRCSCharset) != 0;
+    final ui.Image font = isDrcs
+        ? ((char.gAttr & kCharsetMask) != kG1Charset
+            ? MinSettings().fontG0p
+            : MinSettings().fontG1p)
+        : ((char.gAttr & kCharsetMask) != kG1Charset
+            ? MinSettings().fontG0G2
+            : MinSettings().fontG1);
     canvas.drawImageRect(
       font,
       charRect,
@@ -682,8 +742,9 @@ class _MinPainter extends CustomPainter {
         ..colorFilter = ColorFilter.mode(fgColor, BlendMode.srcIn),
     );
 
-    // Draw underline if applicable (only for G0/G2 charset, not espsep)
-    if ((char.gAttr & kAttrUnderline) != 0 &&
+    // Draw underline if applicable (only for G0/G2 charset, not espsep, not DRCS)
+    if (!isDrcs &&
+        (char.gAttr & kAttrUnderline) != 0 &&
         (char.gAttr & kCharsetMask) != kG1Charset &&
         (char.gAttr & kAttrSpace) == 0) {
       canvas.drawRect(
@@ -700,8 +761,9 @@ class _MinPainter extends CustomPainter {
       );
     }
 
-    // Draw disjointed if applicable (only for G1 charset)
-    if ((char.gAttr & kAttrDisjointed) != 0 &&
+    // Draw disjointed if applicable (only for G1 charset, not DRCS)
+    if (!isDrcs &&
+        (char.gAttr & kAttrDisjointed) != 0 &&
         (char.gAttr & kCharsetMask) == kG1Charset) {
       _drawDisjointMask(
         canvas,
