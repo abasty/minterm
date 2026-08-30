@@ -346,7 +346,7 @@ class MinModel extends ChangeNotifier {
       _replayOffset = 0;
       _isReplayPaused = false;
       _isReplayingCapture = true;
-      notifyListeners();
+      disconnectAndClearScreen();
 
       _continueReplay();
     } catch (error) {
@@ -504,7 +504,7 @@ class MinModel extends ChangeNotifier {
     _isReplayingCapture = false;
     _replayPayload = <int>[];
     _replayOffset = 0;
-    notifyListeners();
+    disconnectAndClearScreen();
     debugPrint('Capture replay finished');
   }
 
@@ -559,6 +559,28 @@ class MinModel extends ChangeNotifier {
       }
     }
     _server = null;
+  }
+
+  static const _clearScreenSequence = <int>[
+    0x0C,
+    0x1F,
+    0x40,
+    0x41,
+    0x18,
+    0x1B,
+    0x3A,
+    0x6A,
+    0x43,
+  ];
+
+  /// Déconnecte et réinitialise l'écran, comme une mise sous tension d'un
+  /// Minitel 1B (bouton dédié des outils de capture, et automatiquement
+  /// avant/après une relecture de capture).
+  void disconnectAndClearScreen() {
+    end();
+    minitel.emulate(_clearScreenSequence);
+    minitel.bip = true;
+    notifyListeners();
   }
 
   void connect() {

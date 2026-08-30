@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -514,17 +513,7 @@ class CaptureFileActions extends StatelessWidget {
                 tooltip: 'Effacer l\'écran (comme une mise sous tension)',
                 icon: const Icon(Icons.power_settings_new),
                 onPressed: () {
-                  MinModel().end();
-                  MinModel().emulate(
-                    [0x0C, 0x1F, 0x40, 0x41, 0x18, 0x1B, 0x3A, 0x6A, 0x43],
-                  );
-                  if (MinSettings().bipEnabled) {
-                    final player = AudioPlayer();
-                    player.play(
-                      AssetSource('min_bip.wav'),
-                      mode: PlayerMode.lowLatency,
-                    );
-                  }
+                  MinModel().disconnectAndClearScreen();
                   Navigator.pop(context);
                 },
               ),
