@@ -30,10 +30,10 @@ On installe avec `flutter install`. On peut créer un lien vers le bon APK ou
 utiliser `--use-application-binary` :
 
 ```
-$ flutter install --use-application-binary=build/app/outputs/flutter-apk/app-x86_64-release.apk
-Installing app-x86_64-release.apk to sdk gphone64 x86 64...
+$ flutter install --use-application-binary=./build/app/outputs/apk/release/app-arm64-v8a-release.apk
+Installing app-arm64-v8a-release.apk to ABR NX1...
 Uninstalling old version...
-Installing build/app/outputs/flutter-apk/app-x86_64-release.apk...        662ms
+Installing build/app/outputs/apk/release/app-arm64-v8a-release.apk...         5.6s
 ```
 
 ## Bugs

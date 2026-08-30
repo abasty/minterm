@@ -8,8 +8,9 @@ d'affichage du Minitel :
 - **Téléinformatique, 80 colonnes** — un mode texte façon VT100/ANSI, utilisé
   par certains services et par les Minitel 1B et supérieurs.
 
-Il peut se connecter à un service Minitel en ligne (WebSocket ou TCP), ou à un
-vrai Minitel branché en port série.
+Il peut se connecter à un service Minitel en ligne — WebSocket (toutes
+plateformes) ou TCP (desktop et applications mobiles, pas en web) —, ou à un
+dispositif branché en port série (desktop uniquement).
 
 ## Sommaire
 
@@ -34,7 +35,7 @@ définie par :
 
 - un **nom** ;
 - une **URL**, sous la forme `ws://hôte/chemin`, `wss://hôte/chemin` (WebSocket
-  sécurisé) ou `tcp://hôte:port` (TCP direct) ;
+  sécurisé) ou `tcp://hôte:port` (TCP direct, indisponible en web) ;
 - l'option **Vérifier Sec-WebSocket-Accept** (connexions WebSocket
   uniquement) : à décocher si un service ne renvoie pas correctement cet
   en-tête lors de l'établissement de la connexion (certains serveurs de test
@@ -46,14 +47,23 @@ l'autre.
 
 **Vitesse (bps)** — dans le menu, l'entrée **Speed** fait défiler les vitesses
 disponibles (300, 1200, 4800, 9600, ou *max*), pour simuler un Minitel plus
-lent ou laisser filer la connexion à sa vitesse réelle.
+lent ou laisser filer la connexion à sa vitesse réelle. Le service connecté
+peut aussi commander ce changement lui-même par une commande protocole ; dans
+ce cas l'entrée Speed se met à jour automatiquement pour refléter la vitesse
+demandée.
 
-### Port série (Minitel physique)
+### Port série (dispositif physique)
 
 Sur Linux desktop, l'entrée **Serial ports** du menu liste les ports série
 disponibles (adaptateur USB-série relié à un vrai Minitel, par exemple).
 Sélectionner un port l'ouvre en lecture/écriture à la place d'une connexion
 réseau.
+
+Dans ce cas, l'entrée **Speed** du menu configure aussi la vitesse (bps) du
+port série lui-même : à régler avant de se connecter au port. Si le
+dispositif connecté demande ensuite un changement de vitesse par commande
+protocole, le port série est reconfiguré automatiquement à la nouvelle
+vitesse.
 
 ## Basculer entre les deux modes d'écran
 
@@ -133,11 +143,14 @@ Le comportement diffère selon la plateforme :
   dans la barre d'outils. Elle bascule la fenêtre de l'application en plein
   écran, géré directement par l'application.
 - **Web** : il n'y a pas d'icône dédiée — c'est le navigateur qui gère son
-  propre plein écran. Utilisez **F11** (raccourci standard du navigateur) pour
-  entrer ou sortir du plein écran. Si vous appuyez sur **Échap** alors que le
-  navigateur est en plein écran, celui-ci en sort (comportement du
-  navigateur, non modifiable), mais la touche Échap est malgré tout transmise
-  à l'émulateur, comme si le plein écran n'avait pas été quitté.
+  propre plein écran. Utilisez **F11** pour entrer ou sortir du plein écran :
+  c'est **le seul moyen d'en sortir**. Échap ne fait pas sortir du plein
+  écran (F11 bascule le plein écran du navigateur lui-même — barre d'adresse
+  et onglets masqués —, un mode invisible pour la page qu'aucun site ne peut
+  fermer via Échap, contrairement au plein écran déclenché par une page web
+  via l'API Fullscreen, que Minterm n'utilise plus). Échap reste en revanche
+  transmise normalement au service connecté, comme n'importe quelle autre
+  touche.
 
 ## Capture et relecture d'une session
 
