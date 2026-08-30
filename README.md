@@ -4,6 +4,10 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 
 📖 [Manuel d'utilisation](docs/EMULATOR-MANUAL-fr.md)
 
+⚠️ Le mode **Téléinformatique (80 colonnes)** est expérimental : il reste à
+confronter à un émulateur matériel ou à un vrai Minitel 1B pour valider son
+comportement.
+
 ## Build/launch Linux en release
 
 ```

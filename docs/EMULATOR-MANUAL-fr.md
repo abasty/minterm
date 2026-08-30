@@ -6,7 +6,9 @@ d'affichage du Minitel :
 - **Videotex, 40 colonnes** — le mode Minitel classique (Vidéotex, jeux de
   caractères G0/G1/G2, couleurs, semi-graphique).
 - **Téléinformatique, 80 colonnes** — un mode texte façon VT100/ANSI, utilisé
-  par certains services et par les Minitel 1B et supérieurs.
+  par certains services et par les Minitel 1B et supérieurs. ⚠️ **Ce mode est
+  expérimental** : il reste à confronter à un émulateur matériel ou à un vrai
+  Minitel 1B pour valider son comportement.
 
 Il peut se connecter à un service Minitel en ligne — WebSocket (toutes
 plateformes) ou TCP (desktop et applications mobiles, pas en web) —, ou à un
@@ -78,6 +80,10 @@ l'émulateur suit alors la demande et l'interrupteur reflète l'état courant.
 Passer en 80 colonnes configure le clavier en minuscules par défaut (comme
 sur un Minitel 1B) ; repasser en 40 colonnes remet le clavier en majuscules
 seules et éteint le curseur, comme sur un Minitel classique.
+
+⚠️ Le mode 80 colonnes est expérimental : son comportement n'a pas encore été
+confronté à un émulateur matériel ou à un vrai Minitel 1B. Des écarts sont
+possibles ; n'hésitez pas à signaler tout comportement suspect.
 
 ## Caractères redéfinissables (DRCS)
 
