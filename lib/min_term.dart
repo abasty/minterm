@@ -38,11 +38,11 @@ class MinTerm extends StatelessWidget {
                 Divider(),
                 SetBps(),
                 SetScreenMode(),
+                SetColors(),
                 CaptureToggle(),
                 ReplayCaptureAction(),
                 ImportCaptureAction(),
                 ExportCaptureAction(),
-                SetColors(),
                 SetBackground(),
                 const SetSoundMode(),
                 Divider(),
@@ -392,12 +392,16 @@ class SetColors extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        MinSettings().toggleColors();
-        Navigator.pop(context);
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final colorsEnabled = MinSettings().colors == MinColors;
+        return SwitchListTile(
+          title: const Text('Couleur'),
+          value: colorsEnabled,
+          onChanged: (_) => MinSettings().toggleColors(),
+        );
       },
-      title: const Text('Couleurs'),
     );
   }
 }
