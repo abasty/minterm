@@ -43,12 +43,10 @@ class MinTerm extends StatelessWidget {
                 SetColors(),
                 SetBackground(),
                 const SetSoundMode(),
-                CaptureToggle(),
-                ReplayCaptureAction(),
-                ImportCaptureAction(),
-                ExportCaptureAction(),
                 Divider(),
-                Clear(),
+                CaptureToggle(),
+                CaptureFileActions(),
+                Divider(),
                 const RecentConnectionsSection(),
                 if (isSerialSupported) const ConnectionSerial(),
               ],
@@ -413,34 +411,19 @@ class SetBackground extends StatelessWidget {
   }
 }
 
-class CaptureToggle extends StatefulWidget {
+class CaptureToggle extends StatelessWidget {
   const CaptureToggle({super.key});
 
-  @override
-  State<CaptureToggle> createState() => _CaptureToggleState();
-}
-
-class _CaptureToggleState extends State<CaptureToggle> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: MinModel(),
       builder: (context, _) {
         final enabled = MinModel().isCaptureEnabled;
-        return ListTile(
-          onTap: () async {
-            final navigator = Navigator.of(context);
-            await MinModel().toggleCapture();
-            if (!mounted) return;
-            navigator.pop();
-          },
-          title: Row(
-            children: [
-              const Text('Capture'),
-              Expanded(child: Container()),
-              Text(enabled ? 'ACTIVÉE' : 'DÉSACTIVÉE'),
-            ],
-          ),
+        return SwitchListTile(
+          title: const Text('Capture'),
+          value: enabled,
+          onChanged: (_) => MinModel().toggleCapture(),
         );
       },
     );
@@ -469,8 +452,8 @@ class CaptureButton extends StatelessWidget {
   }
 }
 
-class ReplayCaptureAction extends StatelessWidget {
-  const ReplayCaptureAction({super.key});
+class CaptureFileActions extends StatelessWidget {
+  const CaptureFileActions({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -479,84 +462,72 @@ class ReplayCaptureAction extends StatelessWidget {
       builder: (context, _) {
         final replaying = MinModel().isReplayingCapture;
         final captureEnabled = MinModel().isCaptureEnabled;
-        final replayAllowed = !replaying && !captureEnabled;
-        return ListTile(
-          onTap: !replayAllowed
-              ? null
-              : () async {
-                  final navigator = Navigator.of(context);
-                  await MinModel().replayCapture();
-                  navigator.pop();
-                },
-          title: Row(
-            children: [
-              const Text('Rejouer la capture'),
-              Expanded(child: Container()),
-              Text(replaying
-                  ? 'EN COURS'
-                  : (captureEnabled ? 'VERROUILLÉ' : 'PRÊT')),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class ImportCaptureAction extends StatelessWidget {
-  const ImportCaptureAction({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: MinModel(),
-      builder: (context, _) {
-        final replaying = MinModel().isReplayingCapture;
-        final captureEnabled = MinModel().isCaptureEnabled;
-        final actionAllowed = !replaying && !captureEnabled;
-        return ListTile(
-          onTap: !actionAllowed
-              ? null
-              : () async {
-                  final navigator = Navigator.of(context);
-                  await MinModel().importCapture();
-                  navigator.pop();
-                },
-          title: Row(
-            children: [
-              const Text('Importer une capture'),
-              Expanded(child: Container()),
-              Text(actionAllowed ? 'PRÊT' : 'VERROUILLÉ'),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class ExportCaptureAction extends StatelessWidget {
-  const ExportCaptureAction({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: MinModel(),
-      builder: (context, _) {
         final hasCapture = MinModel().hasCaptureData;
+        final replayAllowed = !replaying && !captureEnabled;
+        final actionAllowed = !replaying && !captureEnabled;
+
+        Future<void> runAndClose(Future<void> Function() action) async {
+          final navigator = Navigator.of(context);
+          await action();
+          navigator.pop();
+        }
+
         return ListTile(
-          onTap: !hasCapture
-              ? null
-              : () async {
-                  final navigator = Navigator.of(context);
-                  await MinModel().exportCapture();
-                  navigator.pop();
-                },
           title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Text('Exporter la capture'),
-              Expanded(child: Container()),
-              Text(hasCapture ? 'PRÊT' : 'VIDE'),
+              IconButton(
+                tooltip: replaying
+                    ? 'Lecture en cours'
+                    : (captureEnabled
+                        ? 'Indisponible pendant la capture'
+                        : 'Rejouer la capture'),
+                icon: Icon(
+                  replaying ? Icons.play_circle : Icons.play_circle_outline,
+                ),
+                color: replaying
+                    ? Colors.green.shade700
+                    : (captureEnabled ? Colors.grey : null),
+                onPressed: replayAllowed
+                    ? () => runAndClose(MinModel().replayCapture)
+                    : null,
+              ),
+              IconButton(
+                tooltip: actionAllowed
+                    ? 'Importer une capture'
+                    : 'Indisponible pendant la capture',
+                icon: const Icon(Icons.file_upload_outlined),
+                onPressed: actionAllowed
+                    ? () => runAndClose(MinModel().importCapture)
+                    : null,
+              ),
+              IconButton(
+                tooltip: hasCapture
+                    ? 'Exporter la capture'
+                    : 'Aucune capture à exporter',
+                icon: const Icon(Icons.file_download_outlined),
+                onPressed: hasCapture
+                    ? () => runAndClose(MinModel().exportCapture)
+                    : null,
+              ),
+              IconButton(
+                tooltip: 'Effacer l\'écran (comme une mise sous tension)',
+                icon: const Icon(Icons.power_settings_new),
+                onPressed: () {
+                  MinModel().end();
+                  MinModel().emulate(
+                    [0x0C, 0x1F, 0x40, 0x41, 0x18, 0x1B, 0x3A, 0x6A, 0x43],
+                  );
+                  if (MinSettings().bipEnabled) {
+                    final player = AudioPlayer();
+                    player.play(
+                      AssetSource('min_bip.wav'),
+                      mode: PlayerMode.lowLatency,
+                    );
+                  }
+                  Navigator.pop(context);
+                },
+              ),
             ],
           ),
         );
@@ -744,27 +715,6 @@ class SetSoundMode extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class Clear extends StatelessWidget {
-  const Clear({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () {
-        MinModel().end();
-        MinModel()
-            .emulate([0x0C, 0x1F, 0x40, 0x41, 0x18, 0x1B, 0x3A, 0x6A, 0x43]);
-        if (MinSettings().bipEnabled) {
-          final player = AudioPlayer();
-          player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
-        }
-        Navigator.pop(context);
-      },
-      title: const Text('Clear'),
     );
   }
 }
