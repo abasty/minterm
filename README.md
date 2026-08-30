@@ -36,6 +36,21 @@ Uninstalling old version...
 Installing build/app/outputs/apk/release/app-arm64-v8a-release.apk...         5.6s
 ```
 
+## Build/launch Web en local
+
+```
+$ flutter build web
+$ cd build/web
+$ python3 -m http.server 8000
+```
+
+Puis ouvrir <http://localhost:8000> dans le navigateur. Ne pas ouvrir
+`index.html` directement (`file://`) : le chargement des assets échoue sans
+serveur HTTP.
+
+En web, seules les connexions WebSocket sont disponibles (pas de TCP direct
+ni de port série).
+
 ## Bugs
 
 * [x] **Série : Ajouter configuration par défaut (1200)**
