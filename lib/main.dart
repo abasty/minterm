@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_prefs.dart';
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_term.dart';
@@ -65,6 +66,9 @@ String _normalizeUrn(String urn) {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await loadAppPrefs();
+  watchAndSaveAppPrefs();
 
   await window_setup.initializeWindow();
   window_setup.setEscapeInFullscreenHandler(() {
