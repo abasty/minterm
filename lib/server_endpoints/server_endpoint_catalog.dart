@@ -283,21 +283,31 @@ class ServerEndpointCatalog extends ChangeNotifier {
     return null;
   }
 
+  // Defaults natifs (TCP direct disponible, notamment pour BASTOS en local).
+  static const _nativeSeedDefaults = <({String name, String url, bool check})>[
+    (name: '3611', url: 'ws://3611.re/ws', check: true),
+    (name: '3615', url: 'ws://3615co.de/ws', check: true),
+    (name: 'Minipavi', url: 'ws://go.minipavi.fr:8182', check: false),
+    (name: 'Hacker', url: 'ws://mntl.joher.com:2018/?echo', check: true),
+    (name: 'Galaxy', url: 'ws://galaxy.microtel.fr:50124', check: true),
+    (name: 'BastOS (localhost:1967)', url: 'tcp://127.0.0.1:1967', check: true),
+    (name: 'Zboub', url: 'tcp:abasty-retro.fr:1967', check: true),
+  ];
+
+  // Defaults web : uniquement des connexions WebSocket (TCP indisponible en
+  // web), et BastOS local en `ws://` au lieu de `tcp://`.
+  static const _webSeedDefaults = <({String name, String url, bool check})>[
+    (name: 'Minipavi', url: 'wss://go.minipavi.fr:8181/', check: true),
+    (name: 'Rétrocampus', url: 'wss://bbs.retrocampus.com:8051', check: true),
+    (name: '3611', url: 'wss://3611.re/ws', check: true),
+    (name: '3615', url: 'wss://3615co.de/ws', check: true),
+    (name: 'BastOS (localhost:1967)', url: 'ws://127.0.0.1:1967', check: true),
+    (name: 'SM', url: 'wss://wss.3615.live:9991/?echo', check: true),
+  ];
+
   List<ServerEndpoint> _seedEndpoints() {
     final now = DateTime.now().toUtc();
-    final defaults = <({String name, String url, bool check})>[
-      (name: '3611', url: 'ws://3611.re/ws', check: true),
-      (name: '3615', url: 'ws://3615co.de/ws', check: true),
-      (name: 'Minipavi', url: 'ws://go.minipavi.fr:8182', check: false),
-      (name: 'Hacker', url: 'ws://mntl.joher.com:2018/?echo', check: true),
-      (name: 'Galaxy', url: 'ws://galaxy.microtel.fr:50124', check: true),
-      (
-        name: 'BASTOS (localhost:1967)',
-        url: 'tcp://127.0.0.1:1967',
-        check: true
-      ),
-      (name: 'Zboub', url: 'tcp:abasty-retro.fr:1967', check: true),
-    ];
+    final defaults = kIsWeb ? _webSeedDefaults : _nativeSeedDefaults;
 
     return defaults
         .map(

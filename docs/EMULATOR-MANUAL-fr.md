@@ -48,6 +48,12 @@ La liste des connexions peut être exportée/importée au format JSON (icônes e
 haut de l'écran de gestion), pratique pour la transférer d'un appareil à
 l'autre.
 
+⚠️ En version web, lorsque l'application est servie en HTTPS (par exemple sur
+GitHub Pages), le navigateur bloque par sécurité (*mixed content*) les
+connexions `ws://` non chiffrées : seuls les services exposant du `wss://`
+restent alors joignables. Cette restriction ne s'applique pas aux versions
+desktop/mobile, ni à une version web servie en HTTP local.
+
 **Vitesse (bps)** — dans le menu, l'entrée **Vitesse** fait défiler les
 vitesses disponibles (300, 1200, 4800, 9600, ou *max*), pour simuler un
 Minitel plus lent ou laisser filer la connexion à sa vitesse réelle. Le

@@ -53,7 +53,13 @@ Puis ouvrir <http://localhost:8000> dans le navigateur. Ne pas ouvrir
 serveur HTTP.
 
 En web, seules les connexions WebSocket sont disponibles (pas de TCP direct
-ni de port série).
+ni de port série), en clair (`ws://`) ou chiffrées (`wss://`).
+
+⚠️ Si l'app web est servie en HTTPS (ex. GitHub Pages), le navigateur bloque
+par sécurité (*mixed content*) toute connexion `ws://` non chiffrée : seuls
+les serveurs exposant du `wss://` restent alors accessibles. La version
+locale (`http://localhost`, voir ci-dessus) n'est pas concernée par cette
+restriction.
 
 ## Bugs
 
