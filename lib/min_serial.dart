@@ -9,7 +9,7 @@ class ConnectionSerial extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: const Text('Serial ports'),
+      title: const Text('Ports série'),
       onTap: () {
         Navigator.push(
           context,
@@ -48,7 +48,7 @@ class MinSerialState extends State<MinSerial> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Serial ports')),
+      appBar: AppBar(title: const Text('Ports série')),
       body: Scrollbar(
         child: ListView(
           children: [

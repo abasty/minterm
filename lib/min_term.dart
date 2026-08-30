@@ -56,8 +56,7 @@ class MinTerm extends StatelessWidget {
             leading: Builder(
               builder: (context) => _PointerOnlyFocus(
                 child: IconButton(
-                  tooltip:
-                      MaterialLocalizations.of(context).openAppDrawerTooltip,
+                  tooltip: 'Ouvrir le menu',
                   icon: const Icon(Icons.menu),
                   onPressed: () => Scaffold.of(context).openDrawer(),
                 ),
@@ -287,7 +286,9 @@ class DesktopKeyboardLayoutButton extends StatelessWidget {
       builder: (context, _) {
         final imageMode = MinSettings().desktopImageKeyboardEnabled;
         return IconButton(
-          tooltip: imageMode ? 'Use compact keyboard' : 'Use image keyboard',
+          tooltip: imageMode
+              ? 'Utiliser le clavier compact'
+              : 'Utiliser le clavier image',
           icon: Icon(imageMode ? Icons.keyboard_hide : Icons.keyboard),
           onPressed: () => MinSettings.toggleDesktopImageKeyboard(),
         );
@@ -307,7 +308,7 @@ class BackgroundButton extends StatelessWidget {
         final background = MinSettings().appBackgroundColor;
         final isDark = background.computeLuminance() < 0.5;
         return IconButton(
-          tooltip: isDark ? 'Set white background' : 'Set black background',
+          tooltip: isDark ? 'Fond blanc' : 'Fond noir',
           icon: Icon(
             isDark ? Icons.brightness_2 : Icons.wb_sunny,
             color: isDark ? Colors.white : Colors.black,
@@ -330,7 +331,7 @@ class FullscreenToggleButton extends StatelessWidget {
       valueListenable: window_setup.fullscreenListenable,
       builder: (context, isFullscreen, _) {
         return IconButton(
-          tooltip: isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen',
+          tooltip: isFullscreen ? 'Quitter le plein écran' : 'Plein écran',
           icon: Icon(
             isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
           ),
@@ -349,7 +350,7 @@ class CloseMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: const Text('Close menu'),
+      title: const Text('Fermer le menu'),
       onTap: () {
         Navigator.pop(context);
       },
@@ -374,7 +375,7 @@ class SetBps extends StatelessWidget {
         },
         title: Row(
           children: [
-            const Text('Speed'),
+            const Text('Vitesse'),
             Expanded(child: Container()),
             MinModel().bps == 0
                 ? const Text('max')
@@ -396,7 +397,7 @@ class SetColors extends StatelessWidget {
         MinSettings().toggleColors();
         Navigator.pop(context);
       },
-      title: const Text('Colors'),
+      title: const Text('Couleurs'),
     );
   }
 }
@@ -417,9 +418,9 @@ class SetBackground extends StatelessWidget {
           },
           title: Row(
             children: [
-              const Text('Background'),
+              const Text('Fond'),
               Expanded(child: Container()),
-              Text(isBlack ? 'BLACK' : 'WHITE'),
+              Text(isBlack ? 'NOIR' : 'BLANC'),
             ],
           ),
         );
@@ -453,7 +454,7 @@ class _CaptureToggleState extends State<CaptureToggle> {
             children: [
               const Text('Capture'),
               Expanded(child: Container()),
-              Text(enabled ? 'ON' : 'OFF'),
+              Text(enabled ? 'ACTIVÉE' : 'DÉSACTIVÉE'),
             ],
           ),
         );
@@ -472,7 +473,7 @@ class CaptureButton extends StatelessWidget {
       builder: (context, _) {
         final enabled = MinModel().isCaptureEnabled;
         return IconButton(
-          tooltip: enabled ? 'Capture ON' : 'Capture OFF',
+          tooltip: enabled ? 'Capture activée' : 'Capture désactivée',
           icon: Icon(enabled
               ? Icons.fiber_manual_record
               : Icons.radio_button_unchecked),
@@ -505,9 +506,11 @@ class ReplayCaptureAction extends StatelessWidget {
                 },
           title: Row(
             children: [
-              const Text('Replay capture'),
+              const Text('Rejouer la capture'),
               Expanded(child: Container()),
-              Text(replaying ? 'RUN' : (captureEnabled ? 'LOCK' : 'READY')),
+              Text(replaying
+                  ? 'EN COURS'
+                  : (captureEnabled ? 'VERROUILLÉ' : 'PRÊT')),
             ],
           ),
         );
@@ -537,9 +540,9 @@ class ImportCaptureAction extends StatelessWidget {
                 },
           title: Row(
             children: [
-              const Text('Import capture'),
+              const Text('Importer une capture'),
               Expanded(child: Container()),
-              Text(actionAllowed ? 'READY' : 'LOCK'),
+              Text(actionAllowed ? 'PRÊT' : 'VERROUILLÉ'),
             ],
           ),
         );
@@ -567,9 +570,9 @@ class ExportCaptureAction extends StatelessWidget {
                 },
           title: Row(
             children: [
-              const Text('Export capture'),
+              const Text('Exporter la capture'),
               Expanded(child: Container()),
-              Text(hasCapture ? 'READY' : 'EMPTY'),
+              Text(hasCapture ? 'PRÊT' : 'VIDE'),
             ],
           ),
         );
