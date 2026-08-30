@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_term.dart';
+import 'min_widget.dart';
 import 'window_setup.dart' as window_setup;
 
 bool _hasEditableTextFocus() {
@@ -64,6 +65,7 @@ void main(List<String> args) async {
         // écran nativement en mode web (sinon preventDefault bloque Chrome).
         return false;
       }
+      playKeyClickSound();
       if (event.logicalKey.keyLabel == '[') {
         var shift = HardwareKeyboard.instance.isShiftPressed;
         MinModel().handleKeys(

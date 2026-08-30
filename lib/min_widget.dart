@@ -18,6 +18,13 @@ enum MobileKeyboardLayoutMode {
   compactOnly,
 }
 
+enum SoundMode {
+  none,
+  bipAndKeyboard,
+  keyboard,
+  bip,
+}
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -54,6 +61,12 @@ Future<ui.Image> loadUiImage(String imageAssetPath) async {
   return completer.future;
 }
 
+void playKeyClickSound() {
+  if (!MinSettings().keyboardSoundEnabled) return;
+  final player = AudioPlayer();
+  player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
+}
+
 class MinSettings extends ChangeNotifier {
   static final MinSettings _singleton = MinSettings._internal();
 
@@ -69,6 +82,7 @@ class MinSettings extends ChangeNotifier {
   bool _desktopImageKeyboardEnabled = false;
   MobileKeyboardLayoutMode _mobileKeyboardLayout =
       MobileKeyboardLayoutMode.bitmap;
+  SoundMode _soundMode = SoundMode.bipAndKeyboard;
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
 
@@ -108,6 +122,15 @@ class MinSettings extends ChangeNotifier {
   bool get desktopImageKeyboardEnabled => _desktopImageKeyboardEnabled;
 
   MobileKeyboardLayoutMode get mobileKeyboardLayout => _mobileKeyboardLayout;
+
+  SoundMode get soundMode => _soundMode;
+
+  bool get bipEnabled =>
+      _soundMode == SoundMode.bipAndKeyboard || _soundMode == SoundMode.bip;
+
+  bool get keyboardSoundEnabled =>
+      _soundMode == SoundMode.bipAndKeyboard ||
+      _soundMode == SoundMode.keyboard;
 
   Color get appBackgroundColor => _appBackgroundColor;
 
@@ -169,6 +192,12 @@ class MinSettings extends ChangeNotifier {
   static void setMobileKeyboardLayout(MobileKeyboardLayoutMode mode) {
     if (_singleton._mobileKeyboardLayout == mode) return;
     _singleton._mobileKeyboardLayout = mode;
+    _singleton.notifyListeners();
+  }
+
+  static void setSoundMode(SoundMode mode) {
+    if (_singleton._soundMode == mode) return;
+    _singleton._soundMode = mode;
     _singleton.notifyListeners();
   }
 
@@ -519,8 +548,10 @@ class _MinPainter extends CustomPainter {
     final cellWidth = displayWidth / columns;
     final cellHeight = displayHeight / minmodel.minitel.rows;
     if (minmodel.minitel.bip) {
-      final player = AudioPlayer();
-      player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
+      if (MinSettings().bipEnabled) {
+        final player = AudioPlayer();
+        player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
+      }
       minmodel.minitel.bip = false;
     }
     screen[0][columns + 1].code &= ~kIsDirty;
@@ -1080,11 +1111,6 @@ class _MinImageKeyState extends State<_MinImageKey> {
   static const _keyboardBaseWidth = 320.0;
   static const _keyboardBaseHeight = 250.0;
 
-  void _playKeyClickSound() {
-    final player = AudioPlayer();
-    player.play(AssetSource('key_min.wav'), mode: PlayerMode.lowLatency);
-  }
-
   void _emitKey() {
     final letters = RegExp(r'^[A-Z]$');
     final shifted = MinModel().isShifted;
@@ -1141,7 +1167,7 @@ class _MinImageKeyState extends State<_MinImageKey> {
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         onTapDown: (_) {
-          _playKeyClickSound();
+          playKeyClickSound();
         },
         onHighlightChanged: (value) {
           if (_pressed == value) return;
@@ -1311,7 +1337,10 @@ class MinMinitelKeyboard extends StatelessWidget {
                   backgroundColor: const Color(0xFF1E3A5F),
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () => MinModel().handleKeys(entry[1]),
+                onPressed: () {
+                  playKeyClickSound();
+                  MinModel().handleKeys(entry[1]);
+                },
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(

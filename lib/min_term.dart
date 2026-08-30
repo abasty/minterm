@@ -44,6 +44,7 @@ class MinTerm extends StatelessWidget {
                 ExportCaptureAction(),
                 SetColors(),
                 SetBackground(),
+                const SetSoundMode(),
                 Divider(),
                 Clear(),
                 const RecentConnectionsSection(),
@@ -720,6 +721,55 @@ class _SetScreenModeState extends State<SetScreenMode> {
   }
 }
 
+class SetSoundMode extends StatelessWidget {
+  const SetSoundMode({super.key});
+
+  static const _icons = {
+    SoundMode.none: Icons.volume_off,
+    SoundMode.bipAndKeyboard: Icons.volume_up,
+    SoundMode.keyboard: Icons.keyboard,
+    SoundMode.bip: Icons.notifications_active,
+  };
+
+  static const _labels = {
+    SoundMode.none: 'Aucun',
+    SoundMode.bipAndKeyboard: 'Bip + Clavier',
+    SoundMode.keyboard: 'Clavier',
+    SoundMode.bip: 'Bip',
+  };
+
+  static SoundMode _next(SoundMode mode) {
+    switch (mode) {
+      case SoundMode.none:
+        return SoundMode.bipAndKeyboard;
+      case SoundMode.bipAndKeyboard:
+        return SoundMode.keyboard;
+      case SoundMode.keyboard:
+        return SoundMode.bip;
+      case SoundMode.bip:
+        return SoundMode.none;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final mode = MinSettings().soundMode;
+        return ListTile(
+          onTap: () => MinSettings.setSoundMode(_next(mode)),
+          title: const Text('Son'),
+          trailing: Tooltip(
+            message: _labels[mode],
+            child: Icon(_icons[mode]),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class Clear extends StatelessWidget {
   const Clear({super.key});
 
@@ -730,8 +780,10 @@ class Clear extends StatelessWidget {
         MinModel().end();
         MinModel()
             .emulate([0x0C, 0x1F, 0x40, 0x41, 0x18, 0x1B, 0x3A, 0x6A, 0x43]);
-        final player = AudioPlayer();
-        player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
+        if (MinSettings().bipEnabled) {
+          final player = AudioPlayer();
+          player.play(AssetSource('min_bip.wav'), mode: PlayerMode.lowLatency);
+        }
         Navigator.pop(context);
       },
       title: const Text('Clear'),
