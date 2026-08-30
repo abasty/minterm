@@ -34,8 +34,10 @@ class MinTerm extends StatelessWidget {
           drawer: Drawer(
             child: ListView(
               children: [
-                CloseMenu(),
-                Divider(),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: CloseButton(),
+                ),
                 SetBps(),
                 SetScreenMode(),
                 SetColors(),
@@ -339,20 +341,6 @@ class FullscreenToggleButton extends StatelessWidget {
             window_setup.toggleFullscreen();
           },
         );
-      },
-    );
-  }
-}
-
-class CloseMenu extends StatelessWidget {
-  const CloseMenu({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: const Text('Fermer le menu'),
-      onTap: () {
-        Navigator.pop(context);
       },
     );
   }
