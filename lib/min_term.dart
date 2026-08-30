@@ -39,12 +39,12 @@ class MinTerm extends StatelessWidget {
                 SetBps(),
                 SetScreenMode(),
                 SetColors(),
+                SetBackground(),
+                const SetSoundMode(),
                 CaptureToggle(),
                 ReplayCaptureAction(),
                 ImportCaptureAction(),
                 ExportCaptureAction(),
-                SetBackground(),
-                const SetSoundMode(),
                 Divider(),
                 Clear(),
                 const RecentConnectionsSection(),
@@ -415,18 +415,10 @@ class SetBackground extends StatelessWidget {
       listenable: MinSettings(),
       builder: (context, _) {
         final isBlack = MinSettings().appBackgroundColor == Colors.black;
-        return ListTile(
-          onTap: () {
-            MinSettings().toggleAppBackgroundColor();
-            Navigator.pop(context);
-          },
-          title: Row(
-            children: [
-              const Text('Fond'),
-              Expanded(child: Container()),
-              Text(isBlack ? 'NOIR' : 'BLANC'),
-            ],
-          ),
+        return SwitchListTile(
+          title: const Text('Fond clair'),
+          value: !isBlack,
+          onChanged: (_) => MinSettings().toggleAppBackgroundColor(),
         );
       },
     );
