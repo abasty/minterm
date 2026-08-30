@@ -24,6 +24,29 @@ bool _hasEditableTextFocus() {
 
 final _letterKeyLabel = RegExp(r'^[A-Z]$');
 
+/// Touches mortes (modificateurs seuls) : ne doivent pas déclencher le son
+/// de touche, contrairement aux touches qui produisent réellement un
+/// caractère ou une action Minitel.
+final _deadModifierKeys = {
+  LogicalKeyboardKey.shift,
+  LogicalKeyboardKey.shiftLeft,
+  LogicalKeyboardKey.shiftRight,
+  LogicalKeyboardKey.control,
+  LogicalKeyboardKey.controlLeft,
+  LogicalKeyboardKey.controlRight,
+  LogicalKeyboardKey.alt,
+  LogicalKeyboardKey.altLeft,
+  LogicalKeyboardKey.altRight,
+  LogicalKeyboardKey.meta,
+  LogicalKeyboardKey.metaLeft,
+  LogicalKeyboardKey.metaRight,
+  LogicalKeyboardKey.capsLock,
+  LogicalKeyboardKey.numLock,
+  LogicalKeyboardKey.scrollLock,
+  LogicalKeyboardKey.fn,
+  LogicalKeyboardKey.fnLock,
+};
+
 /// Resolves the character to send for a letter key given the physical Shift
 /// state and the Minitel keyboard case mode: when [keyboardLowercase] is
 /// false (majuscule seule, l'état par défaut du Minitel), une touche seule
@@ -86,7 +109,9 @@ void main(List<String> args) async {
         // écran nativement en mode web (sinon preventDefault bloque Chrome).
         return false;
       }
-      playKeyClickSound();
+      if (!_deadModifierKeys.contains(event.logicalKey)) {
+        playKeyClickSound();
+      }
       if (event.logicalKey.keyLabel == '[') {
         var shift = HardwareKeyboard.instance.isShiftPressed;
         MinModel().handleKeys(
