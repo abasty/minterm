@@ -56,6 +56,14 @@ ni de port série).
 * [x] **Série : Ajouter configuration par défaut (1200)**
 * [x] **Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max**
 * [x] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
+* [ ] DRCS : certains dessins téléchargés s'affichent en carrés noirs — à
+  fixer en comparant avec la séquence Vidéotex telle que téléchargée par le
+  service 6212\*DRCS et le rendu obtenu sur une autre implémentation
+  (émulateur hardware ou JS)
+* [ ] DRCS : téléchargement de plusieurs glyphes en rafale (sans délai entre
+  eux, contrairement à une vraie ligne série) peut faire courir les
+  décodages d'image asynchrones et laisser l'atlas de police dans un état
+  incohérent (voir `MinSettings.updateDrcsGlyph`)
 
 ## TODO
 
@@ -125,6 +133,12 @@ ni de port série).
   la sauvegarder dans `g1.png`.
 
   ![Jeux G1](assets/g1.png)
+
+* Le Minitel supporte aussi les **caractères redéfinissables (DRCS)** :
+  certains services téléchargent leurs propres glyphes 8×10 pour les jeux
+  G'0/G'1 (désignation `ESC 2/8` / `ESC 2/9`), affichés dès leur réception
+  sans action de l'utilisateur. Support récent, encore expérimental (voir
+  [Bugs](#bugs)).
 
 ## Clavier
 

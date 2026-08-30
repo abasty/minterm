@@ -16,6 +16,7 @@ dispositif branché en port série (desktop uniquement).
 
 - [Se connecter à un service](#se-connecter-à-un-service)
 - [Basculer entre les deux modes d'écran](#basculer-entre-les-deux-modes-décran)
+- [Caractères redéfinissables (DRCS)](#caractères-redéfinissables-drcs)
 - [Le clavier](#le-clavier)
 - [Affichage](#affichage)
 - [Plein écran](#plein-écran)
@@ -77,6 +78,19 @@ l'émulateur suit alors la demande et l'interrupteur reflète l'état courant.
 Passer en 80 colonnes configure le clavier en minuscules par défaut (comme
 sur un Minitel 1B) ; repasser en 40 colonnes remet le clavier en majuscules
 seules et éteint le curseur, comme sur un Minitel classique.
+
+## Caractères redéfinissables (DRCS)
+
+Certains services Minitel téléchargent leurs propres jeux de caractères
+(pictogrammes, symboles spéciaux) au lieu d'utiliser les jeux standards G0/G1.
+Minterm reçoit et affiche automatiquement ces caractères redéfinissables
+(DRCS) dès leur téléchargement par le service — aucune action n'est requise.
+
+> ⚠️ Support récent, encore expérimental : certains dessins téléchargés
+> peuvent s'afficher sous forme de carrés noirs. Ce bug reste à corriger, en
+> comparant la séquence Vidéotex telle que téléchargée par le service
+> 6212\*DRCS avec le rendu obtenu sur une autre implémentation (émulateur
+> hardware ou JS).
 
 ## Le clavier
 
