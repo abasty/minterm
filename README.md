@@ -15,6 +15,23 @@ $ flutter build linux
 $ build/linux/x64/release/bundle/minterm
 ```
 
+L'icône de la fenêtre/barre des tâches est chargée automatiquement depuis
+`build/linux/x64/release/bundle/data/icon.png` (voir `linux/my_application.cc`
+et `linux/resources/icon.png`), aucune action supplémentaire n'est nécessaire.
+
+Pour ajouter une entrée dans le menu des applications du bureau (Gnome, KDE,
+etc.), il faut installer manuellement l'icône et le fichier `.desktop` :
+
+```
+$ cp linux/resources/icon.png ~/.local/share/icons/hicolor/512x512/apps/minterm.png
+$ cp linux/resources/minterm.desktop ~/.local/share/applications/
+```
+
+Puis éditer `~/.local/share/applications/minterm.desktop` pour que `Exec=`
+pointe vers le chemin réel du binaire (par exemple le chemin absolu de
+`build/linux/x64/release/bundle/minterm`, ou un lien symbolique dans le
+`PATH`).
+
 ## Build Android
 
 Il faut que les options développeur et le mode _Debug USB_ soit activé sur le

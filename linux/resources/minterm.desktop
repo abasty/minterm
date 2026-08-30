@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Minterm
+Comment=Émulateur de terminal Minitel
+Exec=minterm
+Icon=minterm
+Terminal=false
+Categories=Network;Emulator;

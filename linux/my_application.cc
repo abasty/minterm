@@ -4,6 +4,8 @@
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
+#include <limits.h>
+#include <unistd.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -14,11 +16,34 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+// Resolves the path to the bundled application icon (installed by CMake next
+// to the executable, in data/icon.png), based on the running binary's own
+// location so it works regardless of the current working directory.
+static gchar* get_icon_path() {
+  char exe_path[PATH_MAX];
+  ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+  if (len == -1) {
+    return nullptr;
+  }
+  exe_path[len] = '\0';
+  g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
+  return g_build_filename(exe_dir, "data", "icon.png", nullptr);
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+
+  g_autofree gchar* icon_path = get_icon_path();
+  if (icon_path != nullptr) {
+    g_autoptr(GError) icon_error = nullptr;
+    if (!gtk_window_set_icon_from_file(window, icon_path, &icon_error)) {
+      g_warning("Failed to load window icon (%s): %s", icon_path,
+                icon_error->message);
+    }
+  }
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
