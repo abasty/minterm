@@ -695,31 +695,22 @@ class ColorsButton extends StatelessWidget {
   }
 }
 
-class SetScreenMode extends StatefulWidget {
+class SetScreenMode extends StatelessWidget {
   const SetScreenMode({super.key});
 
   @override
-  State<SetScreenMode> createState() => _SetScreenModeState();
-}
-
-class _SetScreenModeState extends State<SetScreenMode> {
-  @override
   Widget build(BuildContext context) {
-    final mode = MinModel().screenMode;
-    final label =
-        mode == TMinitelScreenMode.teleinfo80 ? 'Téléinfo 80' : 'Minitel 40';
-    return ListTile(
-      onTap: () {
-        setState(() => MinModel().toggleScreenMode());
-        Navigator.pop(context);
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final isTeleinfo =
+            MinModel().screenMode == TMinitelScreenMode.teleinfo80;
+        return SwitchListTile(
+          title: const Text('80 cols'),
+          value: isTeleinfo,
+          onChanged: (_) => MinModel().toggleScreenMode(),
+        );
       },
-      title: Row(
-        children: [
-          const Text('Mode écran'),
-          Expanded(child: Container()),
-          Text(label),
-        ],
-      ),
     );
   }
 }
