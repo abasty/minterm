@@ -81,9 +81,9 @@ Passer en 80 colonnes configure le clavier en minuscules par défaut (comme
 sur un Minitel 1B) ; repasser en 40 colonnes remet le clavier en majuscules
 seules et éteint le curseur, comme sur un Minitel classique.
 
-⚠️ Le mode 80 colonnes est expérimental : son comportement n'a pas encore été
-confronté à un émulateur matériel ou à un vrai Minitel 1B. Des écarts sont
-possibles ; n'hésitez pas à signaler tout comportement suspect.
+> ⚠️ Le mode 80 colonnes est expérimental : son comportement n'a pas encore été
+> confronté à un émulateur matériel ou à un vrai Minitel 1B. Des écarts sont
+> possibles ; n'hésitez pas à signaler tout comportement suspect.
 
 ## Caractères redéfinissables (DRCS)
 
