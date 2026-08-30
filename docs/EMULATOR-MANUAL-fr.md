@@ -14,6 +14,13 @@ Il peut se connecter à un service Minitel en ligne — WebSocket (toutes
 plateformes) ou TCP (desktop et applications mobiles, pas en web) —, ou à un
 dispositif branché en port série (desktop uniquement).
 
+🌐 Version web (sans installation) : <https://abasty.github.io/minterm/>
+
+C'est une web app (PWA) : elle peut aussi s'installer comme une application
+depuis le bouton d'installation du navigateur (testé sous Google Chrome et
+Firefox), pour un lancement direct depuis le bureau ou le menu des
+applications, sans passer par le navigateur.
+
 ## Sommaire
 
 - [Se connecter à un service](#se-connecter-à-un-service)
