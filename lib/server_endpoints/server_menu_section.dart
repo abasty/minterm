@@ -59,7 +59,6 @@ class _RecentConnectionsSectionState extends State<RecentConnectionsSection> {
           for (final endpoint in recents)
             ListTile(
               title: Text(endpoint.name),
-              subtitle: Text(endpoint.url),
               onTap: () => _connect(
                 context,
                 endpoint.id,
@@ -68,16 +67,14 @@ class _RecentConnectionsSectionState extends State<RecentConnectionsSection> {
               ),
             ),
           ListTile(
-            title: const Text('Autre...'),
-            subtitle: const Text('Gérer toutes les connexions'),
+            title: const Text('Services...'),
             onTap: () => _openManagement(context),
           ),
         ];
 
         if (children.isEmpty) {
           return ListTile(
-            title: const Text('Autre...'),
-            subtitle: const Text('Gérer toutes les connexions'),
+            title: const Text('Services...'),
             onTap: () => _openManagement(context),
           );
         }

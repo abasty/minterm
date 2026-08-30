@@ -150,7 +150,7 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
           data: _serverTheme(context),
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Connexions'),
+              title: const Text('Services'),
               actions: [
                 IconButton(
                   tooltip: 'Importer',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_prefs.dart';
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_term.dart';
@@ -37,6 +38,23 @@ String _resolveKeyboardCaseChar(KeyEvent event, bool shift) {
   return (shift && upMode) || (!shift && !upMode) ? label.toLowerCase() : label;
 }
 
+/// Change d'écran instantané, sans animation (pas de fondu/zoom), pour toutes
+/// les plateformes.
+class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimationPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 /// Normalizes a URN by inserting `://` after the scheme if absent.
 /// For example: `tcp:localhost:1967` becomes `tcp://localhost:1967`.
 String _normalizeUrn(String urn) {
@@ -48,6 +66,9 @@ String _normalizeUrn(String urn) {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await loadAppPrefs();
+  watchAndSaveAppPrefs();
 
   await window_setup.initializeWindow();
   window_setup.setEscapeInFullscreenHandler(() {
@@ -224,6 +245,12 @@ void main(List<String> args) async {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       primarySwatch: Colors.blue,
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const _NoAnimationPageTransitionsBuilder(),
+        },
+      ),
     ),
     home: MinTerm(),
   ));
