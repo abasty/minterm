@@ -347,7 +347,10 @@ class MinModel extends ChangeNotifier {
         return;
       }
 
-      _replayPayload = List<int>.from(payload);
+      // Un marqueur de pause est ajouté après la dernière page pour laisser
+      // le temps de la lire avant l'effacement d'écran de fin de relecture,
+      // comme entre chaque page.
+      _replayPayload = List<int>.from(payload)..add(_capturePauseMarker);
       _replayOffset = 0;
       _isReplayPaused = false;
       _isReplayingCapture = true;
