@@ -280,8 +280,15 @@ void main(List<String> args) async {
     home: MinTerm(),
   ));
 
+  // Sur desktop/mobile : argument de ligne de commande. En web (pas
+  // d'arguments) : paramètre `?ws=` dans l'URL de la page, par exemple
+  // https://abasty.github.io/minterm/?ws=ws://127.0.0.1:1967
+  final webServerAddress = Uri.base.queryParameters['ws'];
   if (args.isNotEmpty) {
     MinModel().serverAddress = _normalizeUrn(args[0]);
+    MinModel().connect();
+  } else if (webServerAddress != null && webServerAddress.isNotEmpty) {
+    MinModel().serverAddress = _normalizeUrn(webServerAddress);
     MinModel().connect();
   }
 }

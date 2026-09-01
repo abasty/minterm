@@ -78,6 +78,20 @@ les serveurs exposant du `wss://` restent alors accessibles. La version
 locale (`http://localhost`, voir ci-dessus) n'est pas concernée par cette
 restriction.
 
+## Déploiement sur GitHub Pages
+
+```
+$ ./deploy-minterm.sh
+```
+
+Ce script (`deploy-minterm.sh` à la racine du repo) build l'app web en
+release avec le bon `--base-href`, puis synchronise `build/web/` sur la
+branche `gh-pages` (créée si besoin) et la pousse sur `origin`. Publié à
+<https://abasty.github.io/minterm/>.
+
+⚠️ Le build utilise l'état actuel du répertoire de travail, y compris les
+changements non commités — pas seulement le dernier commit.
+
 ## Bugs
 
 * [x] **Série : Ajouter configuration par défaut (1200)**

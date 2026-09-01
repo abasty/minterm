@@ -21,6 +21,10 @@ depuis le bouton d'installation du navigateur (testé sous Google Chrome et
 Firefox), pour un lancement direct depuis le bureau ou le menu des
 applications, sans passer par le navigateur.
 
+La version web accepte un paramètre `ws` dans l'URL pour se connecter
+automatiquement à un service au chargement de la page, par exemple :
+`https://abasty.github.io/minterm/?ws=ws://127.0.0.1:1967`.
+
 ## Sommaire
 
 - [Se connecter à un service](#se-connecter-à-un-service)
