@@ -22,7 +22,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Building Flutter web app (release, base-href $BASE_HREF)"
-flutter build web --release --base-href "$BASE_HREF"
+flutter build web --release --base-href "$BASE_HREF" --csp --no-wasm-dry-run
 
 echo "==> Fetching $REMOTE/$BRANCH"
 git fetch "$REMOTE" "$BRANCH" >/dev/null 2>&1 || true
