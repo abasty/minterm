@@ -89393,9 +89393,9 @@ if(k)o=B.j1
 else o=j?B.c0:n
 q=A.eQ(o,n,p,n,n,s?new A.a2d(l):n,n,n,q)
 p=r?"Importer une capture":m
-p=A.eQ(n,n,B.nV,n,n,r?new A.a2e(l):n,n,n,p)
+p=A.eQ(n,n,B.nW,n,n,r?new A.a2e(l):n,n,n,p)
 o=i?"Exporter la capture":"Aucune capture \xe0 exporter"
-return A.pL(!1,n,n,n,!0,n,n,!0,n,n,n,n,!1,n,n,n,n,n,A.uU(A.c([q,p,A.eQ(n,n,B.nW,n,n,i?new A.a2f(l):n,n,n,o),A.eQ(n,n,B.G9,n,n,new A.a2g(a),n,n,"Effacer l'\xe9cran (comme une mise sous tension)")],t.p),B.aL,B.ku,B.co),n,n)},
+return A.pL(!1,n,n,n,!0,n,n,!0,n,n,n,n,!1,n,n,n,n,n,A.uU(A.c([q,p,A.eQ(n,n,B.nV,n,n,i?new A.a2f(l):n,n,n,o),A.eQ(n,n,B.G9,n,n,new A.a2g(a),n,n,"Effacer l'\xe9cran (comme une mise sous tension)")],t.p),B.aL,B.ku,B.co),n,n)},
 $S:105}
 A.a2i.prototype={
 $1(a){var s=0,r=A.D(t.H),q=this,p
@@ -90231,7 +90231,7 @@ return null},
 $S:0}
 A.ath.prototype={
 $2(a,b){var s=null,r=this.a
-return new A.hi(r.FH(a),A.aEO(A.aBy(A.c([A.eQ(s,s,B.nV,s,s,r.gady(),s,s,"Importer"),A.eQ(s,s,B.nW,s,s,r.ga8P(),s,s,"Exporter")],t.p),s,s,s,B.Vm),s,new A.cS(new A.atf(r),s,r.d,s),s,new A.tP(B.Gb,new A.atg(r),B.Vl,s)),s)},
+return new A.hi(r.FH(a),A.aEO(A.aBy(A.c([A.eQ(s,s,B.nW,s,s,r.gady(),s,s,"Importer"),A.eQ(s,s,B.nV,s,s,r.ga8P(),s,s,"Exporter")],t.p),s,s,s,B.Vm),s,new A.cS(new A.atf(r),s,r.d,s),s,new A.tP(B.Gb,new A.atg(r),B.Vl,s)),s)},
 $S:571}
 A.atg.prototype={
 $0(){return this.a.afz()},
