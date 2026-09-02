@@ -495,7 +495,7 @@ class CaptureFileActions extends StatelessWidget {
                 tooltip: actionAllowed
                     ? 'Importer une capture'
                     : 'Indisponible pendant la capture',
-                icon: const Icon(Icons.file_upload_outlined),
+                icon: const Icon(Icons.file_download_outlined),
                 onPressed: actionAllowed
                     ? () => runAndClose(MinModel().importCapture)
                     : null,
@@ -504,7 +504,7 @@ class CaptureFileActions extends StatelessWidget {
                 tooltip: hasCapture
                     ? 'Exporter la capture'
                     : 'Aucune capture à exporter',
-                icon: const Icon(Icons.file_download_outlined),
+                icon: const Icon(Icons.file_upload_outlined),
                 onPressed: hasCapture
                     ? () => runAndClose(MinModel().exportCapture)
                     : null,

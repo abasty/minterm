@@ -154,12 +154,12 @@ class _ServerManagementPageState extends State<ServerManagementPage> {
               actions: [
                 IconButton(
                   tooltip: 'Importer',
-                  icon: const Icon(Icons.file_upload_outlined),
+                  icon: const Icon(Icons.file_download_outlined),
                   onPressed: _importList,
                 ),
                 IconButton(
                   tooltip: 'Exporter',
-                  icon: const Icon(Icons.file_download_outlined),
+                  icon: const Icon(Icons.file_upload_outlined),
                   onPressed: _exportList,
                 ),
               ],
