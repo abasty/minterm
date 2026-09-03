@@ -143,6 +143,10 @@ class TMinitel {
   int    _drcsCurrentCode = 0;
   int    _drcsPixelIndex  = 0;
   final  _drcsPixels      = Uint8List(80);
+  // True once the first B1 of the current transfer has opened a form. Any
+  // later B1 then closes it (blank if no pixel bytes were received since
+  // the previous B1 — STUM2 §2.3.3.2/2.3.3.3) instead of being a no-op.
+  bool   _drcsFormOpen    = false;
   void Function(bool isG1, int code, Uint8List pixels80)? onDrcsGlyph;
 
   // ESC charset designation state
@@ -256,6 +260,7 @@ class TMinitel {
     }
     stateCode = 0;
     _drcsPixelIndex = 0;
+    _drcsFormOpen = false;
     _g0IsDrcs = false;
     _g1IsDrcs = false;
   }
@@ -1810,6 +1815,7 @@ class TMinitel {
         _drcsCurrentCode = code;
         _drcsPixelIndex = 0;
         _drcsPixels.fillRange(0, 80, 0);
+        _drcsFormOpen = false;
         stateCode = kStateDrcsData;
       } else {
         stateCode = 0;
@@ -1845,13 +1851,19 @@ class TMinitel {
 
   void _handleDrcsData(int code) {
     if (code == 0x30) {
-      // B1 separator: emit current glyph if any pixels received
-      if (_drcsPixelIndex > 0) {
+      // B1 synchronizes the start of a form and precedes every form,
+      // including the first. Only that very first B1 is a pure opener with
+      // nothing to close; every later B1 closes the form in progress —
+      // blank if no pixel bytes arrived since the previous B1 — and
+      // advances to the next code (STUM2 §2.3.3.2/2.3.3.3), instead of
+      // being silently dropped.
+      if (_drcsFormOpen) {
         _emitDrcsGlyph();
         _drcsCurrentCode++;
         _drcsPixels.fillRange(0, 80, 0);
         _drcsPixelIndex = 0;
       }
+      _drcsFormOpen = true;
     } else if (code >= 0x40 && code <= 0x7F) {
       if (_drcsPixelIndex < 80) {
         final bits = code & 0x3F;

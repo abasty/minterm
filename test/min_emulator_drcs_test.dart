@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min_emulator.dart';
@@ -102,6 +103,61 @@ void main() {
       minitel.emulate(seq);
 
       expect(codes, [0x21, 0x22]);
+    });
+
+    test(
+        'a B1 with no pixel bytes since the previous B1 emits a blank glyph '
+        'and still advances the code (STUM2 §2.3.3.2/2.3.3.3)', () {
+      final minitel = TMinitel();
+      final events = <(int code, bool blank)>[];
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        events.add((code, pixels80.every((p) => p == 0)));
+      };
+
+      // US 0x23 Y, then B1 (opens form Y) B1 (no pixels since the previous
+      // B1 -> form Y is blank) <14 bytes> B1 (flushes form Y+1).
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        0x1F, 0x23, 0x21,
+        0x30, 0x30,
+        ..._exampleGlyphBytes,
+        0x30,
+      ]);
+
+      expect(events, [(0x21, true), (0x22, false)]);
+    });
+
+    test('replays test/drcs/soko.drc: real-world capture with blank forms',
+        () {
+      // Regression test for a real download that interleaves blank forms
+      // (consecutive B1 with no pixel data) between shapes, used by a
+      // Sokoban game as spacers in its G'1 grid. Before the B1 fix above,
+      // those blanks were silently dropped instead of consuming a code
+      // slot, shifting every later glyph and scrambling the on-screen
+      // sprites.
+      final bytes = File('test/drcs/soko.drc').readAsBytesSync();
+      final minitel = TMinitel();
+      final events = <(int code, bool blank)>[];
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        events.add((code, pixels80.every((p) => p == 0)));
+      };
+
+      minitel.emulate(bytes.toList());
+
+      expect(events.length, 32);
+      expect(events.first.$1, 0x21);
+      expect(events.last.$1, 0x40);
+
+      const blankCodes = {0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b};
+      for (final (code, blank) in events) {
+        expect(
+          blank,
+          blankCodes.contains(code),
+          reason: 'code=0x${code.toRadixString(16)}',
+        );
+      }
     });
   });
 }

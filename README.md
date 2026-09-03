@@ -101,6 +101,13 @@ changements non commités — pas seulement le dernier commit.
   fixer en comparant avec la séquence Vidéotex telle que téléchargée par le
   service 6212\*DRCS et le rendu obtenu sur une autre implémentation
   (émulateur hardware ou JS)
+* [x] DRCS : mauvais décodage de l'index des formes téléchargées — un B1
+  (`0x30`) reçu sans octet de pixel depuis le B1 précédent était silencieusement
+  ignoré au lieu de clore la forme courante (vide) et d'avancer au code suivant
+  (STUM2 §2.3.3.2/2.3.3.3), ce qui décalait tous les index de formes
+  téléchargées ensuite. Reproduit et corrigé grâce à `test/drcs/soko.drc`, merci
+  à **MiniBix** pour son formidable `sokoban.bas` en BASTOS. Corrigé dans
+  `TMinitel._handleDrcsData`.
 * [ ] DRCS : téléchargement de plusieurs glyphes en rafale (sans délai entre
   eux, contrairement à une vraie ligne série) peut faire courir les
   décodages d'image asynchrones et laisser l'atlas de police dans un état
