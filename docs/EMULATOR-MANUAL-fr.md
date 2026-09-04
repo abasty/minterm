@@ -36,6 +36,7 @@ automatiquement à un service au chargement de la page, par exemple :
 - [Capture et relecture d'une session](#capture-et-relecture-dune-session)
 - [Menu et autres réglages](#menu-et-autres-réglages)
 - [Annexe : table des touches spéciales](#annexe--table-des-touches-spéciales)
+- [Annexe : séquences non standards (héritées de l'émulateur Zigazou)](#annexe--séquences-non-standards-héritées-de-lémulateur-zigazou)
 
 ## Se connecter à un service
 
@@ -267,6 +268,29 @@ colonnes) :
 | Mode insertion OFF (Shift+→, bascule) | `1B 5B 34 6C` (`ESC [ 4 l`) |
 | Sommaire (Shift+Entrée) | `1E` (30 décimal) |
 | Effacement page (Ctrl+Entrée) | `0C` (12 décimal) |
+
+## Annexe : séquences non standards (héritées de l'émulateur Zigazou)
+
+En plus des commandes protocole standard (voir
+[SEQUENCES-STANDARD.md](SEQUENCES-STANDARD.md)), un service peut piloter Minterm
+à distance via quelques séquences PRO2 non normalisées, héritées de l'émulateur
+de Zigazou, accessible depuis Minipavi
+(<https://www.minipavi.fr/emulminitel/index.php>) — pratiques pour un serveur
+qui veut, par exemple, imposer une vitesse de restitution ou basculer
+l'affichage en couleur sans passer par le menu de l'application.
+
+| Séquence | Effet |
+|---|---|
+| `ESC : 10 41` (PRO2 0x10 0x41) | Vitesse 1200 bps |
+| `ESC : 10 42` (PRO2 0x10 0x42) | Vitesse 4800 bps |
+| `ESC : 10 43` (PRO2 0x10 0x43) | Vitesse 9600 bps |
+| `ESC : 10 44` (PRO2 0x10 0x44) | Vitesse max (aucune limitation simulée) |
+| `ESC : 11 41` (PRO2 0x11 0x41) | Bascule l'affichage en noir et blanc |
+| `ESC : 11 42` (PRO2 0x11 0x42) | Rétablit l'affichage en couleur |
+
+Ces deux réglages se reflètent aussitôt dans le menu (entrées **Vitesse** et
+**Couleur**), exactement comme un changement fait par l'utilisateur ou par une
+commande protocole standard.
 
 ## Liens utiles
 

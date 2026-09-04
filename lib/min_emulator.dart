@@ -149,6 +149,9 @@ class TMinitel {
   bool   _drcsFormOpen    = false;
   void Function(bool isG1, int code, Uint8List pixels80)? onDrcsGlyph;
 
+  // Séquence magique non standard PRO2 0x11 : bascule couleur / noir et blanc.
+  void Function(bool useColor)? onColorModeChange;
+
   // ESC charset designation state
   int    _escDesignator   = 0;   // 0x28 = G0, 0x29 = G1
   int    _escIntermediate = 0;   // 0x20 if intermediate received, else 0
@@ -343,7 +346,13 @@ class TMinitel {
         break;
       }
       currentCode = codes[codeIndex];
-      if (currentCode < $space) {
+      // Exception : 0x10/0x11 sont de vrais octets C0 (filtrés partout
+      // ailleurs), mais servent de premier argument aux séquences magiques
+      // non standard PRO2 0x10 (vitesse) et PRO2 0x11 (couleur/N&B) — il ne
+      // faut donc pas les filtrer lorsqu'ils sont attendus à cette position.
+      final isPro2MagicArg = stateCode == kStatePro2 &&
+          (currentCode == 0x10 || currentCode == 0x11);
+      if (currentCode < $space && !isPro2MagicArg) {
         fadr[currentCode]();
       } else if (stateCode == 0) {
         handleChar();
@@ -1161,12 +1170,42 @@ class TMinitel {
       }
     } else if (x == 0x7f) {
       setScreenMode(TMinitelScreenMode.videotex40);
+    } else if (x == 0x7B) {
+      // Demande d'identification (lecture ROM) : SOH "Zg2" EOT.
+      reply.addAll([0x01, 0x5A, 0x67, 0x32, 0x04]);
     }
     stateCode = 0;
   }
 
   void handleProtocol2(int x, int y) {
-    if (y == 0x43) {
+    if (x == 0x10) {
+      // Séquence magique non standard : réglage direct de la vitesse simulée.
+      switch (y) {
+        case 0x41:
+          speed = 1200;
+          speedChanged = true;
+          break;
+        case 0x42:
+          speed = 4800;
+          speedChanged = true;
+          break;
+        case 0x43:
+          speed = 9600;
+          speedChanged = true;
+          break;
+        case 0x44:
+          speed = 0; // Vitesse max : pas de limitation de débit simulé.
+          speedChanged = true;
+          break;
+      }
+    } else if (x == 0x11) {
+      // Séquence magique non standard : bascule couleur / noir et blanc.
+      if (y == 0x41) {
+        onColorModeChange?.call(false);
+      } else if (y == 0x42) {
+        onColorModeChange?.call(true);
+      }
+    } else if (y == 0x43) {
       switch (x) {
         case 0x69:
           scrollOn = true;
