@@ -61,4 +61,43 @@ void main() {
       expect(readLine(minitel, 1, 6), 'ABQDE ');
     });
   });
+
+  group('Séquences magiques non standard (PRO2 0x10 / 0x11)', () {
+    late TMinitel minitel;
+
+    setUp(() {
+      minitel = TMinitel();
+    });
+
+    test('PRO2 0x10 0x41/0x42/0x43/0x44 set the simulated speed', () {
+      minitel.emulate([0x1b, 0x3a, 0x10, 0x41]);
+      expect(minitel.speed, 1200);
+      expect(minitel.speedChanged, isTrue);
+
+      minitel.speedChanged = false;
+      minitel.emulate([0x1b, 0x3a, 0x10, 0x42]);
+      expect(minitel.speed, 4800);
+      expect(minitel.speedChanged, isTrue);
+
+      minitel.speedChanged = false;
+      minitel.emulate([0x1b, 0x3a, 0x10, 0x43]);
+      expect(minitel.speed, 9600);
+      expect(minitel.speedChanged, isTrue);
+
+      minitel.speedChanged = false;
+      minitel.emulate([0x1b, 0x3a, 0x10, 0x44]);
+      expect(minitel.speed, 0);
+      expect(minitel.speedChanged, isTrue);
+    });
+
+    test('PRO2 0x11 0x41/0x42 toggle onColorModeChange callback', () {
+      final calls = <bool>[];
+      minitel.onColorModeChange = calls.add;
+
+      minitel.emulate([0x1b, 0x3a, 0x11, 0x41]);
+      minitel.emulate([0x1b, 0x3a, 0x11, 0x42]);
+
+      expect(calls, [false, true]);
+    });
+  });
 }

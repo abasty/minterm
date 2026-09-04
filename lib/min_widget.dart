@@ -95,6 +95,9 @@ class MinSettings extends ChangeNotifier {
   }
   MinSettings._internal() {
     MinModel().minitel.onDrcsGlyph = updateDrcsGlyph;
+    MinModel().minitel.onColorModeChange = (useColor) {
+      colors = useColor ? MinColors : MinGrey;
+    };
     loadUiImage('assets/g0g2.png').then((image) {
       _fontG0G2 = image;
       _loaded++;
