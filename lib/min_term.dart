@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'min_emulator.dart';
 import 'min_model.dart';
@@ -48,6 +49,8 @@ class MinTerm extends StatelessWidget {
                 Divider(),
                 const RecentConnectionsSection(),
                 if (isSerialSupported) const ConnectionSerial(),
+                Divider(),
+                const ManualLink(),
               ],
             ),
           ),
@@ -103,6 +106,26 @@ class _PointerOnlyFocus extends StatelessWidget {
       descendantsAreFocusable: false,
       skipTraversal: true,
       child: child,
+    );
+  }
+}
+
+class ManualLink extends StatelessWidget {
+  const ManualLink({super.key});
+
+  static final Uri _manualUri = Uri.parse(
+    'https://github.com/abasty/minterm/blob/main/docs/EMULATOR-MANUAL-fr.md',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.menu_book_outlined),
+      title: const Text('Manuel (GitHub)'),
+      onTap: () {
+        Navigator.pop(context);
+        launchUrl(_manualUri, mode: LaunchMode.externalApplication);
+      },
     );
   }
 }

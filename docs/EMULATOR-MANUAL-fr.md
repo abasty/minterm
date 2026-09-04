@@ -254,6 +254,10 @@ rangées d'icônes plutôt que de longues listes textuelles : Vitesse, 80 cols,
 Couleur, Fond clair, Son, puis Capture et ses outils. Une icône ✕ en haut du
 menu permet de le refermer.
 
+Tout en bas du menu, l'entrée **Manuel (GitHub)** ouvre ce manuel dans le
+navigateur, à l'adresse
+<https://github.com/abasty/minterm/blob/main/docs/EMULATOR-MANUAL-fr.md>.
+
 ## Annexe : table des touches spéciales
 
 Séquences envoyées par les touches d'édition (identiques en 40 et 80
