@@ -1161,6 +1161,9 @@ class TMinitel {
       }
     } else if (x == 0x7f) {
       setScreenMode(TMinitelScreenMode.videotex40);
+    } else if (x == 0x7B) {
+      // Demande d'identification (lecture ROM) : SOH "Zg2" EOT.
+      reply.addAll([0x01, 0x5A, 0x67, 0x32, 0x04]);
     }
     stateCode = 0;
   }
