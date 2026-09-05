@@ -45,8 +45,7 @@ d'origine.
 ## Conventions de notation
 
 - Les codes sont donnés en hexadécimal (parfois complétés du décimal quand la
-  source le précise), avec le caractère ASCII imprimable correspondant entre
-  parenthèses quand il existe.
+  source le précise).
 - `ESC` = `1B`, `CSI` = `ESC 5B` (`ESC [`), `SS2` = `19` (Ctrl-Y), `SS3` = `1D`
   (Ctrl-]), `SEP` = `13` (Ctrl-S), `US` = `1F` (Ctrl-_), `DLE` = `10`
   (Ctrl-P).
@@ -110,13 +109,13 @@ Préfixe `US` (`1F`). Portée générale (au-delà du positionnement de base) :
 | `32` | `2` | Séquence obsolète, ne doit plus être utilisée |
 | `3C` | `<` | Voir S.T.U.C.A.M. (lecteur de carte à mémoire, [§18](#18-lecteur-de-carte-à-mémoire-lecam)) |
 | `3E` | `>` | Voir S.T.U.T.E.L. (protocole M12, ci-dessous) |
-| `40`-`58` | `@`-`X` | `US XX+64 YY+64` ⇒ ligne `XX`, colonne `YY`. `58` (X) est aussi utilisé en 80 colonnes pour l'accès à la ligne 0 |
+| `40`-`58` | `@`-`X` | `US XX+64 YY+64` ⇒ ligne `XX`, colonne `YY`. `58` est aussi utilisé en 80 colonnes pour l'accès à la ligne 0 |
 
 ### Téléchargement des jeux DRCS (M2)
 
 ```
-US 23 20 20 20 42 (B) 49 (I)   en-tête de téléchargement du jeu G'0
-US 23 20 20 20 43 (C) 49 (I)   en-tête de téléchargement du jeu G'1
+US 23 20 20 20 42 49   en-tête de téléchargement du jeu G'0
+US 23 20 20 20 43 49   en-tête de téléchargement du jeu G'1
 US 23 YY 30 <14 octets> 30     télécharge le caractère YY et les suivants...
 US XX YY                       sort du téléchargement, sauf accès ligne 0
 ```
@@ -141,53 +140,53 @@ touches de fonction et les acquittements protocole.
 |----------|----------|--------|
 | `SEP 11` (XON) | Demande de reprise du flux | M12 |
 | `SEP 15` (NACK) | Demande d'arrêt du flux | M12 |
-| `SEP 41` (A) | Touche ENVOI | — |
-| `SEP 42` (B) | Touche RÉPÉTITION | — |
-| `SEP 43` (C) | Touche RETOUR | — |
-| `SEP 44` (D) | Touche GUIDE | — |
-| `SEP 45` (E) | Touche ANNULATION | — |
-| `SEP 46` (F) | Touche SOMMAIRE | — |
-| `SEP 47` (G) | Touche CORRECTION | — |
-| `SEP 48` (H) | Touche SUITE | — |
-| `SEP 49` (I) | Touche CONNEXION-FIN | — |
-| `SEP 4A` (J) | Demande de mise en route de la PCE (TS+RÉPÉTITION sur M1/M10) | — |
-| `SEP 4B` (K) | Demande d'arrêt de la PCE | — |
-| `SEP 4C` (L) | Demande de retournement du modem (1200→75 Bd) | — |
-| `SEP 4D` (M) | Demande de retournement inverse (75→1200 Bd) | — |
+| `SEP 41` | Touche ENVOI | — |
+| `SEP 42` | Touche RÉPÉTITION | — |
+| `SEP 43` | Touche RETOUR | — |
+| `SEP 44` | Touche GUIDE | — |
+| `SEP 45` | Touche ANNULATION | — |
+| `SEP 46` | Touche SOMMAIRE | — |
+| `SEP 47` | Touche CORRECTION | — |
+| `SEP 48` | Touche SUITE | — |
+| `SEP 49` | Touche CONNEXION-FIN | — |
+| `SEP 4A` | Demande de mise en route de la PCE (TS+RÉPÉTITION sur M1/M10) | — |
+| `SEP 4B` | Demande d'arrêt de la PCE | — |
+| `SEP 4C` | Demande de retournement du modem (1200→75 Bd) | — |
+| `SEP 4D` | Demande de retournement inverse (75→1200 Bd) | — |
 | `SEP 4E`-`4F` | *(réservé, non documenté)* | — |
-| `SEP 50` (P) | Changement d'état à la connexion | — |
-| `SEP 51` (Q) | Changement de vitesse du modem | — |
-| `SEP 52` (R) | Connexion ou déconnexion d'un module téléphonique | — |
-| `SEP 53` (S) | Connexion ou déconnexion du modem | — |
-| `SEP 54` (T) | Changement d'état du fil PT | — |
-| `SEP 55` (U) | Connexion ou déconnexion de modules logiciels supplémentaires | — |
-| `SEP 56` (V) | Changement d'état du status mode de fonctionnement | — |
-| `SEP 57` (W) | Acquittement de la mise en transparence | — |
-| `SEP 58` (X) | Début et fin de retournement | — |
-| `SEP 59` (Y) | Phase de connexion-déconnexion | — |
-| `SEP 5A` (Z) | Changement d'état de la fonction MEM | M10 uniquement |
-| `SEP 5B` (\[) | Changement d'état du courant de ligne | M10 |
-| `SEP 5C` (\\) | Début et fin de recopie d'écran | M1B |
+| `SEP 50` | Changement d'état à la connexion | — |
+| `SEP 51` | Changement de vitesse du modem | — |
+| `SEP 52` | Connexion ou déconnexion d'un module téléphonique | — |
+| `SEP 53` | Connexion ou déconnexion du modem | — |
+| `SEP 54` | Changement d'état du fil PT | — |
+| `SEP 55` | Connexion ou déconnexion de modules logiciels supplémentaires | — |
+| `SEP 56` | Changement d'état du status mode de fonctionnement | — |
+| `SEP 57` | Acquittement de la mise en transparence | — |
+| `SEP 58` | Début et fin de retournement | — |
+| `SEP 59` | Phase de connexion-déconnexion | — |
+| `SEP 5A` | Changement d'état de la fonction MEM | M10 uniquement |
+| `SEP 5B` | Changement d'état du courant de ligne | M10 |
+| `SEP 5C` | Début et fin de recopie d'écran | M1B |
 | `SEP 5D` | *(réservé)* | — |
-| `SEP 5E` (^) | Reset | M1B |
+| `SEP 5E` | Reset | M1B |
 | `SEP 5F`-`60` | *(réservé)* | — |
-| `SEP 61` (a) | Touche CC (Coupure Calibrée) | M10 |
-| `SEP 62` (b) | Touche HP+ | M10 |
-| `SEP 63` (c) | Touche HP- | M10 |
-| `SEP 64` (d) | Touche BIS | M10 |
-| `SEP 65` (e) | Touche RT (Répertoire) | M10 |
+| `SEP 61` | Touche CC (Coupure Calibrée) | M10 |
+| `SEP 62` | Touche HP+ | M10 |
+| `SEP 63` | Touche HP- | M10 |
+| `SEP 64` | Touche BIS | M10 |
+| `SEP 65` | Touche RT (Répertoire) | M10 |
 | `SEP 66` | *(réservé)* | — |
-| `SEP 67` (g) | Touche Spéciale + MEM | M10 |
-| `SEP 68` (h) | Touche Spéciale + BIS | M10 |
+| `SEP 67` | Touche Spéciale + MEM | M10 |
+| `SEP 68` | Touche Spéciale + BIS | M10 |
 | `SEP 69`-`6B` | *(réservé)* | — |
-| `SEP 6C` (l) | Détecteur de sonnerie intégré | M12 / M2 |
-| `SEP 6D` (m) | Acquittement status modem | M12 |
+| `SEP 6C` | Détecteur de sonnerie intégré | M12 / M2 |
+| `SEP 6D` | Acquittement status modem | M12 |
 | `SEP 6E`-`6F` | *(réservé)* | — |
-| `SEP 70` (p) | Passage au mode Mixte | M1B |
-| `SEP 71` (q) | Passage au mode Videotex | M1B |
-| `SEP 72` (r) | Changement d'état de la veille | M12 / M2 |
+| `SEP 70` | Passage au mode Mixte | M1B |
+| `SEP 71` | Passage au mode Videotex | M1B |
+| `SEP 72` | Changement d'état de la veille | M12 / M2 |
 | `SEP 73` | *(réservé)* | — |
-| `SEP 74` (t) | Inhibition de la réception STUTEL | M12 |
+| `SEP 74` | Inhibition de la réception STUTEL | M12 |
 
 ## 4. ISO 2022, première partie (réseau, PAVI, messagerie)
 
@@ -226,18 +225,18 @@ devient `ESC 23 35` ; `SEP 65` (touche Minitel 10) devient `ESC 2F 36` ;
 | Séquence | Sigle | Fonction |
 |----------|-------|----------|
 | `ESC A 38` `[CR]` | DC | Demande de Connexion |
-| `ESC 2F (/) 38` `[CR]` | DID | Demande d'IDentification |
+| `ESC 2F 38` `[CR]` | DID | Demande d'IDentification |
 | `ESC A 39 CR` | AC | Acquittement de Connexion |
-| `ESC A 3A (:)` `[CR]` | ILC | Indication de Libération de Connexion |
-| `ESC 2F (/) 3A (:)` `[CR]` | ILC générale | Indication de Libération de Connexion (générale) |
-| `ESC A 3B (;)` | J | Jeton |
-| `ESC 2F (/) 3B (;)` | DLC | Demande de Libération de Connexion |
-| `ESC 20 ( ) p 3C (<)` `[CR]` | — | Demande de Modification des Caractéristiques de Transmission |
-| `ESC 21 (!) 3C (<)` `[CR]` | DT | Début de Transparence (DMCT) |
-| `ESC 22 (") P 3C (<)` `[CR]` | CDG | Commande de Déconnexion Générale |
-| `ESC 23 (#) A 3C (<)` `[CR]` | IRD | Indication de Ressource Disponible |
-| `ESC 24 ($) A 3C (<)` `[CR]` | IRND | Indication de Ressource Non-Disponible |
-| `ESC 28 (() 3C (<)` `[CR]` | FT | Fin de Transparence |
+| `ESC A 3A` `[CR]` | ILC | Indication de Libération de Connexion |
+| `ESC 2F 3A` `[CR]` | ILC générale | Indication de Libération de Connexion (générale) |
+| `ESC A 3B` | J | Jeton |
+| `ESC 2F 3B` | DLC | Demande de Libération de Connexion |
+| `ESC 20 p 3C` `[CR]` | — | Demande de Modification des Caractéristiques de Transmission |
+| `ESC 21 3C` `[CR]` | DT | Début de Transparence (DMCT) |
+| `ESC 22 P 3C` `[CR]` | CDG | Commande de Déconnexion Générale |
+| `ESC 23 A 3C` `[CR]` | IRD | Indication de Ressource Disponible |
+| `ESC 24 A 3C` `[CR]` | IRND | Indication de Ressource Non-Disponible |
+| `ESC 28 3C` `[CR]` | FT | Fin de Transparence |
 
 ### Commandes du système d'échange utilisées par les Minitel 1B
 
@@ -295,21 +294,21 @@ Adressages combinés : `20 2C 21` (Messagerie 40), `21 2C 26` (Imprimante...).
 | `ESC 23 20 58` | Masquage plein écran |
 | `ESC 23 20 5F` | Démasquage plein écran |
 | `ESC 23 21 XX` | Filtré. Attributs pleine rangée (`3F<XX<60`) |
-| `ESC 25` (%) | Transparence écran |
-| `ESC 25 40` (%@) | Fin de transparence écran, M1B — **à ne pas utiliser** |
-| `ESC 28 40` ((@)  | G0 : jeu de base alphanumérique (M2) |
-| `ESC 28 20 42` ( (B) | G'0 : jeu DRCS alphanumérique (M2) |
-| `ESC 29 63` ()c)  | G1 : jeu de base semi-graphique (M2) |
-| `ESC 29 20 43` ()C) | G'1 : jeu DRCS semi-graphique (M2) |
+| `ESC 25` | Transparence écran |
+| `ESC 25 40` | Fin de transparence écran, M1B — **à ne pas utiliser** |
+| `ESC 28 40` | G0 : jeu de base alphanumérique (M2) |
+| `ESC 28 20 42` | G'0 : jeu DRCS alphanumérique (M2) |
+| `ESC 29 63` | G1 : jeu de base semi-graphique (M2) |
+| `ESC 29 20 43` | G'1 : jeu DRCS semi-graphique (M2) |
 | `ESC 2X YY` (8≤X≤F, 30≤YY≤7F) | Fin de transparence écran, M1 |
-| `ESC 2F 3F` (/?)  | Fin de transparence écran, M1B — **à utiliser** |
-| `ESC 35 (5) da` | Filtré. Mise en route d'un dispositif auxiliaire — voir [§8](#8-dispositifs-auxiliaires) |
-| `ESC 36 (6) da` | Filtré. Arrêt d'un dispositif auxiliaire |
-| `ESC 37 (7) da` | Filtré. Mise en attente d'un dispositif auxiliaire |
-| `ESC 39` (9) `XX` | Commande protocole à un argument (PRO1) |
-| `ESC 3A` (:) `XX XX` | Commande protocole à deux arguments (PRO2) |
-| `ESC 3B` (;) `XX XX XX` | Commande protocole à trois arguments (PRO3) |
-| `ESC 61` (a) | Demande de position du curseur (réponse : `US Pl+64 Pc+64`) |
+| `ESC 2F 3F` | Fin de transparence écran, M1B — **à utiliser** |
+| `ESC 35 da` | Filtré. Mise en route d'un dispositif auxiliaire — voir [§8](#8-dispositifs-auxiliaires) |
+| `ESC 36 da` | Filtré. Arrêt d'un dispositif auxiliaire |
+| `ESC 37 da` | Filtré. Mise en attente d'un dispositif auxiliaire |
+| `ESC 39` `XX` | Commande protocole à un argument (PRO1) |
+| `ESC 3A` `XX XX` | Commande protocole à deux arguments (PRO2) |
+| `ESC 3B` `XX XX XX` | Commande protocole à trois arguments (PRO3) |
+| `ESC 61` | Demande de position du curseur (réponse : `US Pl+64 Pc+64`) |
 
 ## 7. Attributs vidéotex (couleurs, effets)
 
@@ -336,8 +335,8 @@ de mot affiché).
 | Vidéo inverse | `1B 5D` | 27 93 | `ESC ]` | | Vidéo normale | `1B 5C` | 27 92 | `ESC \` |
 | Fond transparent | `1B 5E` | 27 94 | `ESC ^` | | | | | |
 
-\* En semi-graphique (G1), « début de soulignement » équivaut à un début de
-fond coloré pour la mosaïque.
+\* En semi-graphique (G1), « début de soulignement » bascule les motifs
+mosaïques vers le rendu disjoint — voir [§10](#10-jeu-semi-graphique-g1-mosaïque).
 
 ## 8. Dispositifs auxiliaires
 
@@ -359,11 +358,11 @@ route / arrêt / mise en attente).
 | Séquence | Fonction |
 |----------|----------|
 | `RS` (`1E`) | Curseur en ligne 1, colonne 1 (Home) |
-| `US 30` (0) | Curseur en début de la ligne courante |
+| `US 30` | Curseur en début de la ligne courante |
 | `US 31 3X 3Y` (1) | Positionne le curseur en ligne `XY` (décimal), colonne inchangée |
 | `US Pl+64 Pc+64` | Positionnement direct : ligne `Pl` (1-24), colonne `Pc` (1-40) |
 | `US 40+64 Pc` (@) | Positionnement sur la ligne 0 (ligne d'état), colonne `Pc` (0<Pc<64) |
-| `ESC 61` (a) | Demande de la position du curseur — réponse : `US Pl+64 Pc+64` |
+| `ESC 61` | Demande de la position du curseur — réponse : `US Pl+64 Pc+64` |
 
 ## 10. Jeu semi-graphique G1 (mosaïque)
 
@@ -380,18 +379,20 @@ Disposition et poids binaire des points :
 ```
 
 L'indice « Graphique » (0-63) d'un motif est la somme des poids des points
-allumés. Les 64 motifs se répartissent sur deux plages de codes ASCII
-disjointes — 32 motifs « jointifs » (dessins accolés) et 32 motifs
-« séparés » (dessins avec espacement), chaque code ne portant qu'un seul
-motif :
+allumés, obtenu à partir du code comme suit :
 
-| Plage ASCII | Indices Graphique | Rendu | Formule |
-|---|---|---|---|
-| `20`-`3F` (32-63 déc.) | 0-31 | mosaïque « jointive » | indice Graphique = code − `20` |
-| `60`-`7F` (96-127 déc.) | 32-63 | mosaïque « séparée » | indice Graphique = code − `40` |
+| Plage ASCII | Indices Graphique | Formule |
+|---|---|---|
+| `20`-`3F` (32-63 déc.) | 0-31 | indice Graphique = code − `20` |
+| `60`-`7F` (96-127 déc.) | 32-63 | indice Graphique = code − `40` |
 
-Les codes `40`-`5F` (lettres majuscules) ne portent pas de motif mosaïque
-distinct en G1.
+Les caractères semi-graphiques (G1) de code `40` à `5F` reproduisent ceux de
+`60` à `7F`.
+
+Le rendu « jointif » (dessins accolés) ou « disjoint » (dessins avec un
+espace autour de chaque point) ne dépend pas du code : il est introduit par
+l'attribut de soulignement — `ESC Z` (début de soulignement) affiche les
+motifs disjoints, `ESC Y` (fin de soulignement) les affiche jointifs.
 
 ### Table des 64 motifs
 
@@ -399,48 +400,27 @@ Chaque motif est représenté ci-dessous par ses 6 points dans l'ordre
 haut-gauche, haut-droit, milieu-gauche, milieu-droit, bas-gauche, bas-droit
 (`█` = point allumé, `·` = point éteint).
 
-| Idx | Motif | Code | Forme |  | Idx | Motif | Code | Forme |  | Idx | Motif | Code | Forme |  | Idx | Motif | Code | Forme |
-|---|---|---|---|-|---|---|---|---|-|---|---|---|---|-|---|---|---|---|
-| 0 | `······` | `20` | jointif |  | 1 | `█·····` | `21` | jointif |  | 2 | `·█····` | `22` | jointif |  | 3 | `██····` | `23` | jointif |
-| 4 | `··█···` | `24` | jointif |  | 5 | `█·█···` | `25` | jointif |  | 6 | `·██···` | `26` | jointif |  | 7 | `███···` | `27` | jointif |
-| 8 | `···█··` | `28` | jointif |  | 9 | `█··█··` | `29` | jointif |  | 10 | `·█·█··` | `2A` | jointif |  | 11 | `██·█··` | `2B` | jointif |
-| 12 | `··██··` | `2C` | jointif |  | 13 | `█·██··` | `2D` | jointif |  | 14 | `·███··` | `2E` | jointif |  | 15 | `████··` | `2F` | jointif |
-| 16 | `····█·` | `30` | jointif |  | 17 | `█···█·` | `31` | jointif |  | 18 | `·█··█·` | `32` | jointif |  | 19 | `██··█·` | `33` | jointif |
-| 20 | `··█·█·` | `34` | jointif |  | 21 | `█·█·█·` | `35` | jointif |  | 22 | `·██·█·` | `36` | jointif |  | 23 | `███·█·` | `37` | jointif |
-| 24 | `···██·` | `38` | jointif |  | 25 | `█··██·` | `39` | jointif |  | 26 | `·█·██·` | `3A` | jointif |  | 27 | `██·██·` | `3B` | jointif |
-| 28 | `··███·` | `3C` | jointif |  | 29 | `█·███·` | `3D` | jointif |  | 30 | `·████·` | `3E` | jointif |  | 31 | `█████·` | `3F` | jointif |
-| 32 | `·····█` | `60` | séparé |  | 33 | `█····█` | `61` | séparé |  | 34 | `·█···█` | `62` | séparé |  | 35 | `██··█·` | `63` | séparé |
-| 36 | `··█··█` | `64` | séparé |  | 37 | `█·█··█` | `65` | séparé |  | 38 | `·██··█` | `66` | séparé |  | 39 | `███··█` | `67` | séparé |
-| 40 | `···█·█` | `68` | séparé |  | 41 | `█··█·█` | `69` | séparé |  | 42 | `·█·█·█` | `6A` | séparé |  | 43 | `██·█·█` | `6B` | séparé |
-| 44 | `··██·█` | `6C` | séparé |  | 45 | `█·██·█` | `6D` | séparé |  | 46 | `·███·█` | `6E` | séparé |  | 47 | `████·█` | `6F` | séparé |
-| 48 | `····██` | `70` | séparé |  | 49 | `█···██` | `71` | séparé |  | 50 | `·█··██` | `72` | séparé |  | 51 | `██··██` | `73` | séparé |
-| 52 | `··█·██` | `74` | séparé |  | 53 | `█·█·██` | `75` | séparé |  | 54 | `·██·██` | `76` | séparé |  | 55 | `███·██` | `77` | séparé |
-| 56 | `···███` | `78` | séparé |  | 57 | `█··███` | `79` | séparé |  | 58 | `·█·███` | `7A` | séparé |  | 59 | `██·███` | `7B` | séparé |
-| 60 | `··████` | `7C` | séparé |  | 61 | `█·████` | `7D` | séparé |  | 62 | `·█████` | `7E` | séparé |  | 63 | `██████` | `7F` | séparé |
+| Idx | Motif | Code |  | Motif | Code |  | Motif | Code |  | Motif | Code |
+|---|---|---|-|---|---|-|---|---|-|---|---|
+| 0..3 | `··`<br>`··`<br>`··` | `20` |  | `█·`<br>`··`<br>`··` | `21` |  | `·█`<br>`··`<br>`··` | `22` |  | `██`<br>`··`<br>`··` | `23` |
+| 4..7 | `··`<br>`█·`<br>`··` | `24` |  | `█·`<br>`█·`<br>`··` | `25` |  | `·█`<br>`█·`<br>`··` | `26` |  | `██`<br>`█·`<br>`··` | `27` |
+| 8..11 | `··`<br>`·█`<br>`··` | `28` |  | `█·`<br>`·█`<br>`··` | `29` |  | `·█`<br>`·█`<br>`··` | `2A` |  | `██`<br>`·█`<br>`··` | `2B` |
+| 12..15 | `··`<br>`██`<br>`··` | `2C` |  | `█·`<br>`██`<br>`··` | `2D` |  | `·█`<br>`██`<br>`··` | `2E` |  | `██`<br>`██`<br>`··` | `2F` |
+| 16..19 | `··`<br>`··`<br>`█·` | `30` |  | `█·`<br>`··`<br>`█·` | `31` |  | `·█`<br>`··`<br>`█·` | `32` |  | `██`<br>`··`<br>`█·` | `33` |
+| 20..23 | `··`<br>`█·`<br>`█·` | `34` |  | `█·`<br>`█·`<br>`█·` | `35` |  | `·█`<br>`█·`<br>`█·` | `36` |  | `██`<br>`█·`<br>`█·` | `37` |
+| 24..27 | `··`<br>`·█`<br>`█·` | `38` |  | `█·`<br>`·█`<br>`█·` | `39` |  | `·█`<br>`·█`<br>`█·` | `3A` |  | `██`<br>`·█`<br>`█·` | `3B` |
+| 28..31 | `··`<br>`██`<br>`█·` | `3C` |  | `█·`<br>`██`<br>`█·` | `3D` |  | `·█`<br>`██`<br>`█·` | `3E` |  | `██`<br>`██`<br>`█·` | `3F` |
+| 32..35 | `··`<br>`··`<br>`·█` | `60` |  | `█·`<br>`··`<br>`·█` | `61` |  | `·█`<br>`··`<br>`·█` | `62` |  | `██`<br>`··`<br>`█·` | `63` |
+| 36..39 | `··`<br>`█·`<br>`·█` | `64` |  | `█·`<br>`█·`<br>`·█` | `65` |  | `·█`<br>`█·`<br>`·█` | `66` |  | `██`<br>`█·`<br>`·█` | `67` |
+| 40..43 | `··`<br>`·█`<br>`·█` | `68` |  | `█·`<br>`·█`<br>`·█` | `69` |  | `·█`<br>`·█`<br>`·█` | `6A` |  | `██`<br>`·█`<br>`·█` | `6B` |
+| 44..47 | `··`<br>`██`<br>`·█` | `6C` |  | `█·`<br>`██`<br>`·█` | `6D` |  | `·█`<br>`██`<br>`·█` | `6E` |  | `██`<br>`██`<br>`·█` | `6F` |
+| 48..51 | `··`<br>`··`<br>`██` | `70` |  | `█·`<br>`··`<br>`██` | `71` |  | `·█`<br>`··`<br>`██` | `72` |  | `██`<br>`··`<br>`██` | `73` |
+| 52..55 | `··`<br>`█·`<br>`██` | `74` |  | `█·`<br>`█·`<br>`██` | `75` |  | `·█`<br>`█·`<br>`██` | `76` |  | `██`<br>`█·`<br>`██` | `77` |
+| 56..59 | `··`<br>`·█`<br>`██` | `78` |  | `█·`<br>`·█`<br>`██` | `79` |  | `·█`<br>`·█`<br>`██` | `7A` |  | `██`<br>`·█`<br>`██` | `7B` |
+| 60..63 | `··`<br>`██`<br>`██` | `7C` |  | `█·`<br>`██`<br>`██` | `7D` |  | `·█`<br>`██`<br>`██` | `7E` |  | `██`<br>`██`<br>`██` | `7F` |
 
-Chaque code n'existe que sous une seule forme : jointif (`20`-`3F`) pour les
-motifs 0-31, séparé (`60`-`7F`) pour les motifs 32-63. Les codes `40`-`5F`
-(lettres majuscules) ne portent pas de motif mosaïque en G1.
-
-> **Remarque de fidélité de transcription** : le document source encode ce
-> tableau sous forme d'une grille graphique (cases noircies), reconstruite
-> ici par extraction automatique et vérifiée par calcul (indice Graphique =
-> somme des poids des points allumés) sur les 64 entrées. Une seule entrée du
-> graphisme d'origine (motif au code séparé `63`, indice attendu 35) présente
-> une incohérence ponctuelle avec la formule : la grille montre le point
-> bas-gauche allumé au lieu du point bas-droit. Il s'agit très probablement
-> d'une coquille de la page source plutôt que d'un comportement réel du
-> Minitel, la règle des poids binaires étant sinon vérifiée à l'identique sur
-> les 63 autres entrées.
-
-### Table de correspondance ASCII ↔ Graphique (telle que publiée)
-
-| ASCII (jointif) | Graphique | ASCII (séparé) | Graphique |
-|---|---|---|---|
-| 32-63 | 0-31 | 96-127 | 32-63 |
-
-(Correspondance terme à terme : `ASCII − 32` pour la plage jointive,
-`ASCII − 64` pour la plage séparée — cohérent avec la formule du §10.)
+Les caractères semi-graphiques (G1) de code `40` à `5F` reproduisent ceux de
+`60` à `7F`.
 
 ## 11. Caractères spéciaux G2 (accents, symboles)
 
@@ -496,61 +476,61 @@ Préfixes : PRO1 = `ESC 39`, PRO2 = `ESC 3A`, PRO3 = `ESC 3B`.
 
 | # | Séquence | Fonction | Modèle |
 |---|----------|----------|--------|
-| — | `PRO1 50` (P) | Numérotation du dernier numéro (BIS) | M10 |
-| — | `PRO3 51` (Q) `3x 3y` | Numérotation à partir du répertoire | M2 Philips |
-| — | `PRO3 52` (R) `3x 3y` | Numérotation à partir de l'écran | M2/M10 |
-| — | `PRO1 53` (S) | Prise de ligne | M2/M10 |
-| — | `PRO1 54` (T) | Commutation données-phonie | M10 |
-| — | `PRO2 55` (U) `N` | Commutation données-phonie pendant N × 2 s | M10 |
-| — | `PRO2 56` (V) `N` | Idem, en mode opposé | M12 |
-| — | `PRO1 57` (W) | Libération de ligne | M2/M10 |
-| — | `PRO1 58` (X) | Coupure Calibrée | M10 |
-| — | `PRO1 59` (Y) | Effacement mémoire tampon (14 derniers n° tél.) | M10 |
-| — | `PRO1 5A` (Z) | Demande de status téléphonique | M2/M10 |
-| — | `PRO2 5B` (\[) `st` | Réponse à la demande de status téléphonique | M2/M10 |
-| 1 | `PRO3 60` (') `cr, ce` | Arrêt d'aiguillage (OFF) | — |
-| 1b | `PRO1 60` (') | Demande d'activation de la PCE | M12 |
-| 2 | `PRO3 61` (a) `cr, ce` | Aiguillage (ON) | — |
-| 2b | `PRO1 61` (a) | Demande d'arrêt de la PCE | M12 |
-| 3 | `PRO2 62` (b) `cr/ce` | Demande de status d'un module (TO) | — |
-| 3b | `PRO1 62` (b) | Passage en mode répondeur | M12 |
-| 4 | `PRO3 63` (c) `cr/ce, s` | Réponse à une demande de status ou acquittement | — |
-| 4b | `PRO1 63` (c) | Inhibition de la réception STUTEL | M12 |
-| 5 | `PRO2 64` (d) `cr` | Diffusion restreinte des acquittements protocole | — |
-| 5b | `PRO2 64` (d) `ce` | Acquittement non renvoyé | M1B |
-| 6 | `PRO2 65` (e) `cr` | Diffusion systématique des acquittements protocole | — |
-| 6b | `PRO2 65` (e) `ce` | Acquittement renvoyé | M1B |
-| 7 | `PRO2 66` (f) `x` | Mise en transparence du protocole (`0<x<128`) | — |
-| 8 | `PRO1 67` (g) | Déconnexion physique du modem | — |
-| 9 | `PRO1 68` (h) | Assure la connexion du modem | — |
-| 10 | `PRO2 69` (i) `mf` | Mise en route d'une fonction particulière du terminal | — |
-| 10b | `PRO3 69` (i) `cr, cmd` | Idem, pour un module | M2/M1B/M12 |
-| 11 | `PRO2 6A` (j) `mf` | Arrêt d'une fonction particulière du terminal | — |
-| 11b | `PRO3 6A` (j) `cr, cmd` | Idem, pour un module | M2/M1B/M12 |
-| 12 | `PRO2 6B` (k) `pv` | Programmation des vitesses par périphérique | — |
-| 13 | `PRO1 6C` (l) | Retournement du modem | — |
-| 14 | `PRO1 6D` (m) | Retournement inverse du modem | — |
-| 15 | `PRO1 6E` (n) | Acquittement de retournement | — |
-| 16 | `PRO1 6F` (o) | Retournement pour l'opposabilité | — |
-| 17 | `PRO2 6F` (o) `31` | Passage du mode opposé à esclave (OPPORE) | — |
-| 18 | `PRO1 70` (p) | Demande de status terminal | — |
-| 19 | `PRO2 71` (q) `st` | Réponse à la demande de status terminal | — |
-| 20 | `PRO1 72` (r) | Demande de status fonctionnement | — |
-| 20b | `PRO2 72` (r) `cr` | Demande de status d'un module | M2/M1B/M12 |
-| 21 | `PRO2 73` (s) `sf` | Réponse à la demande de status fonctionnement | — |
-| 21b | `PRO3 73` (s) `cr, sx` | Réponse à la demande de status d'un module | M2/M1B/M12 |
-| 22 | `PRO1 74` (t) | Demande de status vitesse | — |
-| 23 | `PRO2 75` (u) `sv` | Réponse à la demande de status vitesse | — |
-| 24 | `PRO1 76` (v) | Demande de status protocole | — |
-| 25 | `PRO2 77` (w) `sp` | Réponse à la demande de status protocole | — |
-| 26 | `PRO1 78` (x) `01 .. 04` | Téléchargement RAM 1 (chaîne encadrée par Ctrl-A/Ctrl-D) | M1 |
-| 27 | `PRO1 79` (y) `01 .. 04` | Téléchargement RAM 2 | M1 |
-| 28 | `PRO1 7A` (z) | Lecture RAM 2 | M1 |
-| 29 | `PRO1 7B` ({) | Lecture ROM (identification du terminal) | — |
-| 30 | `PRO2 7C` (\|) `si` | Commande de copie d'écran | M1B |
-| 31 | `PRO2 31` (1) `7D` (}) | Passage en Téléinformatique | M1B |
-| 32 | `PRO2 32` (2) `7D` (}) | Passage du mode Videotex à Mixte | M1B |
-| 33 | `PRO2 32` (2) `7E` (~) | Passage du mode Mixte à Videotex | M1B |
+| — | `PRO1 50` | Numérotation du dernier numéro (BIS) | M10 |
+| — | `PRO3 51` `3x 3y` | Numérotation à partir du répertoire | M2 Philips |
+| — | `PRO3 52` `3x 3y` | Numérotation à partir de l'écran | M2/M10 |
+| — | `PRO1 53` | Prise de ligne | M2/M10 |
+| — | `PRO1 54` | Commutation données-phonie | M10 |
+| — | `PRO2 55` `N` | Commutation données-phonie pendant N × 2 s | M10 |
+| — | `PRO2 56` `N` | Idem, en mode opposé | M12 |
+| — | `PRO1 57` | Libération de ligne | M2/M10 |
+| — | `PRO1 58` | Coupure Calibrée | M10 |
+| — | `PRO1 59` | Effacement mémoire tampon (14 derniers n° tél.) | M10 |
+| — | `PRO1 5A` | Demande de status téléphonique | M2/M10 |
+| — | `PRO2 5B` `st` | Réponse à la demande de status téléphonique | M2/M10 |
+| 1 | `PRO3 60` `cr, ce` | Arrêt d'aiguillage (OFF) | — |
+| 1b | `PRO1 60` | Demande d'activation de la PCE | M12 |
+| 2 | `PRO3 61` `cr, ce` | Aiguillage (ON) | — |
+| 2b | `PRO1 61` | Demande d'arrêt de la PCE | M12 |
+| 3 | `PRO2 62` `cr/ce` | Demande de status d'un module (TO) | — |
+| 3b | `PRO1 62` | Passage en mode répondeur | M12 |
+| 4 | `PRO3 63` `cr/ce, s` | Réponse à une demande de status ou acquittement | — |
+| 4b | `PRO1 63` | Inhibition de la réception STUTEL | M12 |
+| 5 | `PRO2 64` `cr` | Diffusion restreinte des acquittements protocole | — |
+| 5b | `PRO2 64` `ce` | Acquittement non renvoyé | M1B |
+| 6 | `PRO2 65` `cr` | Diffusion systématique des acquittements protocole | — |
+| 6b | `PRO2 65` `ce` | Acquittement renvoyé | M1B |
+| 7 | `PRO2 66` `x` | Mise en transparence du protocole (`0<x<128`) | — |
+| 8 | `PRO1 67` | Déconnexion physique du modem | — |
+| 9 | `PRO1 68` | Assure la connexion du modem | — |
+| 10 | `PRO2 69` `mf` | Mise en route d'une fonction particulière du terminal | — |
+| 10b | `PRO3 69` `cr, cmd` | Idem, pour un module | M2/M1B/M12 |
+| 11 | `PRO2 6A` `mf` | Arrêt d'une fonction particulière du terminal | — |
+| 11b | `PRO3 6A` `cr, cmd` | Idem, pour un module | M2/M1B/M12 |
+| 12 | `PRO2 6B` `pv` | Programmation des vitesses par périphérique | — |
+| 13 | `PRO1 6C` | Retournement du modem | — |
+| 14 | `PRO1 6D` | Retournement inverse du modem | — |
+| 15 | `PRO1 6E` | Acquittement de retournement | — |
+| 16 | `PRO1 6F` | Retournement pour l'opposabilité | — |
+| 17 | `PRO2 6F` `31` | Passage du mode opposé à esclave (OPPORE) | — |
+| 18 | `PRO1 70` | Demande de status terminal | — |
+| 19 | `PRO2 71` `st` | Réponse à la demande de status terminal | — |
+| 20 | `PRO1 72` | Demande de status fonctionnement | — |
+| 20b | `PRO2 72` `cr` | Demande de status d'un module | M2/M1B/M12 |
+| 21 | `PRO2 73` `sf` | Réponse à la demande de status fonctionnement | — |
+| 21b | `PRO3 73` `cr, sx` | Réponse à la demande de status d'un module | M2/M1B/M12 |
+| 22 | `PRO1 74` | Demande de status vitesse | — |
+| 23 | `PRO2 75` `sv` | Réponse à la demande de status vitesse | — |
+| 24 | `PRO1 76` | Demande de status protocole | — |
+| 25 | `PRO2 77` `sp` | Réponse à la demande de status protocole | — |
+| 26 | `PRO1 78` `01 .. 04` | Téléchargement RAM 1 (chaîne encadrée par Ctrl-A/Ctrl-D) | M1 |
+| 27 | `PRO1 79` `01 .. 04` | Téléchargement RAM 2 | M1 |
+| 28 | `PRO1 7A` | Lecture RAM 2 | M1 |
+| 29 | `PRO1 7B` | Lecture ROM (identification du terminal) | — |
+| 30 | `PRO2 7C` `si` | Commande de copie d'écran | M1B |
+| 31 | `PRO2 31` `7D` | Passage en Téléinformatique | M1B |
+| 32 | `PRO2 32` `7D` | Passage du mode Videotex à Mixte | M1B |
+| 33 | `PRO2 32` `7E` | Passage du mode Mixte à Videotex | M1B |
 | 34 | `PRO1 7F` (DEL) | Réinitialisation en Videotex | M1B |
 
 Pour écrire dans une RAM du Minitel (\*\*\*) : téléchargement suivi de `01`
@@ -562,12 +542,12 @@ Si le texte dépasse 14 caractères, le `04` n'est pas renvoyé.
 
 | Module | ce (émission) | cr (réception) |
 |--------|:---:|:---:|
-| Écran | `50` (P) | `58` (X) |
-| Clavier | `51` (Q) | `59` (Y) |
-| Modem | `52` (R) | `5A` (Z) |
-| Prise | `53` (S) | `5B` (\[) |
-| Poste (téléphonique) | `54` (T) | `5C` (\\) — Minitel 10 |
-| Logiciel | `55` (U) | `5D` (\]) |
+| Écran | `50` | `58` |
+| Clavier | `51` | `59` |
+| Modem | `52` | `5A` |
+| Prise | `53` | `5B` |
+| Poste (téléphonique) | `54` | `5C` — Minitel 10 |
+| Logiciel | `55` | `5D` |
 
 ### Status aiguillage
 
@@ -581,11 +561,11 @@ Pour chaque module : `1` = liaison établie, `0` = liaison coupée.
 
 | `mf` | Fonction terminal | | `cr` | Module | `cmd` | Commande | Modèle |
 |---|---|-|---|---|---|---|---|
-| `43` (C) | Mode rouleau/page | | `58` (X) | Écran | `41` (A) | Veille | New M2 |
-| `44` (D) | Procédure de correction d'erreur (PCE) | | `59` (Y) | Clavier | `41` (A) | Mode étendu | M1B |
-| `45` (E) | Mode enseignement (clavier minuscules) | | | | `43` (C) | C0 (ou CSI) | M1B |
-| `46` (F) | Mode loupe haut (M1/M10) | | `5A` (Z) | Modem | `41` (A) | Gestion de flux | M12 |
-| `47` (G) | Mode loupe bas (M1/M10) | | | | `42` (B) | Signature auto. | M12 |
+| `43` | Mode rouleau/page | | `58` | Écran | `41` | Veille | New M2 |
+| `44` | Procédure de correction d'erreur (PCE) | | `59` | Clavier | `41` | Mode étendu | M1B |
+| `45` | Mode enseignement (clavier minuscules) | | | | `43` | C0 (ou CSI) | M1B |
+| `46` | Mode loupe haut (M1/M10) | | `5A` | Modem | `41` | Gestion de flux | M12 |
+| `47` | Mode loupe bas (M1/M10) | | | | `42` | Signature auto. | M12 |
 
 ### Programmation / status vitesse (prise)
 
@@ -654,8 +634,8 @@ Bit:  7  6  5     4    3     2    1    0
 
 | Code | Jeu |
 |------|-----|
-| `6A` (j) | Français |
-| `6B` (k) | Américain |
+| `6A` | Français |
+| `6B` | Américain |
 
 ### Status clavier (Minitel 1B)
 
@@ -701,39 +681,39 @@ Contenu : `Constructeur` (1 octet) + `Type de minitel` (1 octet) + `Version`
 
 | Code | Constructeur |
 |------|--------------|
-| `41` (A) | Matra (M5 uniquement) |
-| `42` (B) | TRT (M1), RTIC (M1B), RPIC (M2), Philips (M12) |
-| `43` (C) | Telic-Alcatel (M1/M1C/M10/M10B/M12) |
-| `44` (D) | Thomson |
-| `45` (E) | CCS |
-| `46` (F) | Fiet |
-| `47` (G) | Fime |
-| `48` (H) | Unitel |
-| `49` (I) | Option |
-| `4A` (J) | Bull |
-| `4B` (K) | Télématique |
-| `4C` (L) | Desmet |
+| `41` | Matra (M5 uniquement) |
+| `42` | TRT (M1), RTIC (M1B), RPIC (M2), Philips (M12) |
+| `43` | Telic-Alcatel (M1/M1C/M10/M10B/M12) |
+| `44` | Thomson |
+| `45` | CCS |
+| `46` | Fiet |
+| `47` | Fime |
+| `48` | Unitel |
+| `49` | Option |
+| `4A` | Bull |
+| `4B` | Télématique |
+| `4C` | Desmet |
 
 ### Type de minitel (ou de périphérique)
 
 | Code | Type |
 |------|------|
-| `62` (b) | Minitel 1, modem non retournable, clavier ABCD |
-| `63` (c) | Minitel 1, modem non retournable |
-| `64` (d) | Minitel 10, modem non retournable |
-| `65` (e) | Minitel 1 Couleur, modem non retournable, entrée vidéo, incrustation |
-| `66` (f) | Minitel 10 |
-| `67` (g) | Émulateur |
-| `6A` (j) | Imprimante |
-| `72` (r) | Minitel 1 |
-| `73` (s) | Minitel 1 Couleur |
-| `74` (t) | Terminatel 252 |
-| `75` (u) | Minitel 1 Bi-standard ⇒ pas de RAM |
-| `76` (v) | Minitel 2 ⇒ demi-RAM 1 en lecture seule |
-| `77` (w) | Minitel 10 Bi-standard |
-| `78` (x) | (Thomson ?) |
-| `79` (y) | Minitel 5 |
-| `7A` (z) | Minitel 12 ⇒ RAM 1 en lecture seule |
+| `62` | Minitel 1, modem non retournable, clavier ABCD |
+| `63` | Minitel 1, modem non retournable |
+| `64` | Minitel 10, modem non retournable |
+| `65` | Minitel 1 Couleur, modem non retournable, entrée vidéo, incrustation |
+| `66` | Minitel 10 |
+| `67` | Émulateur |
+| `6A` | Imprimante |
+| `72` | Minitel 1 |
+| `73` | Minitel 1 Couleur |
+| `74` | Terminatel 252 |
+| `75` | Minitel 1 Bi-standard ⇒ pas de RAM |
+| `76` | Minitel 2 ⇒ demi-RAM 1 en lecture seule |
+| `77` | Minitel 10 Bi-standard |
+| `78` | (Thomson ?) |
+| `79` | Minitel 5 |
+| `7A` | Minitel 12 ⇒ RAM 1 en lecture seule |
 
 ### Version
 
@@ -837,22 +817,22 @@ Bit:  7       6       5  4      3-0
 
 | Touche | Séquence | Équiv. |
 |--------|----------|--------|
-| ENVOI | `ESC 4F 4D` (OM) | ENTER |
-| SOMMAIRE | `ESC 4F 50` (OP) | PF1 |
-| ANNULATION | `ESC 4F 51` (OQ) | PF2 |
-| RETOUR | `ESC 4F 52` (OR) | PF3 |
-| RÉPÉTITION | `ESC 4F 53` (OS) | PF4 |
-| CORRECTION | `ESC 4F 6C` (Ol) | , |
-| GUIDE | `ESC 4F 6D` (Om) | - |
-| SUITE | `ESC 4F 6E` (On) | . |
+| ENVOI | `ESC 4F 4D` | ENTER |
+| SOMMAIRE | `ESC 4F 50` | PF1 |
+| ANNULATION | `ESC 4F 51` | PF2 |
+| RETOUR | `ESC 4F 52` | PF3 |
+| RÉPÉTITION | `ESC 4F 53` | PF4 |
+| CORRECTION | `ESC 4F 6C` | , |
+| GUIDE | `ESC 4F 6D` | - |
+| SUITE | `ESC 4F 6E` | . |
 
 | Touche | Séquence | | Touche | Séquence |
 |---|---|-|---|---|
-| Fnct 0 | `ESC 4F 70` (Op) | | Fnct 5 | `ESC 4F 75` (Ou) |
-| Fnct 1 | `ESC 4F 71` (Oq) | | Fnct 6 | `ESC 4F 76` (Ov) |
-| Fnct 2 | `ESC 4F 72` (Or) | | Fnct 7 | `ESC 4F 77` (Ow) |
-| Fnct 3 | `ESC 4F 73` (Os) | | Fnct 8 | `ESC 4F 78` (Ox) |
-| Fnct 4 | `ESC 4F 74` (Ot) | | Fnct 9 | `ESC 4F 79` (Oy) |
+| Fnct 0 | `ESC 4F 70` | | Fnct 5 | `ESC 4F 75` |
+| Fnct 1 | `ESC 4F 71` | | Fnct 6 | `ESC 4F 76` |
+| Fnct 2 | `ESC 4F 72` | | Fnct 7 | `ESC 4F 77` |
+| Fnct 3 | `ESC 4F 73` | | Fnct 8 | `ESC 4F 78` |
+| Fnct 4 | `ESC 4F 74` | | Fnct 9 | `ESC 4F 79` |
 
 | Touche | TS (US) | TS (Français) | Ctrl (Français) |
 |--------|---------|----------------|-------------------|
@@ -1044,11 +1024,11 @@ nulle prend la valeur implicite.
 
 | Séquence | Fonction |
 |----------|----------|
-| `ESC 37` (7) | Mémorisation du contexte écran |
-| `ESC 38` (8) | Restitution du contexte écran |
+| `ESC 37` | Mémorisation du contexte écran |
+| `ESC 38` | Restitution du contexte écran |
 | `ESC 4F XX` (O) | Codage des touches de fonction — voir [§14](#14-clavier) |
-| `CSI 3F 7A` (?z) | Acquittement de passage en téléinformatique |
-| `CSI 3F 7B` (?{) | Retour au standard Télétel, mode Videotex |
+| `CSI 3F 7A` | Acquittement de passage en téléinformatique |
+| `CSI 3F 7B` | Retour au standard Télétel, mode Videotex |
 
 ### TermInfo (Unix) pour M1/M1B, 40/80 colonnes
 
