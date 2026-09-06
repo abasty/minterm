@@ -100,4 +100,42 @@ void main() {
       expect(calls, [false, true]);
     });
   });
+
+  group('Passage en Téléinformatique 80 colonnes', () {
+    test('PRO2 31 7D (ESC : 1 }) switches to teleinfo80', () {
+      final minitel = TMinitel();
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+
+      minitel.emulate([0x1b, 0x3a, 0x31, 0x7d]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+    });
+
+    test('CSI ?3 l enters teleinfo80, CSI <3 h returns to videotex40 '
+        '(confirmé sur M2 réel)', () {
+      final minitel = TMinitel();
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+
+      minitel.emulate([0x1b, 0x5b, 0x3f, 0x33, 0x6c]);
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+
+      minitel.emulate([0x1b, 0x5b, 0x3c, 0x33, 0x68]);
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+    });
+
+    test('CSI <3 l and CSI ?3 h have no effect (confirmé sur M2 réel)', () {
+      final minitel = TMinitel();
+
+      // Depuis Videotex, `<3 l` ne fait pas passer en 80 colonnes.
+      minitel.emulate([0x1b, 0x5b, 0x3c, 0x33, 0x6c]);
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+
+      minitel.emulate([0x1b, 0x5b, 0x3f, 0x33, 0x6c]); // -> teleinfo80
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+
+      // Depuis Téléinformatique, `?3 h` ne fait pas revenir en 40 colonnes.
+      minitel.emulate([0x1b, 0x5b, 0x3f, 0x33, 0x68]);
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+    });
+  });
 }

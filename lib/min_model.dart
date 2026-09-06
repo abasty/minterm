@@ -131,14 +131,21 @@ class MinModel extends ChangeNotifier {
   }
 
   TMinitelScreenMode get screenMode => minitel.screenMode;
+  bool get isMixteMode => minitel.isMixteMode;
+  bool get isTeleinformatiqueStandard => minitel.isTeleinformatiqueStandard;
 
   void setScreenMode(TMinitelScreenMode mode) {
     minitel.setScreenMode(mode);
     notifyListeners();
   }
 
-  void toggleScreenMode() {
-    minitel.toggleScreenMode();
+  void enterMixte() {
+    minitel.enterMixte();
+    notifyListeners();
+  }
+
+  void enterTeleinformatique() {
+    minitel.enterTeleinformatique();
     notifyListeners();
   }
 
@@ -827,22 +834,29 @@ class MinModel extends ChangeNotifier {
       endKeyTap = 0;
     }
 
+    // Les touches de fonction Télétel envoient des codes différents en
+    // standard Téléinformatique (STUM 1B) qu'en Videotex/Mixte.
+    final wireKeys = minitel.isTeleinformatiqueStandard
+        ? (TMinitelKey.teleinformatiqueOverrides[keys] ?? keys)
+        : keys;
+
     // Manage other keys
     if (isConnected) {
       // Send key to server
       if (_server is WebSocketChannel) {
-        (_server as WebSocketChannel).sink.add(keys);
+        (_server as WebSocketChannel).sink.add(wireKeys);
       } else if (_server is _TextWebSocketConnection) {
-        (_server as _TextWebSocketConnection).sendText(keys);
+        (_server as _TextWebSocketConnection).sendText(wireKeys);
       } else if (_server is Socket) {
-        _server.write(keys);
+        _server.write(wireKeys);
       } else if (_server is SerialConnection) {
-        (_server as SerialConnection).write(Uint8List.fromList(keys.codeUnits));
+        (_server as SerialConnection)
+            .write(Uint8List.fromList(wireKeys.codeUnits));
       }
     }
     if (isEchoed) {
       // Send key to screen
-      emulate(keys.codeUnits);
+      emulate(wireKeys.codeUnits);
     }
   }
 

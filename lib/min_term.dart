@@ -670,12 +670,28 @@ class SetScreenMode extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinModel(),
       builder: (context, _) {
-        final isTeleinfo =
-            MinModel().screenMode == TMinitelScreenMode.teleinfo80;
-        return SwitchListTile(
-          title: const Text('80 cols'),
-          value: isTeleinfo,
-          onChanged: (_) => MinModel().toggleScreenMode(),
+        final String label;
+        final VoidCallback onTap;
+        if (MinModel().screenMode == TMinitelScreenMode.videotex40) {
+          label = 'Videotex';
+          onTap = () => MinModel().enterMixte();
+        } else if (MinModel().isMixteMode) {
+          label = 'Mixte 80';
+          onTap = () => MinModel().enterTeleinformatique();
+        } else {
+          label = 'Téléinfo 80';
+          onTap = () =>
+              MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+        }
+        return ListTile(
+          onTap: onTap,
+          title: Row(
+            children: [
+              const Text('Mode'),
+              Expanded(child: Container()),
+              Text(label),
+            ],
+          ),
         );
       },
     );

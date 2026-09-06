@@ -13,8 +13,24 @@ String readChar(TMinitel minitel, int x, int y) {
 }
 
 void main() {
+  group('TMinitelKey.teleinformatiqueOverrides (STUM 1B §3-3-2-2)', () {
+    test('maps each Videotex/Mixte SEP function key to its ESC O code', () {
+      expect(TMinitelKey.teleinformatiqueOverrides, {
+        TMinitelKey.envoi: '\x1b\x4f\x4d',
+        TMinitelKey.sommaire: '\x1b\x4f\x50',
+        TMinitelKey.annulation: '\x1b\x4f\x51',
+        TMinitelKey.retour: '\x1b\x4f\x52',
+        TMinitelKey.repetition: '\x1b\x4f\x53',
+        TMinitelKey.correction: '\x1b\x4f\x6c',
+        TMinitelKey.guide: '\x1b\x4f\x6d',
+        TMinitelKey.suite: '\x1b\x4f\x6e',
+        TMinitelKey.cxFin: '\x1b\x29\x34\x0d',
+      });
+    });
+  });
+
   group('TMinitel mode switching sequences', () {
-    test('ESC : 2 } switches to Téléinformatique 80 columns', () {
+    test('ESC : 2 } switches to Mixte (80 columns)', () {
       final minitel = TMinitel();
       expect(minitel.screenMode, TMinitelScreenMode.videotex40);
       expect(minitel.columns, 40);
@@ -22,12 +38,13 @@ void main() {
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7D]);
 
       expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+      expect(minitel.isMixteMode, isTrue);
       expect(minitel.columns, 80);
     });
 
-    test('ESC : 2 ~ switches back to Videotex 40 columns', () {
+    test('ESC : 2 ~ switches back to Videotex 40 columns (depuis Mixte)', () {
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
+      minitel.enterMixte();
       expect(minitel.columns, 80);
 
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]);
@@ -36,9 +53,9 @@ void main() {
       expect(minitel.columns, 40);
     });
 
-    test('ESC 9 7F switches back to Videotex 40 columns', () {
+    test('ESC 9 7F switches back to Videotex 40 columns (depuis Mixte)', () {
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
+      minitel.enterMixte();
       expect(minitel.columns, 80);
 
       minitel.emulate([0x1B, 0x39, 0x7F]);
@@ -47,11 +64,61 @@ void main() {
       expect(minitel.columns, 40);
     });
 
+    test(
+        'ESC 9 7F has no effect in standard Téléinformatique (Protocole '
+        'gelé, STUM 1B)', () {
+      final minitel = TMinitel();
+      minitel.enterTeleinformatique();
+      expect(minitel.isTeleinformatiqueStandard, isTrue);
+      expect(minitel.columns, 80);
+
+      minitel.emulate([0x1B, 0x39, 0x7F]);
+
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+      expect(minitel.isTeleinformatiqueStandard, isTrue);
+    });
+
+    test('entering standard Téléinformatique does not touch local echo '
+        '(géré au niveau connexion par MinModel.connect()/end(), pas ici)',
+        () {
+      final minitel = TMinitel();
+      expect(minitel.isEchoed, isTrue);
+
+      minitel.enterTeleinformatique();
+
+      // TMinitel n'a pas la notion de connecté/local : c'est MinModel qui
+      // coupe l'écho à la connexion et le rétablit à la déconnexion, quel
+      // que soit le mode — voir min_model.dart connect()/end().
+      expect(minitel.isEchoed, isTrue);
+    });
+
+    test('CSI 12 h/l (SM12/RM12) toggles local echo, no private marker', () {
+      final minitel = TMinitel();
+      minitel.enterTeleinformatique();
+      expect(minitel.isEchoed, isTrue);
+
+      minitel.emulate('\x1b[12h'.codeUnits);
+      expect(minitel.isEchoed, isFalse);
+
+      minitel.emulate('\x1b[12l'.codeUnits);
+      expect(minitel.isEchoed, isTrue);
+    });
+
+    test('CSI ? { switches back to Videotex from Téléinformatique', () {
+      final minitel = TMinitel();
+      minitel.enterTeleinformatique();
+
+      minitel.emulate('\x1b[?{'.codeUnits);
+
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+      expect(minitel.reply, [0x13, 0x5E]); // Acquittement SEP 0x5E
+    });
+
     test('switching from 80 to 40 columns turns the cursor off', () {
       // Comportement du vrai Minitel : repasser en mode 40 colonnes
       // (Videotex) éteint le curseur, même s'il était allumé en 80 colonnes.
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
+      minitel.enterMixte();
       expect(minitel.cursorOn, isTrue);
 
       minitel.emulate([0x1B, 0x3A, 0x32, 0x7E]);
@@ -82,7 +149,7 @@ void main() {
 
     test('switching from 80 to 40 columns resets keyboard to majuscules', () {
       final minitel = TMinitel();
-      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
+      minitel.enterMixte();
       minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
       expect(minitel.keyboardLowercase, isTrue);
 
@@ -91,9 +158,70 @@ void main() {
       expect(minitel.screenMode, TMinitelScreenMode.videotex40);
       expect(minitel.keyboardLowercase, isFalse);
     });
+
+    test(
+        'SEP p/q (0x13 0x70 / 0x13 0x71) switch Videotex<->Mixte directly '
+        '(bug réel constaté sur capture SonyTel RTC : le serveur envoie '
+        'SEP p sans PRO2 32 7D, et le terminal restait bloqué en 40 '
+        'colonnes)', () {
+      final minitel = TMinitel();
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+
+      minitel.emulate([0x13, 0x70]);
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+      expect(minitel.isMixteMode, isTrue);
+
+      minitel.emulate([0x13, 0x71]);
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+    });
+
+    test(
+        'SO (0x0E) received once in Mixte via SEP p does not leave the '
+        'following text mosaic-shifted (capture SonyTel RTC : la liste '
+        'du serveur suit un SO et doit rester en ASCII lisible)', () {
+      final minitel = TMinitel();
+      // Reproduit l'ordre exact de la capture réelle : SEP p (bascule
+      // Mixte) puis SO puis du texte ASCII simple.
+      minitel.emulate([0x13, 0x70]);
+      expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+
+      final line = minitel.state.l;
+      final startColumn = minitel.state.c;
+      minitel.emulate([0x0E, ...'Bruno Mozart'.codeUnits]);
+
+      expect(
+        String.fromCharCodes(
+          List.generate(
+            12,
+            (i) =>
+                minitel.screen[line][startColumn + i].code & ~kIsDirty,
+          ),
+        ),
+        'Bruno Mozart',
+      );
+    });
   });
 
   group('TMinitel Videotex', () {
+    test(
+        'PRO3 aiguillage clavier<->modem OFF/ON drives local echo '
+        '(bug réel constaté sur capture SonyTel : doublement de caractères)',
+        () {
+      final minitel = TMinitel();
+      expect(minitel.isEchoed, isTrue); // valeur par défaut
+
+      // PRO3 60 (') Z Q : aiguillage coupé -> écho local activé (ON).
+      minitel.emulate([0x1B, 0x3B, 0x60, 0x5A, 0x51]);
+      expect(minitel.isEchoed, isTrue);
+
+      // PRO3 61 (a) Z Q : aiguillage rétabli -> écho local coupé (OFF).
+      // C'est cette séquence, envoyée par SonyTel juste avant le contenu
+      // interactif, qui laissait l'écho local activé par erreur (logique
+      // inversée) et provoquait le doublement des caractères tapés.
+      minitel.emulate([0x1B, 0x3B, 0x61, 0x5A, 0x51]);
+      expect(minitel.isEchoed, isFalse);
+    });
+
     test('RS resets attributes and homes cursor', () {
       final minitel = TMinitel();
 
@@ -277,16 +405,17 @@ void main() {
       expect(readLine(minitel, 1, 6), 'ABQCDE');
     });
 
-    test('supports private mode cursor visibility and width', () {
+    test('supports private mode cursor visibility (CSI ?1 h/l)', () {
       expect(minitel.cursorOn, isTrue);
       minitel.emulate('\x1b[?1l'.codeUnits);
       expect(minitel.cursorOn, isFalse);
       minitel.emulate('\x1b[?1h'.codeUnits);
       expect(minitel.cursorOn, isTrue);
+    });
 
+    test('CSI ?3 h has no effect on columns (confirmé sur M2 réel)', () {
+      expect(minitel.columns, 80);
       minitel.emulate('\x1b[?3h'.codeUnits);
-      expect(minitel.columns, 40);
-      minitel.emulate('\x1b[?3l'.codeUnits);
       expect(minitel.columns, 80);
     });
 
@@ -342,7 +471,13 @@ void main() {
       expect(minitel.scrollOn, isTrue);
     });
 
-    test('ESC : i C sets scroll mode (même séquence qu\'en 40 cols)', () {
+    // Les 3 tests suivants utilisent PRO2 (ESC :), qui n'est interprété que
+    // si le Protocole est actif — donc en Mixte, pas en standard
+    // Téléinformatique où il est gelé (STUM 1B). Ils utilisent donc leur
+    // propre instance en mode Mixte plutôt que le `minitel` du groupe.
+    test('ESC : i C sets scroll mode (Mixte, même séquence qu\'en 40 cols)',
+        () {
+      final minitel = TMinitel()..enterMixte();
       minitel.emulate([0x1B, 0x3A, 0x6A, 0x43]); // ESC : j C → page
       expect(minitel.scrollOn, isFalse);
       minitel.emulate([0x1B, 0x3A, 0x69, 0x43]); // ESC : i C → rouleau
@@ -350,8 +485,9 @@ void main() {
     });
 
     test(
-        'ESC : s y sets scroll mode via bitmask (même séquence qu\'en 40 cols)',
-        () {
+        'ESC : s y sets scroll mode via bitmask (Mixte, même séquence '
+        'qu\'en 40 cols)', () {
+      final minitel = TMinitel()..enterMixte();
       minitel.emulate([0x1B, 0x3A, 0x73, 0x00]); // bit 0x02 = 0 → page
       expect(minitel.scrollOn, isFalse);
       minitel.emulate([0x1B, 0x3A, 0x73, 0x02]); // bit 0x02 = 1 → rouleau
@@ -360,13 +496,28 @@ void main() {
 
     test(
         'ESC : i E / ESC : j E toggles keyboard lowercase mode '
-        '(même séquence qu\'en 40 cols)', () {
-      // Le mode téléinformatique configure déjà le clavier en minuscules.
+        '(Mixte, même séquence qu\'en 40 cols)', () {
+      final minitel = TMinitel()..enterMixte();
+      // Passer en Mixte configure déjà le clavier en minuscules.
       expect(minitel.keyboardLowercase, isTrue);
       minitel.emulate([0x1B, 0x3A, 0x6A, 0x45]); // PRO2 STOP MINUSCULES
       expect(minitel.keyboardLowercase, isFalse);
       minitel.emulate([0x1B, 0x3A, 0x69, 0x45]); // PRO2 START MINUSCULES
       expect(minitel.keyboardLowercase, isTrue);
+    });
+
+    test(
+        'ESC : i C (scroll mode) has no effect in standard Téléinformatique '
+        '(Protocole gelé)', () {
+      // Contrairement au test Mixte ci-dessus : ici `minitel` (du groupe)
+      // est en vrai standard Téléinformatique, où PRO2 est ignoré.
+      // clearScreen() met déjà scrollOn=true par défaut en 80 colonnes ;
+      // PRO2 étant gelé, ces séquences ne doivent rien changer à cet état.
+      expect(minitel.scrollOn, isTrue);
+      minitel.emulate([0x1B, 0x3A, 0x6A, 0x43]); // ESC : j C → page (Mixte)
+      expect(minitel.scrollOn, isTrue);
+      minitel.emulate([0x1B, 0x3A, 0x69, 0x43]); // ESC : i C → rouleau (Mixte)
+      expect(minitel.scrollOn, isTrue);
     });
 
     test('scroll-up new line is plain empty (no SGR attrs)', () {

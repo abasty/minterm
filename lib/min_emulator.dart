@@ -24,6 +24,7 @@ const int kStateTeleinfoPro1 = 202;
 const int kStateTeleinfoPro2 = 203;
 const int kStateTeleinfoUs = 204;
 const int kStateTeleinfoUsAt = 205;
+const int kStateTeleinfoSep = 206;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -90,6 +91,22 @@ class TMinitelKey {
   static const delC = '\x1b\x5b\x50';
   static const insCOn = '\x1b[4h';
   static const insCOff = '\x1b[4l';
+
+  // Codes des touches de fonction Télétel en standard Téléinformatique
+  // (STUM 1B §3-3-2-2), différents des codes SEP ci-dessus (Videotex/Mixte).
+  // Les touches d'édition/curseur (flèches, home, ins/del) sont en revanche
+  // identiques dans les deux cas et n'ont pas besoin d'entrée ici.
+  static const Map<String, String> teleinformatiqueOverrides = {
+    envoi: '\x1b\x4f\x4d',
+    sommaire: '\x1b\x4f\x50',
+    annulation: '\x1b\x4f\x51',
+    retour: '\x1b\x4f\x52',
+    repetition: '\x1b\x4f\x53',
+    correction: '\x1b\x4f\x6c',
+    guide: '\x1b\x4f\x6d',
+    suite: '\x1b\x4f\x6e',
+    cxFin: '\x1b\x29\x34\x0d',
+  };
 }
 
 final kEmptyChar = TMinitelChar(kG1Charset, kColorWhite, kIsDirty + $space);
@@ -125,6 +142,10 @@ class TMinitel {
   List<int> currentSequence = [];
   List<int> reply = [];
   TMinitelScreenMode _screenMode = TMinitelScreenMode.videotex40;
+  // Quand _screenMode == teleinfo80, distingue le mode Mixte (standard
+  // Télétel, Protocole PRO1/2/3 actif) du standard Téléinformatique à part
+  // entière (Protocole gelé). Sans effet quand _screenMode == videotex40.
+  bool _isMixte = false;
   int _columns = 40;
   StringBuffer _teleinfoCsiBuffer = StringBuffer();
   // Marqueur intermédiaire CSI : 0=aucun, 0x3F='?' (Téléinformatique), 0x3C='<' (Minitel 80 cols)
@@ -178,12 +199,26 @@ class TMinitel {
 
   int get _dirtyColumn => _columns + 1;
 
+  // Vrai dès que le décodeur/rendu 80 colonnes ISO 6429 est actif, que ce
+  // soit en mode Mixte ou en standard Téléinformatique. Ne préjuge pas de
+  // l'état du Protocole — voir isTeleinformatiqueStandard pour ça.
   bool get isTeleinfoMode => _screenMode == TMinitelScreenMode.teleinfo80;
+
+  // Mode Mixte (standard Télétel) : toujours 80 colonnes, Protocole actif.
+  bool get isMixteMode => _screenMode == TMinitelScreenMode.teleinfo80 && _isMixte;
+
+  // Standard Téléinformatique à part entière (pas Mixte) : Protocole gelé,
+  // PRO1/PRO2/PRO3 ne sont plus interprétés (STUM 1B).
+  bool get isTeleinformatiqueStandard =>
+      _screenMode == TMinitelScreenMode.teleinfo80 && !_isMixte;
 
   bool get insertMode => _insertMode;
 
   void setScreenMode(TMinitelScreenMode mode) {
-    if (_screenMode == mode) return;
+    if (_screenMode == mode) {
+      if (mode == TMinitelScreenMode.videotex40) _isMixte = false;
+      return;
+    }
     _screenMode = mode;
     if (mode == TMinitelScreenMode.videotex40) {
       scrollOn = false;
@@ -191,6 +226,7 @@ class TMinitel {
       // remet le clavier en majuscules seules.
       cursorOn = false;
       keyboardLowercase = false;
+      _isMixte = false;
     } else if (mode == TMinitelScreenMode.teleinfo80) {
       // Passer en mode téléinformatique configure le clavier en minuscules.
       keyboardLowercase = true;
@@ -200,12 +236,22 @@ class TMinitel {
     clearScreen();
   }
 
-  void toggleScreenMode() {
-    setScreenMode(
-      _screenMode == TMinitelScreenMode.videotex40
-          ? TMinitelScreenMode.teleinfo80
-          : TMinitelScreenMode.videotex40,
-    );
+  // PRO2 32 7D (STUM 1B, MIXTE1) : passage Videotex -> Mixte.
+  void enterMixte() {
+    _isMixte = true;
+    setScreenMode(TMinitelScreenMode.teleinfo80);
+  }
+
+  // PRO2 31 7D (STUM 1B, TELINFO) : passage Télétel -> standard
+  // Téléinformatique.
+  void enterTeleinformatique() {
+    _isMixte = false;
+    setScreenMode(TMinitelScreenMode.teleinfo80);
+    // Pas de réinitialisation de l'écho local ici : la règle générale
+    // (écho local coupé dès la connexion, rétabli à la déconnexion — voir
+    // MinModel.connect()/end()) couvre déjà ce cas, quel que soit le mode.
+    // La forcer ici serait redondant en connecté et faux en local (STUM 1B
+    // veut l'écho actif hors connexion, y compris en Téléinformatique).
   }
 
   TMinitelState state = TMinitelState(l: 1, c: 1);
@@ -362,6 +408,15 @@ class TMinitel {
             handleRepeatChar(currentCode);
             break;
           case $sep:
+            // SEP p/q (0x70/0x71) : reçus depuis le réseau, ce sont des
+            // commandes directes de passage Videotex<->Mixte (constaté sur
+            // capture réelle SonyTel RTC), pas seulement l'acquittement que
+            // le terminal renvoie lui-même après un PRO2 32 7D/7E.
+            if (currentCode == 0x70) {
+              enterMixte();
+            } else if (currentCode == 0x71) {
+              setScreenMode(TMinitelScreenMode.videotex40);
+            }
             stateCode = 0;
             break;
           case $us:
@@ -422,12 +477,17 @@ class TMinitel {
             stateCode++;
             break;
           case const (kStatePro3 + 2):
-            // PRO3 / ON/OFF / MODEM / CLAVIER
-            // ECHO OFF: "\x1b\x3b\x60\x5a\x51"
-            // ECHO ON:  "\x1b\x3b\x61\x5a\x51"
+            // PRO3 / ON/OFF / MODEM / CLAVIER : aiguillage clavier<->modem.
+            // Aiguillage coupé -> le clavier n'atteint plus le modem, donc
+            // plus d'écho serveur possible -> écho local nécessaire (ON).
+            // Aiguillage rétabli -> fonctionnement normal, le serveur est
+            // censé échoer -> écho local superflu (OFF). Constaté en
+            // conditions réelles (capture SonyTel) : "\x1b\x3b\x61\x5a\x51"
+            // (aiguillage ON) précède l'entrée dans le service, où l'écho
+            // local doit être coupé pour éviter le doublement de caractères.
             _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x51;
             if (_isPro3StatusEcho) {
-              isEchoed = _isPro3On;
+              isEchoed = !_isPro3On;
             }
             stateCode = 0;
             break;
@@ -473,6 +533,8 @@ class TMinitel {
         _handleTeleinfoUs(code);
       } else if (stateCode == kStateTeleinfoUsAt) {
         _handleTeleinfoUsAt(code);
+      } else if (stateCode == kStateTeleinfoSep) {
+        _handleTeleinfoSep(code);
       } else if (stateCode == kStateTeleinfoEsc) {
         _handleTeleinfoEscape(code);
       } else if (stateCode == kStateTeleinfoCsi) {
@@ -543,8 +605,23 @@ class TMinitel {
       case $us:
         stateCode = kStateTeleinfoUs;
         return;
+      case $sep:
+        // SEP p/q (0x70/0x71) : bascule directe Videotex<->Mixte, y
+        // compris une fois déjà en Mixte (constaté sur capture réelle
+        // SonyTel RTC).
+        stateCode = kStateTeleinfoSep;
+        return;
       default:
         break;
+    }
+    stateCode = 0;
+  }
+
+  void _handleTeleinfoSep(int code) {
+    if (code == 0x70) {
+      enterMixte();
+    } else if (code == 0x71) {
+      setScreenMode(TMinitelScreenMode.videotex40);
     }
     stateCode = 0;
   }
@@ -585,12 +662,15 @@ class TMinitel {
   }
 
   void _handleTeleinfoEscape(int code) {
-    if (code == $pro1) {
+    // Le Protocole (PRO1/PRO2/PRO3) reste actif en mode Mixte, mais est
+    // gelé en standard Téléinformatique (STUM 1B) : ces séquences y sont
+    // filtrées, comme n'importe quelle séquence ISO 2022/6429 non définie.
+    if (_isMixte && code == $pro1) {
       stateCode = kStateTeleinfoPro1;
       return;
     }
 
-    if (code == $pro2) {
+    if (_isMixte && code == $pro2) {
       _teleinfoPro2Prefix = -1;
       stateCode = kStateTeleinfoPro2;
       return;
@@ -643,7 +723,7 @@ class TMinitel {
 
     if (_teleinfoPro2Prefix == 0x32) {
       if (code == 0x7D) {
-        setScreenMode(TMinitelScreenMode.teleinfo80);
+        enterMixte();
       } else if (code == 0x7E) {
         setScreenMode(TMinitelScreenMode.videotex40);
       }
@@ -768,11 +848,10 @@ class TMinitel {
               cursorOn = enable;
               break;
             case 3:
-              setScreenMode(
-                enable
-                    ? TMinitelScreenMode.videotex40
-                    : TMinitelScreenMode.teleinfo80,
-              );
+              // Confirmé sur M2 réel : seul `CSI ?3 l` a un effet (->80
+              // colonnes) ; `CSI ?3 h` ne fait rien (pas de retour au 40
+              // colonnes par ce biais).
+              if (!enable) setScreenMode(TMinitelScreenMode.teleinfo80);
               break;
             case 4:
               scrollOn = !enable;
@@ -791,11 +870,29 @@ class TMinitel {
             case 4: // Mode page (CSI < 4 h) / mode rouleau (CSI < 4 l)
               scrollOn = minitelEnable;
               break;
+            case 3:
+              // Confirmé sur M2 réel : seul `CSI <3 h` a un effet (->40
+              // colonnes) ; `CSI <3 l` ne fait rien (pas de passage au 80
+              // colonnes par ce biais).
+              if (!minitelEnable) setScreenMode(TMinitelScreenMode.videotex40);
+              break;
             default:
               break;
           }
         } else if (params.isNotEmpty && params.first == 4) {
           _insertMode = enable;
+        } else if (params.isNotEmpty && params.first == 12) {
+          // SM12/RM12 (Send/Receive Mode) : CSI 12 h coupe l'écho local,
+          // CSI 12 l le rétablit — sans marqueur privé.
+          isEchoed = !enable;
+        }
+        break;
+      case 0x7B: // CSI ? { : retour au standard Télétel mode Videotex.
+        // Remplace PRO1 RESET en standard Téléinformatique, où le Protocole
+        // est gelé (STUM 1B). Acquittement : SEP 0x5E vers prise et modem.
+        if (_teleinfoCsiIntermediate == 0x3F) {
+          setScreenMode(TMinitelScreenMode.videotex40);
+          reply.addAll([0x13, 0x5E]);
         }
         break;
       default:
@@ -1238,9 +1335,15 @@ class TMinitel {
         speedChanged = true;
         speed = 1200;
       }
-    } else if (x == 0x32) {
+    } else if (x == 0x31) {
+      // PRO2 31 7D (TELINFO) : passage Télétel -> standard Téléinformatique.
       if (y == 0x7D) {
-        setScreenMode(TMinitelScreenMode.teleinfo80);
+        enterTeleinformatique();
+      }
+    } else if (x == 0x32) {
+      // PRO2 32 7D/7E (MIXTE1/MIXTE2) : passage Videotex <-> Mixte.
+      if (y == 0x7D) {
+        enterMixte();
       } else if (y == 0x7E) {
         setScreenMode(TMinitelScreenMode.videotex40);
       }
@@ -1260,11 +1363,14 @@ class TMinitel {
       TMinitelKey.supL.codeUnits: handleSupL,
       TMinitelKey.insL.codeUnits: handleInsL,
       TMinitelKey.delC.codeUnits: handleDelC,
-      [0x1b, 0x5b, 0x3f, 0x33, 0x68]: () {
-        setScreenMode(TMinitelScreenMode.videotex40);
-      },
+      // CSI 3 h/l (40/80 colonnes, mode privé) : confirmé sur M2 réel, seules
+      // ces deux combinaisons ont un effet (chaque marqueur n'a qu'un sens :
+      // `?3 h` et `<3 l` sont sans effet, voir tests_cols.md).
       [0x1b, 0x5b, 0x3f, 0x33, 0x6c]: () {
         setScreenMode(TMinitelScreenMode.teleinfo80);
+      },
+      [0x1b, 0x5b, 0x3c, 0x33, 0x68]: () {
+        setScreenMode(TMinitelScreenMode.videotex40);
       },
       [0x1b, 0x5b, 0x34, 0x68]: () {
         _insertMode = true;
