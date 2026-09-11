@@ -288,3 +288,102 @@ lieu de l'ASCII attendu. Un seul bug racine explique les deux symptômes.
     déjà en 80 colonnes.
 - Tests de régression ajoutés dans `test/min_emulator_teleinfo_test.dart`
   reproduisant l'ordre exact de la capture (`SEP p` puis `SO` puis texte).
+
+## BASTOS : MODE 3 = Téléinformatique 80 colonnes implémenté (session `minwifi-esp01-a1`)
+
+MODE 3 est maintenant un mode de premier rang côté BASTOS (au même titre
+que MODE 0/1/2), plus seulement une cible de script de test ad hoc.
+
+- Entrée `PRO2 31 7D` (test #1) / sortie `CSI ?{` (test #4) — confirmés.
+- Nouveaux champs `current_mode`/`saved_mode` (BASTOS) : MODE 3 mémorise le
+  mode précédent (0/1/2) ; comme le Protocole est gelé en Téléinformatique,
+  tout appel `MODE x` pendant qu'on est en MODE 3 envoie d'abord `CSI ?{`
+  avant de continuer — que `x` soit 3 (retour au mode mémorisé) ou une
+  destination explicite. Évite le piège où un `MODE 1` direct depuis MODE 3
+  ne ferait rien sur le vrai terminal (Protocole gelé) alors que BASTOS
+  penserait avoir réussi.
+- `CODE_SEQUENCE_MAX_SIZE` passé de 32 à 40 (marge pour `CSI ?{` + relance
+  de `MODE_INIT_STRING`).
+- Suite de 272 tests + builds croisés Linux/Windows/ESP32/ESP8266 : verts.
+- Corrigé au passage : mislabeling préexistant dans les manuels BASTOS
+  ("MODE 2 = Téléinformatique" — c'est en fait Mixte, cf. synthèse
+  ci-dessus).
+- MODE 1 (`PRO2 32 7E`) : sémantique **inchangée**, toujours du vrai
+  Videotex (cf. section précédente) — confirmé ne pas avoir été touché par
+  ce travail.
+- Écho à l'entrée : **fait**. `P_TELEINFO_80` (`PRO2 31 7D`) est maintenant
+  immédiatement suivi de `CSI 12 h` (`ESC[12h`) dans une seule séquence
+  combinée à l'entrée de MODE 3. Vérifié octet à octet côté interprète
+  BASTOS : `ESC:1}` puis `ESC[12h`.
+- Écho à la sortie : **volontairement pas touché**. Deux raisons données
+  par `minwifi-esp01-a1` : on ne sait pas si `CSI ?{` restaure l'écho tel
+  que laissé par le PRO3 aiguillage, tel que laissé par `CSI 12 h`, ou un
+  autre défaut — et empiler une deuxième hypothèse non vérifiée par-dessus
+  la première (déjà corrigée une fois côté minterm à tort) serait risqué
+  sans donnée M2 réelle. À noter : `P_LOCAL_ECHO_OFF` fait déjà partie de
+  `MODE_INIT_STRING` pour MODE 1, mais MODE 0/2 n'envoient rien côté écho —
+  donc un retour vers MODE 0/2 depuis MODE 3 est le cas le plus à risque.
+
+**Point ouvert (échangé avec `minwifi-esp01-a1`)** : les bugs d'écho
+corrigés côté minterm (inversion PRO3, `SEP p/q`) concernent uniquement
+minterm-en-tant-que-client connecté à de vrais serveurs Videotex en ligne
+(captures `sonytel*.vdt`) — **minterm n'est pas dans la boucle** des tests
+BASTOS sur M2 réel (câblage direct M2↔BASTOS). Le doublement de caractères
+initialement observé en Téléinformatique (section « Remarques » /
+Séquence 1 ci-dessus) est donc un vrai problème d'écho matériel M2, non
+résolu par les correctifs minterm.
+
+**À tester sur M2 réel (reste ouvert)** : entrer en MODE 3 (écho `CSI 12 h`
+envoyé), taper du texte pour confirmer que le doublement a disparu, puis
+sortir vers MODE 0/1/2 et vérifier l'état de l'écho à l'arrivée — en
+particulier le retour vers MODE 0/2 (aucune commande écho envoyée par ces
+modes). Si l'écho revient dans un mauvais état, corriger soit par un
+`CSI 12 l` juste avant la sortie de MODE 3, soit en s'appuyant sur la
+commande écho déjà envoyée par le mode restauré (MODE 1 seulement, pour
+l'instant).
+
+### Contre-vérification indépendante minterm ↔ BASTOS (5 séquences réelles)
+
+À la demande de `minwifi-esp01-a1` (qui n'a pas d'accès direct à minterm),
+les 5 séquences exactes émises par `bastos-linux-amd64` ont été rejouées
+octet pour octet dans `TMinitel.emulate()` avant toute session M2 réelle,
+pour comparer deux implémentations indépendantes du même modèle à 3 états.
+
+| # | Séquence | Résultat minterm | Attendu BASTOS |
+|---|---|---|---|
+| 1 | `PRO2 32 7D` depuis Videotex | Mixte, 80 col | Mixte, 80 col — ✅ |
+| 2 | `PRO2 31 7D` + `CSI 12h` (un seul envoi) depuis Mixte | Téléinfo, 80 col, écho **off** | idem — ✅ |
+| 3 | `CSI ?{` + `PRO2 32 7D` (retour Mixte) | Mixte, 80 col, écho off (hérité) | Mixte, 80 col — ✅ |
+| 4 | `CSI ?{` + `PRO2 32 7E` (retour MODE 0) | Videotex 40 col, écho off (hérité) | Videotex 40 col — ✅ |
+| 5 | `CSI ?{` + `MODE_INIT_STRING` complet (retour MODE 1) | Videotex 40 col, écho **on** | idem — ✅ |
+
+Les 5 atterrissages concordent avec le suivi d'état interne de BASTOS.
+Bonus : ce test confirme aussi, au niveau protocole (pas juste supputé),
+que ni `CSI ?{` ni `PRO2 32 7D/7E` ne touchent à l'écho — seuls le PRO3
+aiguillage et `CSI 12 h/l` le font. Donc le retour d'écho resté « off »
+aux tests #3/#4 n'est pas un hasard : c'est la conséquence directe et
+inévitable du fait que MODE 0/2 n'envoient rien côté écho. Reste
+néanmoins à confirmer sur le vrai M2 que le matériel suit bien la même
+règle (cf. point ouvert ci-dessus) — ce test ne couvre que le modèle
+protocolaire, pas le firmware M2 lui-même.
+
+**Correction sur le test #5** : le résultat « écho on » a d'abord semblé
+indiquer que la constante BASTOS `P_LOCAL_ECHO_OFF` (`PRO3 60 5A 51`,
+aiguillage Clavier↔Modem coupé) serait mal nommée/inversée. Après examen,
+c'est en fait une **limitation de la modélisation minterm**, pas un bug
+BASTOS : `MODE_INIT_STRING` envoie juste avant (`PRO2 64 53`) une
+restriction des acquittements protocole au module **Prise** (`53` = code
+« ce » de Prise) — preuve que BASTOS est relié par la Prise, pas par le
+Modem interne. Le STUM 1B documente Clavier↔Modem et Clavier↔Prise comme
+deux aiguillages indépendants (mêmes commandes PRO3 60/61, arguments `cr,ce`
+différents) ; couper Clavier↔Modem ne devrait donc rien changer à l'écho
+réel d'une session reliée par la Prise. Mais minterm ne modélise qu'un seul
+drapeau global d'écho, qui ne réagit qu'à la paire d'octets exacte
+Modem(`5A`)+Clavier(`51`) (`kStatePro3+2` dans `lib/min_emulator.dart`) —
+il ne distingue donc pas « aiguillage Modem, pertinent » de « aiguillage
+Modem envoyé mais sans rapport avec la connexion réelle (Prise) ». Le
+résultat « echo on » du test #5 est donc un artefact de cette
+simplification, pas une preuve que `P_LOCAL_ECHO_OFF` inverse l'écho sur
+vrai M2. **Pas de changement recommandé côté BASTOS** sur la base de ce
+signal ; limitation notée côté minterm (pas de suivi d'aiguillage par
+module) pour amélioration future éventuelle, hors périmètre BASTOS.
