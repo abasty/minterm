@@ -973,10 +973,16 @@ nulle prend la valeur implicite.
 | RIS | Réinitialisation totale | `ESC c` | |
 | SM/RM | Curseur on/off (privé) | `CSI ?1 h` / `CSI ?1 l` | M12/M2 |
 | SM2/RM2 | Keyboard Action Mode (KAM) | `CSI 2 h` / `CSI 2 l` | |
-| SM/RM | 40/80 colonnes (privé) | `CSI ?3 h` / `CSI ?3 l` | M12/M2 |
+| SM/RM | 40/80 colonnes (privé) | `CSI ?3 h` / `CSI ?3 l` | M12/M2 (\*) |
 | SM/RM | Mode page / mode rouleau (privé) | `CSI ?4 h` / `CSI ?4 l` | M12/M2 |
 | SM12/RM12 | Send/Receive Mode (SRM) | `CSI 12 h` / `CSI 12 l` | M12/M2 |
 | MC | Media Copy | `CSI i` | |
+
+\* Vérifié sur Minitel 2 réel (voir `../tests_cols.md`) : seuls `CSI ?3 l`
+(→80 colonnes) et `CSI <3 h` (→40 colonnes, marqueur `<` plutôt que `?`)
+ont un effet. `CSI ?3 h` et `CSI <3 l` sont sans effet — les deux marqueurs
+ne sont donc **pas** interchangeables pour cette commande, contrairement à
+ce qu'on pourrait supposer.
 
 ### Attributs graphiques (SGR)
 

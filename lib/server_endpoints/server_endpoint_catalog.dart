@@ -290,6 +290,7 @@ class ServerEndpointCatalog extends ChangeNotifier {
     (name: 'Minipavi', url: 'ws://go.minipavi.fr:8182', check: false),
     (name: 'Hacker', url: 'ws://mntl.joher.com:2018/?echo', check: true),
     (name: 'Galaxy', url: 'ws://galaxy.microtel.fr:50124', check: true),
+    (name: 'telehack', url: 'tcp://telehack.com:23', check: true),
     (name: 'BastOS (localhost:1967)', url: 'tcp://127.0.0.1:1967', check: true),
     (name: 'Zboub', url: 'tcp:abasty-retro.fr:1967', check: true),
   ];
