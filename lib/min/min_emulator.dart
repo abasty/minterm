@@ -17,7 +17,7 @@ const int kStatePro2 = 120;
 const int kStatePro3 = 130;
 const int kStateSequence = 150;
 const int kStateDrcsHeader = 160;
-const int kStateDrcsData   = 161;
+const int kStateDrcsData = 161;
 const int kStateTeleinfoEsc = 200;
 const int kStateTeleinfoCsi = 201;
 const int kStateTeleinfoPro1 = 202;
@@ -73,6 +73,9 @@ class TMinitelKey {
   static const trema = '\x19H';
   static const cedille = '\x19K';
   static const flecheHaut = '\x19\x2d';
+  static const flecheGauche = '\x19\x2c';
+  static const flecheDroite = '\x19\x2e';
+  static const flecheBas = '\x19\x2f';
   static const livre = '\x19\x23';
   // ignore: constant_identifier_names
   static const OE = '\x19\x6a';
@@ -80,6 +83,11 @@ class TMinitelKey {
   static const beta = '\x19\x7b';
   static const paragraph = '\x19\x27';
   static const degree = '\x19\x30';
+  static const plusMoins = '\x19\x31';
+  static const division = '\x19\x38';
+  static const quart = '\x19\x3a';
+  static const demi = '\x19\x3b';
+  static const troisQuarts = '\x19\x3c';
   static const arrowUp = '\x1b[A';
   static const arrowDown = '\x1b[B';
   static const arrowRight = '\x1b[C';
@@ -159,25 +167,25 @@ class TMinitel {
   bool _insertMode = false;
 
   // DRCS download state
-  bool   _drcsLoadingG1   = false;
-  int    _drcsHeaderStep  = 0;
-  int    _drcsCurrentCode = 0;
-  int    _drcsPixelIndex  = 0;
-  final  _drcsPixels      = Uint8List(80);
+  bool _drcsLoadingG1 = false;
+  int _drcsHeaderStep = 0;
+  int _drcsCurrentCode = 0;
+  int _drcsPixelIndex = 0;
+  final _drcsPixels = Uint8List(80);
   // True once the first B1 of the current transfer has opened a form. Any
   // later B1 then closes it (blank if no pixel bytes were received since
   // the previous B1 — STUM2 §2.3.3.2/2.3.3.3) instead of being a no-op.
-  bool   _drcsFormOpen    = false;
+  bool _drcsFormOpen = false;
   void Function(bool isG1, int code, Uint8List pixels80)? onDrcsGlyph;
 
   // Séquence magique non standard PRO2 0x11 : bascule couleur / noir et blanc.
   void Function(bool useColor)? onColorModeChange;
 
   // ESC charset designation state
-  int    _escDesignator   = 0;   // 0x28 = G0, 0x29 = G1
-  int    _escIntermediate = 0;   // 0x20 if intermediate received, else 0
-  bool   _g0IsDrcs        = false;
-  bool   _g1IsDrcs        = false;
+  int _escDesignator = 0; // 0x28 = G0, 0x29 = G1
+  int _escIntermediate = 0; // 0x20 if intermediate received, else 0
+  bool _g0IsDrcs = false;
+  bool _g1IsDrcs = false;
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -205,7 +213,8 @@ class TMinitel {
   bool get isTeleinfoMode => _screenMode == TMinitelScreenMode.teleinfo80;
 
   // Mode Mixte (standard Télétel) : toujours 80 colonnes, Protocole actif.
-  bool get isMixteMode => _screenMode == TMinitelScreenMode.teleinfo80 && _isMixte;
+  bool get isMixteMode =>
+      _screenMode == TMinitelScreenMode.teleinfo80 && _isMixte;
 
   // Standard Téléinformatique à part entière (pas Mixte) : Protocole gelé,
   // PRO1/PRO2/PRO3 ne sont plus interprétés (STUM 1B).
@@ -1231,7 +1240,7 @@ class TMinitel {
       stateCode = $esc + 1;
     } else if (currentCode >= 0x20 && currentCode <= 0x2F) {
       if (currentCode == 0x28 || currentCode == 0x29) {
-        _escDesignator   = currentCode;
+        _escDesignator = currentCode;
         _escIntermediate = 0;
       }
       stateCode = $esc + 2;
@@ -1953,10 +1962,10 @@ class TMinitel {
 
   void _applyCharsetDesignation(int finalByte) {
     if (_escDesignator == 0x28) {
-      if (_escIntermediate == 0    && finalByte == 0x40) _g0IsDrcs = false;
+      if (_escIntermediate == 0 && finalByte == 0x40) _g0IsDrcs = false;
       if (_escIntermediate == 0x20 && finalByte == 0x42) _g0IsDrcs = true;
     } else if (_escDesignator == 0x29) {
-      if (_escIntermediate == 0    && finalByte == 0x63) _g1IsDrcs = false;
+      if (_escIntermediate == 0 && finalByte == 0x63) _g1IsDrcs = false;
       if (_escIntermediate == 0x20 && finalByte == 0x43) _g1IsDrcs = true;
     }
   }
@@ -2041,7 +2050,8 @@ class TMinitel {
 
   void _emitDrcsGlyph() {
     if (_drcsCurrentCode < 0x21 || _drcsCurrentCode > 0x7E) return;
-    onDrcsGlyph?.call(_drcsLoadingG1, _drcsCurrentCode, Uint8List.fromList(_drcsPixels));
+    onDrcsGlyph?.call(
+        _drcsLoadingG1, _drcsCurrentCode, Uint8List.fromList(_drcsPixels));
   }
 }
 

@@ -45,6 +45,60 @@ class MinModel extends ChangeNotifier {
   int endKeyTap = 0;
   int _activeConnectionId = 0;
   bool _checkWebSocketAccept = true;
+  final List<String> _pasteQueue = <String>[];
+  Timer? _pasteTimer;
+  DateTime? _lastPasteDrainAt;
+  double _pasteBytesBudget = 0.0;
+
+  // Correspondance caractère UTF-8 -> séquence clavier Minitel (SS2 + code),
+  // identique à ce qu'un clavier Minitel physique envoie pour ces touches
+  // (voir TMinitelKey et handleSS2AccentedChar/handleSS2SpecialChar).
+  static final Map<String, String> _pasteAccentMap = {
+    'à': '${TMinitelKey.grave}a',
+    'è': '${TMinitelKey.grave}e',
+    'ù': '${TMinitelKey.grave}u',
+    'é': '${TMinitelKey.aigu}e',
+    'â': '${TMinitelKey.circonflexe}a',
+    'ê': '${TMinitelKey.circonflexe}e',
+    'î': '${TMinitelKey.circonflexe}i',
+    'ô': '${TMinitelKey.circonflexe}o',
+    'û': '${TMinitelKey.circonflexe}u',
+    'ä': '${TMinitelKey.trema}a',
+    'ë': '${TMinitelKey.trema}e',
+    'ï': '${TMinitelKey.trema}i',
+    'ö': '${TMinitelKey.trema}o',
+    'ü': '${TMinitelKey.trema}u',
+    'ç': '${TMinitelKey.cedille}c',
+    'Ç': '${TMinitelKey.cedille}C',
+    '£': TMinitelKey.livre,
+    '§': TMinitelKey.paragraph,
+    '°': TMinitelKey.degree,
+    '±': TMinitelKey.plusMoins,
+    '÷': TMinitelKey.division,
+    '¼': TMinitelKey.quart,
+    '½': TMinitelKey.demi,
+    '¾': TMinitelKey.troisQuarts,
+    'Œ': TMinitelKey.OE,
+    'œ': TMinitelKey.oe,
+    'ß': TMinitelKey.beta,
+    '←': TMinitelKey.flecheGauche,
+    '↑': TMinitelKey.flecheHaut,
+    '→': TMinitelKey.flecheDroite,
+    '↓': TMinitelKey.flecheBas,
+  };
+
+  // Ponctuation "typographique" courante (copiée depuis un traitement de
+  // texte ou une page web) sans équivalent Minitel : ramenée à son
+  // équivalent ASCII plutôt que d'être abandonnée silencieusement.
+  static final Map<String, String> _pasteNormalizeMap = {
+    '’': "'",
+    '‘': "'",
+    '“': '"',
+    '”': '"',
+    '–': '-',
+    '—': '-',
+    '…': '...',
+  };
 
   factory MinModel() {
     return _singleton;
@@ -858,6 +912,92 @@ class MinModel extends ChangeNotifier {
     if (isEchoed) {
       // Send key to screen
       emulate(wireKeys.codeUnits);
+    }
+  }
+
+  /// Colle un texte host dans l'émulateur : chaque caractère est traduit en
+  /// la séquence qu'un clavier Minitel physique aurait envoyée (accents via
+  /// SS2, retour à la ligne -> Envoi/Retour chariot) puis injecté via
+  /// [handleKeys], comme si l'utilisateur l'avait tapé. L'envoi est cadencé
+  /// sur le débit courant pour ne pas noyer un serveur Minitel distant.
+  //
+  // TODO: sens inverse (émulateur -> host) : sélection à la souris (Shift +
+  // glissement) façon xterm, avec reconstruction du texte depuis l'écran
+  // (semi-graphique/DRCS -> espace, caractères G2 -> UTF-8). Non implémenté.
+  void pasteText(String text) {
+    final units = _pasteUnitsFromText(text);
+    if (units.isEmpty) return;
+
+    // Vitesse max : comme emulate(), on traite tout de suite plutôt que de
+    // passer par le Timer de cadencement.
+    if (_bps == 0) {
+      for (final unit in units) {
+        handleKeys(unit);
+      }
+      return;
+    }
+
+    _pasteQueue.addAll(units);
+    _startPasteTimer();
+  }
+
+  List<String> _pasteUnitsFromText(String text) {
+    var normalized = text;
+    _pasteNormalizeMap.forEach((from, to) {
+      normalized = normalized.replaceAll(from, to);
+    });
+
+    final isTeleinfo = minitel.screenMode == TMinitelScreenMode.teleinfo80;
+    final units = <String>[];
+    for (final rune in normalized.runes) {
+      if (rune == 0x0D) continue; // \r ignoré, \n porte le saut de ligne
+      if (rune == 0x0A) {
+        units.add(isTeleinfo ? '\r' : TMinitelKey.envoi);
+        continue;
+      }
+      final char = String.fromCharCode(rune);
+      final mapped = _pasteAccentMap[char];
+      if (mapped != null) {
+        units.add(mapped);
+      } else if (rune >= 0x20 && rune <= 0x7E) {
+        units.add(char);
+      }
+      // Sinon : caractère sans équivalent Minitel, ignoré.
+    }
+    return units;
+  }
+
+  void _startPasteTimer() {
+    if (_pasteTimer != null) return;
+    _lastPasteDrainAt = DateTime.now();
+    _pasteTimer = Timer.periodic(_throttleTick, (_) => _drainPasteQueue());
+  }
+
+  void _stopPasteTimer() {
+    _pasteTimer?.cancel();
+    _pasteTimer = null;
+    _lastPasteDrainAt = null;
+    _pasteBytesBudget = 0.0;
+  }
+
+  void _drainPasteQueue() {
+    if (_pasteQueue.isEmpty) {
+      _stopPasteTimer();
+      return;
+    }
+
+    final now = DateTime.now();
+    final elapsedUs = _lastPasteDrainAt == null
+        ? _throttleTick.inMicroseconds
+        : now.difference(_lastPasteDrainAt!).inMicroseconds;
+    _lastPasteDrainAt = now;
+    _pasteBytesBudget += elapsedUs * (_bps / 8.0) / 1000000.0;
+
+    while (_pasteQueue.isNotEmpty &&
+        _pasteBytesBudget >= _pasteQueue.first.length) {
+      final unit = _pasteQueue.removeAt(0);
+      _pasteBytesBudget -= unit.length;
+      handleKeys(unit);
     }
   }
 

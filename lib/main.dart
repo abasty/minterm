@@ -221,6 +221,19 @@ void main(List<String> args) async {
             MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
           break;
+        case LogicalKeyboardKey.keyV:
+          // Coller le presse-papier host dans l'émulateur (Ctrl+V / Cmd+V).
+          if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
+            Clipboard.getData(Clipboard.kTextPlain).then((data) {
+              final text = data?.text;
+              if (text != null && text.isNotEmpty) {
+                MinModel().pasteText(text);
+              }
+            });
+          } else {
+            MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
+          }
+          break;
         default:
           // Other keys
           if (event.character != null) {
