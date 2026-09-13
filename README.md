@@ -8,6 +8,75 @@ Encore un émulateur Minitel ! En Flutter & Dart.
 confronter à un émulateur matériel ou à un vrai Minitel 1B pour valider son
 comportement.
 
+## Description des fichiers
+
+### `lib/`
+
+* `main.dart` — Point d'entrée : initialise préférences/fenêtre et construit le `MaterialApp` racine.
+
+### `lib/min/`
+
+* `min_emulator.dart` — Cœur de l'émulateur : interprète les séquences Vidéotex/Téléinformatique/Protocole et maintient l'état de l'écran.
+* `min_model.dart` — Modèle applicatif (`ChangeNotifier`) : connexions (série/TCP/WebSocket) et flux de données vers/depuis l'émulateur.
+* `min_serial.dart` — Widgets de sélection et de connexion à un port série.
+* `min_term.dart` — Widget principal du terminal : assemble écran, clavier virtuel et barres d'action.
+* `min_widget.dart` — Réglages utilisateur (`MinSettings`) et rendu graphique de l'écran (`CustomPainter`).
+
+### `lib/app_prefs/`
+
+* `app_prefs.dart` — Chargement et sauvegarde automatique des préférences utilisateur (vitesse, couleur, fond, son).
+* `app_prefs_storage_io.dart` — Backend de persistance des préférences sur disque (desktop/mobile).
+* `app_prefs_storage_stub.dart` — Backend de persistance des préférences par défaut (no-op), écarté par les variantes io/web.
+* `app_prefs_storage_web.dart` — Backend de persistance des préférences en `localStorage` (web).
+
+### `lib/capture/`
+
+* `capture_web_storage_stub.dart` — Backend de capture d'écran par défaut (no-op), écarté par la variante web.
+* `capture_web_storage_web.dart` — Sauvegarde/chargement/export/import des captures via `localStorage` et le sélecteur de fichiers du navigateur.
+
+### `lib/serial/`
+
+* `serial_support_api.dart` — Types communs (`SerialPortInfo`, `SerialConnection`) de l'abstraction port série.
+* `serial_support.dart` — Point d'entrée de l'abstraction port série, bascule vers l'implémentation io ou stub.
+* `serial_support_io.dart` — Implémentation du port série via `flutter_libserialport` (desktop).
+* `serial_support_stub.dart` — Implémentation par défaut (port série indisponible), utilisée quand `dart:io` n'est pas disponible (web).
+
+### `lib/server_endpoints/`
+
+* `server_endpoint.dart` — Modèle de données d'un serveur enregistré (nom, adresse, protocole...).
+* `server_endpoint_catalog.dart` — Catalogue (`ChangeNotifier`) des serveurs connus/récents, avec persistance.
+* `server_list_exchange_io.dart` — Import/export du fichier JSON de la liste des serveurs via le système de fichiers (desktop/mobile).
+* `server_list_exchange_stub.dart` — Import/export de la liste des serveurs par défaut (no-op), écarté par les variantes io/web.
+* `server_list_exchange_web.dart` — Import/export du fichier JSON de la liste des serveurs via le navigateur (upload/download).
+* `server_list_storage_io.dart` — Persistance de la liste des serveurs sur disque (desktop/mobile).
+* `server_list_storage_stub.dart` — Persistance de la liste des serveurs par défaut (no-op), écarté par les variantes io/web.
+* `server_list_storage_web.dart` — Persistance de la liste des serveurs en `localStorage` (web).
+* `server_management_page.dart` — Page de gestion (ajout/édition/suppression/import/export) des serveurs enregistrés.
+* `server_menu_section.dart` — Section du menu listant les connexions récentes.
+
+### `lib/window/`
+
+* `window_setup.dart` — Point d'entrée de la gestion de fenêtre, bascule vers l'implémentation io ou web.
+* `window_setup_io.dart` — Gestion de fenêtre desktop (plein écran, titre) via `window_manager`.
+* `window_setup_web.dart` — Gestion du plein écran navigateur et interception d'Échap en web.
+
+### `test/`
+
+* `min_emulator_drcs_test.dart` — Tests du décodage DRCS (caractères redéfinissables) par l'émulateur.
+* `min_emulator_teleinfo_test.dart` — Tests du standard Téléinformatique de l'émulateur.
+* `min_emulator_videotex_test.dart` — Tests du standard Vidéotex de l'émulateur.
+* `min_widget_drcs_test.dart` — Tests d'affichage des glyphes DRCS dans le widget écran.
+* `min_widget_test.dart` — Tests du widget clavier/écran (modes 40/80 colonnes, etc.).
+
+### `tools/`
+
+* `ttf2minterm.py` — Génère `assets/g0g2.png` (jeux G0/G2) depuis la police `Minitel.ttf` (voir [Caractères](#caractères)).
+* `xtel2minterm.py` — Génère `assets/g1.png` (jeu G1 semi-graphique) depuis la police bitmap `g18x10.bdf` de Xtel (voir [Caractères](#caractères)).
+
+### Racine
+
+* `deploy-minterm.sh` — Build l'app web et publie `build/web/` sur la branche `gh-pages` (voir [Déploiement sur GitHub Pages](#déploiement-sur-github-pages)).
+
 ## Build/launch Linux en release
 
 ```

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'app_prefs.dart';
-import 'min_emulator.dart';
-import 'min_model.dart';
-import 'min_term.dart';
-import 'min_widget.dart';
-import 'window_setup.dart' as window_setup;
+import 'app_prefs/app_prefs.dart';
+import 'min/min_emulator.dart';
+import 'min/min_model.dart';
+import 'min/min_term.dart';
+import 'min/min_widget.dart';
+import 'window/window_setup.dart' as window_setup;
 
 bool _hasEditableTextFocus() {
   final focusedContext = FocusManager.instance.primaryFocus?.context;

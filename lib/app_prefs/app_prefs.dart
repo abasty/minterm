@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'app_prefs_storage_stub.dart'
     if (dart.library.html) 'app_prefs_storage_web.dart'
     if (dart.library.io) 'app_prefs_storage_io.dart' as app_prefs_storage;
-import 'min_model.dart';
-import 'min_widget.dart';
+import '../min/min_model.dart';
+import '../min/min_widget.dart';
 
 /// Charge les préférences persistées (Vitesse, Couleur, Fond, Son) et les
 /// applique à [MinModel]/[MinSettings]. À appeler une fois au démarrage,

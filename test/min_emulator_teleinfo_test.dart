@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:minterm/min_emulator.dart';
+import 'package:minterm/min/min_emulator.dart';
 
 String readLine(TMinitel minitel, int y, int width) {
   return String.fromCharCodes(

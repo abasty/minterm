@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:minterm/min_emulator.dart';
+import 'package:minterm/min/min_emulator.dart';
 
 // STUM2 §2.3.5 example: 14 bytes encoding an 8×10 glyph (arrow/pointer shape)
 // Bytes are in 4/0–7/F range (0x40–0x7F), each carrying 6 pixels b5..b0.

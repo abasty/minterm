@@ -7,10 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:minterm/min_model.dart';
 import 'package:provider/provider.dart';
 
 import 'min_emulator.dart';
+import 'min_model.dart';
 
 enum MobileKeyboardLayoutMode {
   bitmap,

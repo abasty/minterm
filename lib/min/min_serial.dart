@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../serial/serial_support.dart';
 import 'min_model.dart';
 import 'min_widget.dart';
-import 'serial_support.dart';
 
 class ConnectionSerial extends StatelessWidget {
   const ConnectionSerial({super.key});

@@ -8,10 +8,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:universal_io/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import 'capture_web_storage_stub.dart'
-    if (dart.library.html) 'capture_web_storage_web.dart' as web_capture;
+import '../capture/capture_web_storage_stub.dart'
+    if (dart.library.html) '../capture/capture_web_storage_web.dart'
+    as web_capture;
+import '../serial/serial_support.dart';
 import 'min_emulator.dart';
-import 'serial_support.dart';
 
 class MinModel extends ChangeNotifier {
   static final MinModel _singleton = MinModel._internal();

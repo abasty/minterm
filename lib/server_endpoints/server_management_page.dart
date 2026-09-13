@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../min_model.dart';
-import '../min_widget.dart';
+import '../min/min_model.dart';
+import '../min/min_widget.dart';
 import 'server_endpoint.dart';
 import 'server_endpoint_catalog.dart';
 import 'server_list_exchange_stub.dart'

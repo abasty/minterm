@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:minterm/min_emulator.dart';
-import 'package:minterm/min_model.dart';
-import 'package:minterm/min_widget.dart';
+import 'package:minterm/min/min_emulator.dart';
+import 'package:minterm/min/min_model.dart';
+import 'package:minterm/min/min_widget.dart';
 
 /*
     drawString(

@@ -2,9 +2,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:minterm/min_emulator.dart';
-import 'package:minterm/min_model.dart';
-import 'package:minterm/min_widget.dart';
+import 'package:minterm/min/min_emulator.dart';
+import 'package:minterm/min/min_model.dart';
+import 'package:minterm/min/min_widget.dart';
 
 // Twelve distinct 8x10 bit patterns, each easy to eyeball, used as DRCS
 // glyphs for char codes 0x21..0x2C ('!' through ',').

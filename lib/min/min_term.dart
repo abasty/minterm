@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../serial/serial_support.dart';
+import '../server_endpoints/server_menu_section.dart';
+import '../window/window_setup.dart' as window_setup;
 import 'min_emulator.dart';
 import 'min_model.dart';
 import 'min_serial.dart';
 import 'min_widget.dart';
-import 'server_endpoints/server_menu_section.dart';
-import 'serial_support.dart';
-import 'window_setup.dart' as window_setup;
 
 class MinTerm extends StatelessWidget {
   const MinTerm({super.key});

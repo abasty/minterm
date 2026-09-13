@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../min_model.dart';
+import '../min/min_model.dart';
 import 'server_endpoint_catalog.dart';
 import 'server_management_page.dart';
 
