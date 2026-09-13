@@ -154,7 +154,7 @@ class MinSettings extends ChangeNotifier {
       for (int col = 0; col < 8; col++) {
         final v = pixels80[row * 8 + col] != 0 ? 0xFF : 0x00;
         final offset = ((gy + row) * 64 + (gx + col)) * 4;
-        buf[offset]     = v;
+        buf[offset] = v;
         buf[offset + 1] = v;
         buf[offset + 2] = v;
         buf[offset + 3] = v;
@@ -635,9 +635,10 @@ class _MinPainter extends CustomPainter {
         ? kColorWhite
         : kAttrInverse + kColorWhite;
     final statusChar = TMinitelChar(0, statusLAttr, statusCode);
-    final statusColumn = minmodel.minitel.columns >= 40
+    // Pas sûr de la position exacte de la lettre en mode 40 et 80
+    final statusColumn = minmodel.minitel.columns > 40
         ? minmodel.minitel.columns - 3
-        : minmodel.minitel.columns;
+        : minmodel.minitel.columns - 2;
     drawChar(
       canvas,
       (statusColumn - 1) * cellWidth,
