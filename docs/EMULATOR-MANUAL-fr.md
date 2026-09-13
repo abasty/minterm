@@ -161,6 +161,16 @@ une majuscule (comme sur un clavier PC classique). En mode Minitel 40
 colonnes, c'est l'inverse (comme sur un vrai Minitel en majuscules seules) :
 une touche seule envoie une majuscule, Shift+touche une minuscule.
 
+### Majuscule / minuscule
+
+Ce mode majuscule/minuscule peut aussi être basculé manuellement à tout
+moment, indépendamment du mode d'écran : l'icône lettre **a**/**A** dans la
+barre d'outils affiche le mode courant et le bascule d'un tap, et l'entrée
+**Clavier** du menu fait de même (elle affiche **Majuscule** ou
+**Minuscule**). Le service connecté peut également commander ce changement
+par une commande protocole, auquel cas l'icône et l'entrée du menu se
+mettent à jour automatiquement pour refléter l'état courant.
+
 ### Touches d'édition avancées
 
 Combinées à **Shift**, les flèches déclenchent les fonctions d'édition ligne
@@ -251,8 +261,8 @@ correspondantes sont alors grisées.
 
 Le menu regroupe l'essentiel des réglages sous forme d'interrupteurs et de
 rangées d'icônes plutôt que de longues listes textuelles : Vitesse, 80 cols,
-Couleur, Fond clair, Son, puis Capture et ses outils. Une icône ✕ en haut du
-menu permet de le refermer.
+Clavier (majuscule/minuscule), Couleur, Fond clair, Son, puis Capture et ses
+outils. Une icône ✕ en haut du menu permet de le refermer.
 
 Tout en bas du menu, l'entrée **Manuel (GitHub)** ouvre ce manuel dans le
 navigateur, à l'adresse

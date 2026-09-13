@@ -182,9 +182,10 @@ changements non commités — pas seulement le dernier commit.
   eux, contrairement à une vraie ligne série) peut faire courir les
   décodages d'image asynchrones et laisser l'atlas de police dans un état
   incohérent (voir `MinSettings.updateDrcsGlyph`)
-* [ ] **Potentiel** — DRCS : un pavé noir isolé subsiste sur un dessin
-  téléchargé par un autre service : Minipavi/6212*DRCS, flamme. À vérifier sur
-  un vrai Minitel.
+* [x] **Potentiel** — DRCS : un pavé noir isolé subsiste sur un dessin
+  téléchargé par un autre service : Minipavi/6212*DRCS, flamme. Même artefact
+  constaté sur ROM M12 : comportement donc conforme, pas un bug de
+  l'émulateur. Merci à **NOP0x00** pour la vérification.
 
 ## TODO
 
