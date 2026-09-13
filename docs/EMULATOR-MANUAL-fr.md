@@ -27,8 +27,9 @@ automatiquement à un service au chargement de la page, par exemple :
 
 ## Sommaire
 
+- [Aperçu de l'interface](#aperçu-de-linterface)
 - [Se connecter à un service](#se-connecter-à-un-service)
-- [Basculer entre les deux modes d'écran](#basculer-entre-les-deux-modes-décran)
+- [Basculer entre les trois modes d'écran](#basculer-entre-les-trois-modes-décran)
 - [Caractères redéfinissables (DRCS)](#caractères-redéfinissables-drcs)
 - [Le clavier](#le-clavier)
 - [Affichage](#affichage)
@@ -37,6 +38,44 @@ automatiquement à un service au chargement de la page, par exemple :
 - [Menu et autres réglages](#menu-et-autres-réglages)
 - [Annexe : table des touches spéciales](#annexe--table-des-touches-spéciales)
 - [Annexe : séquences non standards (héritées de l'émulateur Zigazou)](#annexe--séquences-non-standards-héritées-de-lémulateur-zigazou)
+
+## Aperçu de l'interface
+
+![Interface de Minterm, menu ouvert, avec repères numérotés sur la barre d'outils et le menu](minterm-ui.png)
+
+### Barre d'outils (repères 1 à 5)
+
+| # | Icône | Fonction |
+|---|---|---|
+| 1 | Clavier | Change de mode de clavier virtuel — voir [Clavier virtuel](#clavier-virtuel) |
+| 2 | **A**/**a** | Bascule majuscule/minuscule — voir [Majuscule / minuscule](#majuscule--minuscule) |
+| 3 | ● | Démarre/arrête la capture de la session — voir [Capture et relecture d'une session](#capture-et-relecture-dune-session) |
+| 4 | ▶ | Rejoue la dernière capture enregistrée — voir [Capture et relecture d'une session](#capture-et-relecture-dune-session) |
+| 5 | 🎨 (palette) | Bascule couleur / niveaux de gris — voir [Affichage](#affichage) |
+
+Selon la plateforme, d'autres icônes peuvent apparaître dans la barre d'outils
+et ne sont pas repérées sur cette capture : plein écran sur desktop (voir
+[Plein écran](#plein-écran)) et fond clair/sombre (voir
+[Affichage](#affichage)).
+
+### Menu (repères 6 à 22)
+
+| # | Élément | Fonction |
+|---|---|---|
+| 6 | ✕ | Ferme le menu |
+| 7 | Vitesse | Fait défiler les vitesses simulées — voir [Se connecter à un service](#se-connecter-à-un-service) |
+| 8 | Écran | Fait défiler les trois modes d'écran (Videotex / Mixte 80 / Téléinfo 80) — voir [Basculer entre les trois modes d'écran](#basculer-entre-les-trois-modes-décran) |
+| 9 | Clavier | Bascule majuscule/minuscule — voir [Majuscule / minuscule](#majuscule--minuscule) |
+| 10 | Couleur | Interrupteur couleur / niveaux de gris — voir [Affichage](#affichage) |
+| 11 | Fond clair | Interrupteur fond noir/blanc — voir [Affichage](#affichage) |
+| 12 | Son | Fait défiler les 4 modes sonores — voir [Son](#son) |
+| 13 | Capture | Démarre/arrête l'enregistrement — voir [Capture et relecture d'une session](#capture-et-relecture-dune-session) |
+| 14 | ▶ Rejouer | Rejoue la dernière capture enregistrée |
+| 15 | ⬇ Exporter | Sauvegarde la capture courante sur le disque |
+| 16 | ⬆ Importer | Charge un fichier `.vdt` existant |
+| 17 | ⏻ Effacer l'écran | Efface l'écran et repositionne le curseur, avec signal sonore |
+| 18-21 | Minipavi, Minijeux, BastOS, Services... | Connexions rapides et gestion complète des connexions — voir [Se connecter à un service](#se-connecter-à-un-service) |
+| 22 | Manuel (GitHub) | Ouvre ce manuel dans le navigateur |
 
 ## Se connecter à un service
 
@@ -87,21 +126,29 @@ dispositif connecté demande ensuite un changement de vitesse par commande
 protocole, le port série est reconfiguré automatiquement à la nouvelle
 vitesse.
 
-## Basculer entre les deux modes d'écran
+## Basculer entre les trois modes d'écran
 
-L'interrupteur **80 cols** du menu bascule manuellement entre **Minitel 40**
-(Videotex, interrupteur désactivé — le mode par défaut) et **Téléinformatique
-80 colonnes** (interrupteur activé). Le service auquel vous êtes connecté
-peut aussi demander ce changement automatiquement (séquence protocole),
-l'émulateur suit alors la demande et l'interrupteur reflète l'état courant.
+L'entrée **Écran** du menu fait défiler manuellement trois modes à chaque
+tap :
 
-Passer en 80 colonnes configure le clavier en minuscules par défaut (comme
-sur un Minitel 1B) ; repasser en 40 colonnes remet le clavier en majuscules
-seules et éteint le curseur, comme sur un Minitel classique.
+- **Videotex** (40 colonnes) — le mode Minitel classique, mode par défaut.
+- **Mixte 80** (80 colonnes) — standard Télétel : le Protocole (PRO1/PRO2/PRO3)
+  reste actif.
+- **Téléinfo 80** (80 colonnes) — standard Téléinformatique (STUM 1B) à part
+  entière : le Protocole est gelé, PRO1/PRO2/PRO3 ne sont plus interprétés.
 
-> ⚠️ Le mode 80 colonnes est expérimental : son comportement n'a pas encore été
-> confronté à un émulateur matériel ou à un vrai Minitel 1B. Des écarts sont
-> possibles ; n'hésitez pas à signaler tout comportement suspect.
+Le service auquel vous êtes connecté peut aussi demander ces changements
+automatiquement (séquences protocole), l'émulateur suit alors la demande et
+l'entrée du menu reflète l'état courant.
+
+Passer en 80 colonnes (Mixte ou Téléinfo) configure le clavier en minuscules
+par défaut (comme sur un Minitel 1B) ; repasser en Videotex 40 colonnes remet
+le clavier en majuscules seules et éteint le curseur, comme sur un Minitel
+classique.
+
+> ⚠️ Les modes 80 colonnes sont expérimentaux : leur comportement n'a pas
+> encore été confronté à un émulateur matériel ou à un vrai Minitel 1B. Des
+> écarts sont possibles ; n'hésitez pas à signaler tout comportement suspect.
 
 ## Caractères redéfinissables (DRCS)
 
