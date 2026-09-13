@@ -166,10 +166,18 @@ changements non commités — pas seulement le dernier commit.
 * [x] **Série : Ajouter configuration par défaut (1200)**
 * [x] **Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max**
 * [x] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
-* [ ] DRCS : certains dessins téléchargés s'affichent en carrés noirs — à
-  fixer en comparant avec la séquence Vidéotex telle que téléchargée par le
-  service 6212\*DRCS et le rendu obtenu sur une autre implémentation
-  (émulateur hardware ou JS)
+* [x] DRCS : certains dessins téléchargés s'affichaient en carrés noirs —
+  la dernière forme d'un téléchargement était perdue quand le service
+  terminait par un US (repositionnement curseur, cas normal selon STUM2
+  §2.3.3.3 « Sortie du téléchargement ») au lieu d'un B1 explicite. `US`
+  étant un code C0, il était routé directement vers le gestionnaire de
+  commandes curseur avant même que `_handleDrcsData` ne puisse clore et
+  émettre la forme en cours, qui restait donc non définie dans l'atlas DRCS
+  (repli sur le glyphe G1 standard correspondant — un pavé plein pour les
+  codes concernés). Reproduit et corrigé grâce à `test/drcs/pacman.drc`.
+  Corrigé dans `TMinitel._flushOpenDrcsForm`, appelée depuis `emulate()`
+  avant de dispatcher `US` pendant un téléchargement DRCS. Merci à
+  **MiniBix** pour les glyphes de son incontournable **PAC-MAN**.
 * [x] DRCS : mauvais décodage de l'index des formes téléchargées — un B1
   (`0x30`) reçu sans octet de pixel depuis le B1 précédent était silencieusement
   ignoré au lieu de clore la forme courante (vide) et d'avancer au code suivant

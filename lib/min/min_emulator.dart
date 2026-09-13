@@ -399,6 +399,16 @@ class TMinitel {
       final isPro2MagicArg = stateCode == kStatePro2 &&
           (currentCode == 0x10 || currentCode == 0x11);
       if (currentCode < $space && !isPro2MagicArg) {
+        // STUM2 §2.3.3.3 "Sortie du téléchargement" : recevoir US pendant
+        // le téléchargement DRCS termine la séquence, mais la forme en
+        // cours doit d'abord être complétée (par du fond d'écran) et émise
+        // — elle ne doit pas être perdue. US est routé vers fadr[] comme
+        // n'importe quel C0 (il enclenche le positionnement curseur), donc
+        // sans ce flush explicite la dernière forme téléchargée avant un
+        // US disparaît silencieusement.
+        if (stateCode == kStateDrcsData && currentCode == $us) {
+          _flushOpenDrcsForm();
+        }
         fadr[currentCode]();
       } else if (stateCode == 0) {
         handleChar();
@@ -2016,6 +2026,16 @@ class TMinitel {
           _drcsPixels[_drcsPixelIndex++] = (bits >> b) & 1;
         }
       }
+    }
+  }
+
+  // STUM2 §2.3.3.3 : la forme en cours de téléchargement (même incomplète,
+  // les pixels manquants restant à 0 = fond d'écran) doit être émise
+  // lorsqu'on quitte le téléchargement, pas seulement lorsqu'un B1 la clôt.
+  void _flushOpenDrcsForm() {
+    if (_drcsFormOpen) {
+      _emitDrcsGlyph();
+      _drcsFormOpen = false;
     }
   }
 

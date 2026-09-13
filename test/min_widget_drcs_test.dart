@@ -205,6 +205,139 @@ List<int> _buildDrcsGlyphData(int startCharCode, List<List<int>> glyphs) {
 
 void main() {
   testWidgets(
+      'Standard G1: codes 0x40-0x5F mirror 0x60-0x7F pixel-for-pixel '
+      '(always true, unlike DRCS G\'1 below)', (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      final settings = MinSettings();
+      while (!settings.isLoaded) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      const atlasWidth = 64;
+      final byteData =
+          await settings.fontG1.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final pixels = byteData!.buffer.asUint8List();
+
+      bool cellsMatch(int codeA, int codeB) {
+        final gxA = (codeA ~/ 16) * 8, gyA = (codeA % 16) * 10;
+        final gxB = (codeB ~/ 16) * 8, gyB = (codeB % 16) * 10;
+        for (int row = 0; row < 10; row++) {
+          for (int col = 0; col < 8; col++) {
+            final offA = ((gyA + row) * atlasWidth + (gxA + col)) * 4;
+            final offB = ((gyB + row) * atlasWidth + (gxB + col)) * 4;
+            if (pixels[offA] != pixels[offB]) return false;
+          }
+        }
+        return true;
+      }
+
+      for (int code = 0x40; code <= 0x5F; code++) {
+        expect(
+          cellsMatch(code, code + 0x20),
+          isTrue,
+          reason: 'code=0x${code.toRadixString(16)} should be pixel-'
+              'identical to 0x${(code + 0x20).toRadixString(16)} in the '
+              'standard G1 charset',
+        );
+      }
+    });
+  });
+
+  testWidgets(
+      "DRCS G'1: codes 0x40-0x5F are independent from 0x60-0x7F — a "
+      'downloaded glyph is not mirrored like standard G1 above',
+      (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      final settings = MinSettings();
+      while (!settings.isLoaded) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      final minitel = MinModel().minitel;
+      minitel.setScreenMode(TMinitelScreenMode.videotex40);
+      minitel.clearScreen();
+
+      const atlasWidth = 64;
+      const lowCode = 0x41; // in the 0x40-0x5F range
+      const highCode = 0x61; // its mirror partner in standard G1
+
+      const lowPattern = [
+        '########',
+        '........',
+        '########',
+        '........',
+        '########',
+        '........',
+        '########',
+        '........',
+        '########',
+        '........',
+      ]; // horizontal stripes
+      const highPattern = [
+        '#.#.#.#.',
+        '.#.#.#.#',
+        '#.#.#.#.',
+        '.#.#.#.#',
+        '#.#.#.#.',
+        '.#.#.#.#',
+        '#.#.#.#.',
+        '.#.#.#.#',
+        '#.#.#.#.',
+        '.#.#.#.#',
+      ]; // checkerboard
+
+      bool glyphLanded(Uint8List pixels, int code, List<String> rows) {
+        final gx = (code ~/ 16) * 8;
+        final gy = (code % 16) * 10;
+        for (int row = 0; row < 10; row++) {
+          for (int col = 0; col < 8; col++) {
+            final expectedOn = rows[row][col] == '#';
+            final offset = ((gy + row) * atlasWidth + (gx + col)) * 4;
+            if ((pixels[offset] != 0) != expectedOn) return false;
+          }
+        }
+        return true;
+      }
+
+      minitel.emulate(_buildDrcsHeader(g1: true));
+      for (final entry in {lowCode: lowPattern, highCode: highPattern}
+          .entries) {
+        minitel.emulate(_buildDrcsGlyphData(
+          entry.key,
+          [_encodeGlyphBytes(_rowsToPixels(entry.value))],
+        ));
+        for (var attempt = 0; attempt < 100; attempt++) {
+          final byteData = await settings.fontG1p
+              .toByteData(format: ui.ImageByteFormat.rawRgba);
+          if (glyphLanded(byteData!.buffer.asUint8List(), entry.key,
+              entry.value)) {
+            break;
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+      }
+
+      final byteData =
+          await settings.fontG1p.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final pixels = byteData!.buffer.asUint8List();
+
+      expect(
+        glyphLanded(pixels, lowCode, lowPattern),
+        isTrue,
+        reason: '0x${lowCode.toRadixString(16)} must show its own '
+            'downloaded pattern',
+      );
+      expect(
+        glyphLanded(pixels, highCode, highPattern),
+        isTrue,
+        reason: '0x${highCode.toRadixString(16)} must show its own '
+            'downloaded pattern, not mirrored from '
+            '0x${lowCode.toRadixString(16)} (unlike standard G1)',
+      );
+    });
+  });
+
+  testWidgets(
       'DRCS: a dozen G\'0 glyphs are displayed exactly as downloaded',
       (WidgetTester tester) async {
     await tester.runAsync(() async {

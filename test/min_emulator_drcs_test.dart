@@ -128,6 +128,84 @@ void main() {
       expect(events, [(0x21, true), (0x22, false)]);
     });
 
+    test(
+        'US ending the download flushes the form in progress instead of '
+        'dropping it (STUM2 §2.3.3.3 "Sortie du téléchargement")', () {
+      final minitel = TMinitel();
+      final codes = <int>[];
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        codes.add(code);
+      };
+
+      // One complete 14-byte glyph, immediately followed by US (no closing
+      // B1) — the exact shape of a real-world capture (test/drcs/pacman.drc)
+      // where the service ends the download on US to reposition the
+      // cursor, relying on the last downloaded form still being applied.
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        0x1F, 0x23, 0x21,
+        0x30, ..._exampleGlyphBytes,
+        0x1F, 0x41, 0x41, // US row col : ends the download
+      ]);
+
+      expect(codes, [0x21],
+          reason: 'the complete form must be emitted on US, not dropped');
+    });
+
+    test(
+        'replays test/drcs/pacman.drc: real-world capture whose last glyph '
+        'is only closed by US, not by B1', () {
+      // Regression test for the pacman-eater ghost sprite (STUM2 §2.3.3.3):
+      // this real capture downloads 25 G\'1 glyphs (0x41-0x59) but never
+      // sends a closing B1 for the last one (0x59) — the download is
+      // terminated by "US 0x41 0x41" (a cursor-position command) instead.
+      // Before the fix, US was dispatched straight to the C0 handler table
+      // (it doubles as ESC-position-cursor), abandoning the pending form
+      // without emitting it, so the real Minitel ghost glyph never reached
+      // the DRCS atlas and the cell fell back to the plain G1 shape for
+      // that code instead.
+      final bytes = File('test/drcs/pacman.drc').readAsBytesSync();
+      final minitel = TMinitel();
+      final events = <(int code, Uint8List pixels)>[];
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        events.add((code, pixels80));
+      };
+
+      minitel.emulate(bytes.toList());
+
+      expect(events.length, 25);
+      expect(events.map((e) => e.$1), List.generate(25, (i) => 0x41 + i));
+
+      // Last glyph (0x59), decoded from the real capture bytes
+      // `4f 47 7b 5b 7f 7f 7f 7f 7f 7f 7e 65 49 40`: the ghost sprite that
+      // must land in the DRCS atlas instead of being silently dropped.
+      const expectedRows = [
+        '..####..',
+        '.######.',
+        '##.##.##',
+        '########',
+        '########',
+        '########',
+        '########',
+        '########',
+        '#.#..#.#',
+        '..#..#..',
+      ];
+      final lastPixels = events.last.$2;
+      for (int row = 0; row < 10; row++) {
+        for (int col = 0; col < 8; col++) {
+          final expected = expectedRows[row][col] == '#' ? 1 : 0;
+          expect(
+            lastPixels[row * 8 + col],
+            expected,
+            reason: 'row=$row col=$col',
+          );
+        }
+      }
+    });
+
     test('replays test/drcs/soko.drc: real-world capture with blank forms',
         () {
       // Regression test for a real download that interleaves blank forms
@@ -146,11 +224,15 @@ void main() {
 
       minitel.emulate(bytes.toList());
 
-      expect(events.length, 32);
+      // The capture's last B1 opens a 33rd form immediately closed by the
+      // US that ends the download, with no pixel bytes in between: per
+      // STUM2 §2.3.3.3 that is a legitimate blank form and must be emitted
+      // (previously silently dropped before the US-flush fix above).
+      expect(events.length, 33);
       expect(events.first.$1, 0x21);
-      expect(events.last.$1, 0x40);
+      expect(events.last.$1, 0x41);
 
-      const blankCodes = {0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b};
+      const blankCodes = {0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b, 0x41};
       for (final (code, blank) in events) {
         expect(
           blank,
