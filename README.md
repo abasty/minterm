@@ -168,16 +168,9 @@ changements non commités — pas seulement le dernier commit.
 * [x] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)
 * [x] DRCS : certains dessins téléchargés s'affichaient en carrés noirs —
   la dernière forme d'un téléchargement était perdue quand le service
-  terminait par un US (repositionnement curseur, cas normal selon STUM2
-  §2.3.3.3 « Sortie du téléchargement ») au lieu d'un B1 explicite. `US`
-  étant un code C0, il était routé directement vers le gestionnaire de
-  commandes curseur avant même que `_handleDrcsData` ne puisse clore et
-  émettre la forme en cours, qui restait donc non définie dans l'atlas DRCS
-  (repli sur le glyphe G1 standard correspondant — un pavé plein pour les
-  codes concernés). Reproduit et corrigé grâce à `test/drcs/pacman.drc`.
-  Corrigé dans `TMinitel._flushOpenDrcsForm`, appelée depuis `emulate()`
-  avant de dispatcher `US` pendant un téléchargement DRCS. Merci à
-  **MiniBix** pour les glyphes de son incontournable **PAC-MAN**.
+  terminait par un US au lieu d'un B1 (STUM2 §2.3.3.3). Corrigé dans
+  `TMinitel._flushOpenDrcsForm`. Merci à **MiniBix** pour les glyphes de
+  son incontournable **PAC-MAN**.
 * [x] DRCS : mauvais décodage de l'index des formes téléchargées — un B1
   (`0x30`) reçu sans octet de pixel depuis le B1 précédent était silencieusement
   ignoré au lieu de clore la forme courante (vide) et d'avancer au code suivant
@@ -189,6 +182,9 @@ changements non commités — pas seulement le dernier commit.
   eux, contrairement à une vraie ligne série) peut faire courir les
   décodages d'image asynchrones et laisser l'atlas de police dans un état
   incohérent (voir `MinSettings.updateDrcsGlyph`)
+* [ ] **Potentiel** — DRCS : un pavé noir isolé subsiste sur un dessin
+  téléchargé par un autre service : Minipavi/6212*DRCS, flamme. À vérifier sur
+  un vrai Minitel.
 
 ## TODO
 

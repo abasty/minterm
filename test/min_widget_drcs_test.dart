@@ -218,18 +218,44 @@ void main() {
           await settings.fontG1.toByteData(format: ui.ImageByteFormat.rawRgba);
       final pixels = byteData!.buffer.asUint8List();
 
+      // The atlas is a monochrome bitmap: RGB is always (0,0,0) and the
+      // actual glyph shape lives entirely in the alpha channel (drawChar
+      // uses the image as a mask via BlendMode.srcIn) — comparing channel 0
+      // would trivially "match" every pair regardless of the real shapes.
       bool cellsMatch(int codeA, int codeB) {
         final gxA = (codeA ~/ 16) * 8, gyA = (codeA % 16) * 10;
         final gxB = (codeB ~/ 16) * 8, gyB = (codeB % 16) * 10;
         for (int row = 0; row < 10; row++) {
           for (int col = 0; col < 8; col++) {
-            final offA = ((gyA + row) * atlasWidth + (gxA + col)) * 4;
-            final offB = ((gyB + row) * atlasWidth + (gxB + col)) * 4;
+            final offA = ((gyA + row) * atlasWidth + (gxA + col)) * 4 + 3;
+            final offB = ((gyB + row) * atlasWidth + (gxB + col)) * 4 + 3;
             if (pixels[offA] != pixels[offB]) return false;
           }
         }
         return true;
       }
+
+      // Guard against a vacuous pass (e.g. comparing on the wrong channel,
+      // or an all-blank atlas): at least one of the 32 mirrored codes must
+      // have a genuinely non-empty glyph.
+      bool hasInk(int code) {
+        final gx = (code ~/ 16) * 8, gy = (code % 16) * 10;
+        for (int row = 0; row < 10; row++) {
+          for (int col = 0; col < 8; col++) {
+            if (pixels[((gy + row) * atlasWidth + (gx + col)) * 4 + 3] != 0) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      expect(
+        [for (int code = 0x40; code <= 0x5F; code++) code].any(hasInk),
+        isTrue,
+        reason: 'sanity check: at least one glyph in 0x40-0x5F must be '
+            'non-blank, otherwise the mirroring check below is vacuous',
+      );
 
       for (int code = 0x40; code <= 0x5F; code++) {
         expect(
