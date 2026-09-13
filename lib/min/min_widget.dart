@@ -710,10 +710,10 @@ class _MinPainter extends CustomPainter {
         ? kColorWhite
         : kAttrInverse + kColorWhite;
     final statusChar = TMinitelChar(0, statusLAttr, statusCode);
-    // Pas sûr de la position exacte de la lettre en mode 40 et 80
+    // Mode 40 colonnes : lettre en colonne 39. Mode 80 colonnes : colonne 77.
     final statusColumn = minmodel.minitel.columns > 40
         ? minmodel.minitel.columns - 3
-        : minmodel.minitel.columns - 2;
+        : minmodel.minitel.columns - 1;
     drawChar(
       canvas,
       (statusColumn - 1) * cellWidth,
