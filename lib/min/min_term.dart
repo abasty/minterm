@@ -40,6 +40,7 @@ class MinTerm extends StatelessWidget {
                 ),
                 SetBps(),
                 SetScreenMode(),
+                SetKeyboardCase(),
                 SetColors(),
                 SetBackground(),
                 const SetSoundMode(),
@@ -74,6 +75,7 @@ class MinTerm extends StatelessWidget {
                 const _PointerOnlyFocus(child: MobileKeyboardButton()),
               if (!_isMobileDevice)
                 const _PointerOnlyFocus(child: DesktopKeyboardLayoutButton()),
+              const _PointerOnlyFocus(child: KeyboardCaseIndicator()),
               const _PointerOnlyFocus(child: BackgroundButton()),
               _PointerOnlyFocus(child: CaptureButton()),
               const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
@@ -313,6 +315,27 @@ class DesktopKeyboardLayoutButton extends StatelessWidget {
               : 'Utiliser le clavier image',
           icon: Icon(imageMode ? Icons.keyboard_hide : Icons.keyboard),
           onPressed: () => MinSettings.toggleDesktopImageKeyboard(),
+        );
+      },
+    );
+  }
+}
+
+class KeyboardCaseIndicator extends StatelessWidget {
+  const KeyboardCaseIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final lowercase = MinModel().minitel.keyboardLowercase;
+        return Tooltip(
+          message: lowercase ? 'Clavier : minuscule' : 'Clavier : majuscule',
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: MinGlyphIcon(lowercase ? 0x61 : 0x41),
+          ),
         );
       },
     );
@@ -687,9 +710,32 @@ class SetScreenMode extends StatelessWidget {
           onTap: onTap,
           title: Row(
             children: [
-              const Text('Mode'),
+              const Text('Écran'),
               Expanded(child: Container()),
               Text(label),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SetKeyboardCase extends StatelessWidget {
+  const SetKeyboardCase({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final lowercase = MinModel().minitel.keyboardLowercase;
+        return ListTile(
+          title: Row(
+            children: [
+              const Text('Clavier'),
+              Expanded(child: Container()),
+              Text(lowercase ? 'Minuscule' : 'Majuscule'),
             ],
           ),
         );

@@ -535,6 +535,81 @@ class _KeyboardWithReplayOverlay extends StatelessWidget {
   }
 }
 
+/// Affiche un caractère du jeu G0/G2 du Minitel (même police que l'écran),
+/// utile pour réutiliser un glyphe existant (ex. 'A'/'a') comme icône.
+class MinGlyphIcon extends StatelessWidget {
+  final int code;
+  final double size;
+  final Color? color;
+
+  const MinGlyphIcon(this.code, {super.key, this.size = 24, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        if (!MinSettings().isLoaded) {
+          return SizedBox(width: size, height: size);
+        }
+        final glyphColor =
+            color ?? IconTheme.of(context).color ?? const Color(0xFFFFFFFF);
+        return SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+            painter: _MinGlyphPainter(MinSettings().fontG0G2, code, glyphColor),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MinGlyphPainter extends CustomPainter {
+  final ui.Image font;
+  final int code;
+  final Color color;
+
+  _MinGlyphPainter(this.font, this.code, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final charRect = Rect.fromLTWH(
+        8 * (code ~/ 16).toDouble(), 10 * (code % 16).toDouble(), 8, 10);
+
+    // Échelle entière : un facteur fractionnaire fait échantillonner deux
+    // fois certaines lignes/colonnes source en filtrage "nearest" (doublons
+    // visibles), contrairement à l'écran principal qui aligne toujours sur
+    // la grille de pixels physiques.
+    final scale = math.max(1, math.min(size.width / 8.0, size.height / 10.0))
+        .floorToDouble();
+    final w = 8.0 * scale;
+    final h = 10.0 * scale;
+    final dst = Rect.fromLTWH(
+        ((size.width - w) / 2).roundToDouble(),
+        ((size.height - h) / 2).roundToDouble(),
+        w,
+        h);
+
+    canvas.drawImageRect(
+      font,
+      charRect,
+      dst,
+      Paint()
+        ..filterQuality = FilterQuality.none
+        ..colorFilter = ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MinGlyphPainter oldDelegate) {
+    return oldDelegate.font != font ||
+        oldDelegate.code != code ||
+        oldDelegate.color != color;
+  }
+}
+
 class _MinPainter extends CustomPainter {
   final MinModel minmodel;
 
