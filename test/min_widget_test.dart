@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
 import 'package:minterm/min/min_model.dart';
+import 'package:minterm/min/min_term.dart';
 import 'package:minterm/min/min_widget.dart';
 
 /*
@@ -180,5 +181,40 @@ void main() {
     expect(find.text('Envoi'), findsOneWidget);
     expect(find.text('Esc'), findsOneWidget);
     expect(find.text('Entrée'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Tapping the keyboard case menu entry sends the PRO2 MINUSCULES '
+      'sequence and updates the label', (WidgetTester tester) async {
+    MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+    // Vitesse max : emulate() traite la séquence de façon synchrone, sans
+    // quoi le débit throttlé retarderait le changement d'état via un Timer
+    // basé sur l'horloge réelle.
+    MinModel().bps = 0;
+    expect(MinModel().minitel.keyboardLowercase, isFalse);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SetKeyboardCase(),
+        ),
+      ),
+    );
+
+    expect(find.text('Majuscule'), findsOneWidget);
+    expect(find.text('Minuscule'), findsNothing);
+
+    await tester.tap(find.byType(ListTile));
+    await tester.pump();
+
+    expect(MinModel().minitel.keyboardLowercase, isTrue);
+    expect(find.text('Minuscule'), findsOneWidget);
+    expect(find.text('Majuscule'), findsNothing);
+
+    await tester.tap(find.byType(ListTile));
+    await tester.pump();
+
+    expect(MinModel().minitel.keyboardLowercase, isFalse);
+    expect(find.text('Majuscule'), findsOneWidget);
   });
 }

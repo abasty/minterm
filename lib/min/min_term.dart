@@ -330,12 +330,12 @@ class KeyboardCaseIndicator extends StatelessWidget {
       listenable: MinModel(),
       builder: (context, _) {
         final lowercase = MinModel().minitel.keyboardLowercase;
-        return Tooltip(
-          message: lowercase ? 'Clavier : minuscule' : 'Clavier : majuscule',
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: MinGlyphIcon(lowercase ? 0x61 : 0x41),
-          ),
+        return IconButton(
+          tooltip: lowercase
+              ? 'Clavier : minuscule (basculer en majuscule)'
+              : 'Clavier : majuscule (basculer en minuscule)',
+          icon: MinGlyphIcon(lowercase ? 0x61 : 0x41),
+          onPressed: () => _sendKeyboardCaseSequence(!lowercase),
         );
       },
     );
@@ -721,6 +721,14 @@ class SetScreenMode extends StatelessWidget {
   }
 }
 
+// PRO2 START/STOP MINUSCULES (STUM 1B) : bascule le clavier entre émission
+// minuscule/majuscule et majuscule seule (par défaut). On envoie la séquence
+// à l'émulateur plutôt que de modifier son état directement, pour que le
+// changement passe par le même chemin que s'il venait du service distant.
+void _sendKeyboardCaseSequence(bool switchToLowercase) {
+  MinModel().emulate([0x1B, 0x3A, switchToLowercase ? 0x69 : 0x6A, 0x45]);
+}
+
 class SetKeyboardCase extends StatelessWidget {
   const SetKeyboardCase({super.key});
 
@@ -731,6 +739,7 @@ class SetKeyboardCase extends StatelessWidget {
       builder: (context, _) {
         final lowercase = MinModel().minitel.keyboardLowercase;
         return ListTile(
+          onTap: () => _sendKeyboardCaseSequence(!lowercase),
           title: Row(
             children: [
               const Text('Clavier'),
