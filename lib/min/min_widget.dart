@@ -74,6 +74,8 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG1;
   static late ui.Image _fontG0p;
   static late ui.Image _fontG1p;
+  static late final ui.Image _fontG0American;
+  static late final ui.Image _fontG0French;
   Uint8List? _pixelsG0p;
   Uint8List? _pixelsG1p;
   static const durationMax = 400;
@@ -127,6 +129,21 @@ class MinSettings extends ChangeNotifier {
         notifyListeners();
       });
     });
+
+    // G0 en standard Télétel mode Mixte et standard Téléinformatique
+    // (STUM2 §3.1/§3.2) : Américain et Français, chacun associable à G0 ou
+    // G1 (sans objet en Videotex, qui garde toujours fontG0G2).
+    loadUiImage('assets/g0_american.png').then((image) {
+      _fontG0American = image;
+      _loaded++;
+      notifyListeners();
+    });
+
+    loadUiImage('assets/g0_french.png').then((image) {
+      _fontG0French = image;
+      _loaded++;
+      notifyListeners();
+    });
   }
   List<Color> get colors => _colors;
 
@@ -142,6 +159,10 @@ class MinSettings extends ChangeNotifier {
   ui.Image get fontG0p => _fontG0p;
 
   ui.Image get fontG1p => _fontG1p;
+
+  ui.Image get fontG0American => _fontG0American;
+
+  ui.Image get fontG0French => _fontG0French;
 
   // pixels80: 80 values (0=off, 1=on), row-major 8×10, matching DRCS download order.
   // Font grid stride is 64 px (8 cols × 8 px). charRect formula: x=(c~/16)*8, y=(c%16)*10.
@@ -171,7 +192,7 @@ class MinSettings extends ChangeNotifier {
     });
   }
 
-  bool get isLoaded => _loaded == 4;
+  bool get isLoaded => _loaded == 6;
 
   bool get keyboard => _keyboard;
 
@@ -804,13 +825,23 @@ class _MinPainter extends CustomPainter {
 
     // Draw the character in the foreground color
     final bool isDrcs = (char.lAttr & kDRCSCharset) != 0;
-    final ui.Image font = isDrcs
-        ? ((char.gAttr & kCharsetMask) != kG1Charset
-            ? MinSettings().fontG0p
-            : MinSettings().fontG1p)
-        : ((char.gAttr & kCharsetMask) != kG1Charset
-            ? MinSettings().fontG0G2
-            : MinSettings().fontG1);
+    final bool isG1 = (char.gAttr & kCharsetMask) == kG1Charset;
+    final ui.Image font;
+    if (isDrcs) {
+      font = isG1 ? MinSettings().fontG1p : MinSettings().fontG0p;
+    } else if (minmodel.minitel.isTeleinfoMode) {
+      // Standard Télétel mode Mixte / standard Téléinformatique (STUM2
+      // §3.1/§3.2) : G0 et G1 sont chacun un jeu alphanumérique (Américain
+      // ou Français) — jamais le jeu semi-graphique Videotex, qui n'existe
+      // pas dans ces standards. Le slot (G0/G1) importe peu ici, seul le
+      // jeu qui y était associé au moment où le caractère a été posé
+      // compte (voir _putCharTeleinfo).
+      font = (char.gAttr & kCharsetFrench) != 0
+          ? MinSettings().fontG0French
+          : MinSettings().fontG0American;
+    } else {
+      font = isG1 ? MinSettings().fontG1 : MinSettings().fontG0G2;
+    }
     canvas.drawImageRect(
       font,
       charRect,

@@ -25,6 +25,7 @@ const int kStateTeleinfoPro2 = 203;
 const int kStateTeleinfoUs = 204;
 const int kStateTeleinfoUsAt = 205;
 const int kStateTeleinfoSep = 206;
+const int kStateTeleinfoCharset = 207;
 
 const int kAttrDisjointed = kAttrUnderline;
 const int kAttrDoubleHeight = 0x20;
@@ -53,6 +54,10 @@ const int kG1Charset = 0x10;
 const int kDRCSCharset = 0x100;
 
 const int kG2Charset = 0x20;
+// gAttr : jeu de base concret associé au caractère en standard Télétel mode
+// Mixte ou standard Téléinformatique (STUM2 §3.2.2). Absent = Américain.
+// Sans objet en Videotex, où le jeu G0 est figé.
+const int kCharsetFrench = 0x1000;
 // Char code redraw flag
 const int kIsDirty = 0x80;
 const int kSizeMask = 0x60;
@@ -153,6 +158,10 @@ class TMinitel {
   int _teleinfoPro2Prefix = -1;
   int _teleinfoSavedRow = 1;
   int _teleinfoSavedColumn = 1;
+  bool _teleinfoContextSaved = false;
+  bool _teleinfoSavedG0French = false;
+  bool _teleinfoSavedG1French = true;
+  int _teleinfoSavedCharset = kG0Charset;
   int _teleinfoLine0ReturnRow = 1;
   int _teleinfoLine0ReturnColumn = 1;
   // Mode insertion caractère (ESC[4h/l), partagé Videotex 40 cols et Téléinformatique 80 cols.
@@ -178,6 +187,15 @@ class TMinitel {
   int    _escIntermediate = 0;   // 0x20 if intermediate received, else 0
   bool   _g0IsDrcs        = false;
   bool   _g1IsDrcs        = false;
+
+  // Association des jeux de base en standard Télétel mode Mixte et standard
+  // Téléinformatique (STUM2 §3.2.2) : Américain ou Français dans chacun des
+  // slots G0/G1. DRCS n'existe pas dans ces standards (STUM2 §2.3 : réservé
+  // au standard Télétel mode Vidéotex), donc pas de pendant à _g0IsDrcs ici.
+  // Défauts (STUM2 §3.2.2/§4) : Américain->G0, Français->G1.
+  bool   g0French              = false;
+  bool   g1French              = true;
+  int    _teleinfoCharsetDesignator = 0; // 0x28 = G0, 0x29 = G1
 
   bool get isEchoed => _isEchoed;
   set isEchoed(bool value) {
@@ -230,6 +248,11 @@ class TMinitel {
     } else if (mode == TMinitelScreenMode.teleinfo80) {
       // Passer en mode téléinformatique configure le clavier en minuscules.
       keyboardLowercase = true;
+      // Défauts STUM2 §3.2.2/§4 : Américain->G0, Français->G1, G0 invoqué.
+      g0French = false;
+      g1French = true;
+      state.charset = kG0Charset;
+      _teleinfoContextSaved = false;
     }
     _columns = mode == TMinitelScreenMode.teleinfo80 ? 80 : 40;
     _initScreen();
@@ -547,6 +570,8 @@ class TMinitel {
         _handleTeleinfoSep(code);
       } else if (stateCode == kStateTeleinfoEsc) {
         _handleTeleinfoEscape(code);
+      } else if (stateCode == kStateTeleinfoCharset) {
+        _handleTeleinfoCharset(code);
       } else if (stateCode == kStateTeleinfoCsi) {
         _handleTeleinfoCsi(code);
       } else if (code == $esc) {
@@ -636,6 +661,33 @@ class TMinitel {
     stateCode = 0;
   }
 
+  // ESC 2/8 X ou ESC 2/9 X (STUM2 §3.2.2) : association d'un jeu de base à
+  // G0 (désignateur 0x28) ou G1 (0x29). Seuls Américain et Français sont
+  // implémentés ; Complémentaire (0x33) et DEC (0x30) sont ignorés
+  // silencieusement, comme toute séquence non définie (STUM2 §3.2.4.7).
+  void _handleTeleinfoCharset(int code) {
+    final isG0 = _teleinfoCharsetDesignator == 0x28;
+    switch (code) {
+      case 0x42: // Américain
+        if (isG0) {
+          g0French = false;
+        } else {
+          g1French = false;
+        }
+        break;
+      case 0x52: // Français
+        if (isG0) {
+          g0French = true;
+        } else {
+          g1French = true;
+        }
+        break;
+      default:
+        break;
+    }
+    stateCode = 0;
+  }
+
   void _handleTeleinfoUs(int code) {
     if (code == 0x40) {
       stateCode = kStateTeleinfoUsAt;
@@ -693,13 +745,39 @@ class TMinitel {
       return;
     }
 
+    if (code == 0x28 || code == 0x29) {
+      // ESC 2/8 X ou ESC 2/9 X : association d'un jeu de base à G0 ou G1
+      // (STUM2 §3.2.2). Pas d'octet intermédiaire ici, contrairement à la
+      // désignation DRCS (ESC 2/8 SP 4/2) qui n'existe pas dans ces
+      // standards (STUM2 §2.3 : DRCS réservé au standard Vidéotex).
+      _teleinfoCharsetDesignator = code;
+      stateCode = kStateTeleinfoCharset;
+      return;
+    }
+
     switch (code) {
-      case 0x37: // DECSC
+      case 0x37: // DECSC — étendu au contexte STUM2 §4 (associations G0/G1
+        // et jeu courant), en plus de la position curseur déjà gérée ici.
         _teleinfoSavedRow = state.l;
         _teleinfoSavedColumn = state.c;
+        _teleinfoSavedG0French = g0French;
+        _teleinfoSavedG1French = g1French;
+        _teleinfoSavedCharset = state.charset;
+        _teleinfoContextSaved = true;
         break;
-      case 0x38: // DECRC
+      case 0x38: // DECRC — si aucun ESC 3/7 préalable, restitue la
+        // configuration par défaut (STUM2 §4) plutôt que le contexte
+        // sauvegardé.
         _setCursorClamped(_teleinfoSavedRow, _teleinfoSavedColumn);
+        if (_teleinfoContextSaved) {
+          g0French = _teleinfoSavedG0French;
+          g1French = _teleinfoSavedG1French;
+          state.charset = _teleinfoSavedCharset;
+        } else {
+          g0French = false;
+          g1French = true;
+          state.charset = kG0Charset;
+        }
         break;
       case 0x44: // IND
         _teleinfoLineFeed();
@@ -1074,7 +1152,13 @@ class TMinitel {
     final c = state.c;
     final char = screen[l][c];
     char.code = code;
-    char.gAttr = state.bgColor | state.underlined;
+    // state.charset (G0/G1, invoqué par SI/SO) fixe QUEL slot est actif ;
+    // g0French/g1French fixe QUEL jeu (Américain/Français) y est associé
+    // (STUM2 §3.2). Les deux sont figés sur le caractère au moment où il
+    // est posé, pour un rendu correct même si l'association change ensuite.
+    final isFrench = state.charset == kG1Charset ? g1French : g0French;
+    char.gAttr = state.bgColor | state.underlined | state.charset |
+        (isFrench ? kCharsetFrench : 0);
     char.lAttr = state.fgColor | state.blink | state.inverse;
     markCharAsDirty(l, c);
   }

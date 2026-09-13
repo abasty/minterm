@@ -28,7 +28,7 @@ automatiquement à un service au chargement de la page, par exemple :
 ## Sommaire
 
 - [Se connecter à un service](#se-connecter-à-un-service)
-- [Basculer entre les deux modes d'écran](#basculer-entre-les-deux-modes-décran)
+- [Basculer entre les modes d'écran](#basculer-entre-les-modes-décran)
 - [Caractères redéfinissables (DRCS)](#caractères-redéfinissables-drcs)
 - [Le clavier](#le-clavier)
 - [Affichage](#affichage)
@@ -87,13 +87,24 @@ dispositif connecté demande ensuite un changement de vitesse par commande
 protocole, le port série est reconfiguré automatiquement à la nouvelle
 vitesse.
 
-## Basculer entre les deux modes d'écran
+## Basculer entre les modes d'écran
 
-L'interrupteur **80 cols** du menu bascule manuellement entre **Minitel 40**
-(Videotex, interrupteur désactivé — le mode par défaut) et **Téléinformatique
-80 colonnes** (interrupteur activé). Le service auquel vous êtes connecté
-peut aussi demander ce changement automatiquement (séquence protocole),
-l'émulateur suit alors la demande et l'interrupteur reflète l'état courant.
+L'option **Écran** du menu fait défiler manuellement 5 états : **Videotex**
+(40 colonnes, le mode par défaut), **Mixte 80 (Américain)**, **Mixte 80
+(Français)**, **Téléinfo 80 (Américain)** et **Téléinfo 80 (Français)**. Le
+service auquel vous êtes connecté peut aussi demander ces changements
+automatiquement (séquences protocole), l'émulateur suit alors la demande et
+le libellé reflète l'état courant.
+
+**Américain** et **Français** désignent le jeu de caractères de base utilisé
+en 80 colonnes (Mixte et Téléinformatique) : quelques caractères diffèrent
+entre les deux — par exemple les accolades `{`/`}` ou le tilde `~`, propres
+au jeu Américain. Sans objet en Videotex 40 colonnes, dont le jeu de
+caractères est fixe.
+
+> ⚠️ Le jeu Français n'est pour l'instant qu'une copie du jeu Américain, en
+> attendant de retrouver la table exacte du Minitel 1B. Les caractères
+> concernés seront corrigés dans une prochaine mise à jour.
 
 Passer en 80 colonnes configure le clavier en minuscules par défaut (comme
 sur un Minitel 1B) ; repasser en 40 colonnes remet le clavier en majuscules
@@ -110,11 +121,10 @@ Certains services Minitel téléchargent leurs propres jeux de caractères
 Minterm reçoit et affiche automatiquement ces caractères redéfinissables
 (DRCS) dès leur téléchargement par le service — aucune action n'est requise.
 
-> ⚠️ Support récent, encore expérimental : certains dessins téléchargés
-> peuvent s'afficher sous forme de carrés noirs. Ce bug reste à corriger, en
-> comparant la séquence Vidéotex telle que téléchargée par le service
-> 6212\*DRCS avec le rendu obtenu sur une autre implémentation (émulateur
-> hardware ou JS).
+> ⚠️ Support récent, encore expérimental. Un pavé noir isolé a été repéré sur
+> un dessin téléchargé par un service — probablement une particularité du
+> service plutôt qu'un bug de l'émulateur (voir le README, section Bugs),
+> mais pas encore confirmé sur du matériel réel.
 
 ## Le clavier
 

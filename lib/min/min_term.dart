@@ -659,6 +659,14 @@ class ColorsButton extends StatelessWidget {
   }
 }
 
+// ESC 2/8 4/2 (Américain) ou ESC 2/8 5/2 (Français) : association du jeu de
+// base à G0 en standard Télétel mode Mixte / standard Téléinformatique
+// (STUM2 §3.2.2). Envoyée à l'émulateur plutôt que de modifier son état
+// directement, pour le même motif que les autres options de ce menu.
+void _sendG0CharsetSequence(bool french) {
+  MinModel().emulate([0x1B, 0x28, french ? 0x52 : 0x42]);
+}
+
 class SetScreenMode extends StatelessWidget {
   const SetScreenMode({super.key});
 
@@ -671,14 +679,30 @@ class SetScreenMode extends StatelessWidget {
         final VoidCallback onTap;
         if (MinModel().screenMode == TMinitelScreenMode.videotex40) {
           label = 'Videotex';
-          onTap = () => MinModel().enterMixte();
+          onTap = () {
+            MinModel().enterMixte();
+            _sendG0CharsetSequence(false);
+          };
         } else if (MinModel().isMixteMode) {
-          label = 'Mixte 80';
-          onTap = () => MinModel().enterTeleinformatique();
+          if (!MinModel().isG0French) {
+            label = 'Mixte 80-us';
+            onTap = () => _sendG0CharsetSequence(true);
+          } else {
+            label = 'Mixte 80-fr';
+            onTap = () {
+              MinModel().enterTeleinformatique();
+              _sendG0CharsetSequence(false);
+            };
+          }
         } else {
-          label = 'Téléinfo 80';
-          onTap = () =>
-              MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+          if (!MinModel().isG0French) {
+            label = 'Téléinfo 80-us';
+            onTap = () => _sendG0CharsetSequence(true);
+          } else {
+            label = 'Téléinfo 80-fr';
+            onTap =
+                () => MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+          }
         }
         return ListTile(
           onTap: onTap,

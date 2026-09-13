@@ -705,4 +705,110 @@ void main() {
       expect(minitel.state.c, 1);
     });
   });
+
+  group('Charset (jeu Américain/Français) en Mixte et Téléinformatique '
+      '(STUM2 §3.1/§3.2)', () {
+    late TMinitel minitel;
+
+    setUp(() {
+      minitel = TMinitel();
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
+    });
+
+    test('defaults: Américain associé à G0, Français à G1, G0 invoqué', () {
+      expect(minitel.g0French, isFalse);
+      expect(minitel.g1French, isTrue);
+      expect(minitel.state.charset, kG0Charset);
+    });
+
+    test('ESC 2/8 5/2 puis ESC 2/8 4/2 basculent le jeu associé à G0', () {
+      minitel.emulate([0x1B, 0x28, 0x52]);
+      expect(minitel.g0French, isTrue);
+      expect(minitel.g1French, isTrue, reason: 'G1 non affecté');
+
+      minitel.emulate([0x1B, 0x28, 0x42]);
+      expect(minitel.g0French, isFalse);
+    });
+
+    test('ESC 2/9 4/2 puis ESC 2/9 5/2 basculent le jeu associé à G1', () {
+      minitel.emulate([0x1B, 0x29, 0x42]);
+      expect(minitel.g1French, isFalse);
+      expect(minitel.g0French, isFalse, reason: 'G0 non affecté');
+
+      minitel.emulate([0x1B, 0x29, 0x52]);
+      expect(minitel.g1French, isTrue);
+    });
+
+    test('DEC (0x30) et Complémentaire (0x33) sont ignorés sans plantage '
+        '(non implémentés — STUM2 §2.3 : DRCS/jeux spéciaux hors scope 80 '
+        'colonnes)', () {
+      minitel.emulate([0x1B, 0x28, 0x30]);
+      expect(minitel.g0French, isFalse);
+      minitel.emulate([0x1B, 0x28, 0x33]);
+      expect(minitel.g0French, isFalse);
+    });
+
+    test(
+        'le caractère posé porte le jeu concret (G0/G1 + Américain/Français) '
+        'au moment où il est écrit, pas l\'état courant', () {
+      // G0 = Américain (défaut), pose un 'A'.
+      minitel.emulate('A'.codeUnits);
+      final firstAttr = minitel.screen[1][1].gAttr;
+      expect(firstAttr & kCharsetMask, kG0Charset);
+      expect(firstAttr & kCharsetFrench, 0);
+
+      // Bascule G0 en Français puis pose un 'B' : doit porter le nouveau
+      // jeu, sans changer l'attribut déjà posé sur 'A'.
+      minitel.emulate([0x1B, 0x28, 0x52]);
+      minitel.emulate('B'.codeUnits);
+      final secondAttr = minitel.screen[1][2].gAttr;
+      expect(secondAttr & kCharsetMask, kG0Charset);
+      expect(secondAttr & kCharsetFrench, isNot(0));
+      expect(minitel.screen[1][1].gAttr, firstAttr,
+          reason: 'le caractère déjà posé ne doit pas changer rétroactivement');
+
+      // SO (0x0E) invoque G1 (Français par défaut) : pose un 'C'.
+      minitel.emulate([0x0E]);
+      minitel.emulate('C'.codeUnits);
+      final thirdAttr = minitel.screen[1][3].gAttr;
+      expect(thirdAttr & kCharsetMask, kG1Charset);
+      expect(thirdAttr & kCharsetFrench, isNot(0));
+    });
+
+    test('ESC 3/7 puis ESC 3/8 restaure les associations G0/G1 sauvegardées',
+        () {
+      minitel.emulate([0x1B, 0x28, 0x52]); // G0 -> Français
+      minitel.emulate([0x1B, 0x37]); // save
+      minitel.emulate([0x1B, 0x28, 0x42]); // G0 -> Américain (après le save)
+      expect(minitel.g0French, isFalse);
+
+      minitel.emulate([0x1B, 0x38]); // restore
+      expect(minitel.g0French, isTrue,
+          reason: 'doit revenir à l\'état sauvegardé par ESC 3/7');
+    });
+
+    test('ESC 3/8 sans ESC 3/7 préalable applique la configuration par '
+        'défaut (STUM2 §4)', () {
+      minitel.emulate([0x1B, 0x28, 0x52]); // G0 -> Français
+      minitel.emulate([0x0E]); // SO : invoque G1
+
+      minitel.emulate([0x1B, 0x38]); // restore sans save préalable
+
+      expect(minitel.g0French, isFalse);
+      expect(minitel.g1French, isTrue);
+      expect(minitel.state.charset, kG0Charset);
+    });
+
+    test('ré-entrer en Mixte/Téléinformatique réinitialise les associations '
+        'aux défauts', () {
+      minitel.emulate([0x1B, 0x28, 0x52]);
+      expect(minitel.g0French, isTrue);
+
+      minitel.setScreenMode(TMinitelScreenMode.videotex40);
+      minitel.setScreenMode(TMinitelScreenMode.teleinfo80);
+
+      expect(minitel.g0French, isFalse);
+      expect(minitel.g1French, isTrue);
+    });
+  });
 }

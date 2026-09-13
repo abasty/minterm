@@ -134,6 +134,9 @@ class MinModel extends ChangeNotifier {
   TMinitelScreenMode get screenMode => minitel.screenMode;
   bool get isMixteMode => minitel.isMixteMode;
   bool get isTeleinformatiqueStandard => minitel.isTeleinformatiqueStandard;
+  // Jeu associé à G0 en standard Télétel mode Mixte / Téléinformatique
+  // (STUM2 §3.2.2) — sans objet en Videotex.
+  bool get isG0French => minitel.g0French;
 
   void setScreenMode(TMinitelScreenMode mode) {
     minitel.setScreenMode(mode);
