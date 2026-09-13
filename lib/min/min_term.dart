@@ -76,7 +76,6 @@ class MinTerm extends StatelessWidget {
               if (!_isMobileDevice)
                 const _PointerOnlyFocus(child: DesktopKeyboardLayoutButton()),
               const _PointerOnlyFocus(child: KeyboardCaseIndicator()),
-              const _PointerOnlyFocus(child: BackgroundButton()),
               _PointerOnlyFocus(child: CaptureButton()),
               const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
               const _PointerOnlyFocus(child: ColorsButton()),
@@ -336,31 +335,6 @@ class KeyboardCaseIndicator extends StatelessWidget {
               : 'Clavier : majuscule (basculer en minuscule)',
           icon: MinGlyphIcon(lowercase ? 0x61 : 0x41),
           onPressed: () => _sendKeyboardCaseSequence(!lowercase),
-        );
-      },
-    );
-  }
-}
-
-class BackgroundButton extends StatelessWidget {
-  const BackgroundButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: MinSettings(),
-      builder: (context, _) {
-        final background = MinSettings().appBackgroundColor;
-        final isDark = background.computeLuminance() < 0.5;
-        return IconButton(
-          tooltip: isDark ? 'Fond blanc' : 'Fond noir',
-          icon: Icon(
-            isDark ? Icons.brightness_2 : Icons.wb_sunny,
-            color: isDark ? Colors.white : Colors.black,
-          ),
-          onPressed: () {
-            MinSettings().toggleAppBackgroundColor();
-          },
         );
       },
     );
