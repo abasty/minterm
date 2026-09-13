@@ -1327,8 +1327,8 @@ class MinMinitelKeyboard extends StatelessWidget {
 
   static const _row2 = [
     ['Esc', '\x1b'],
-    ['Suite', TMinitelKey.suite],
     ['Retour', TMinitelKey.retour],
+    ['Suite', TMinitelKey.suite],
     ['Espace', ' '],
     ['↑', TMinitelKey.arrowUp],
     ['↓', TMinitelKey.arrowDown],
