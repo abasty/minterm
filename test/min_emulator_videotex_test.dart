@@ -15,6 +15,17 @@ String readChar(TMinitel minitel, int x, int y) {
 // US 0x1F suivi de (0x40+ligne, 0x40+colonne) : positionnement curseur Minitel.
 List<int> cursorTo(int line, int column) => [0x1F, 0x40 + line, 0x40 + column];
 
+// En vrai usage, le widget efface le bit kIsDirty au rendu, avant qu'un tap
+// ne soit possible (voir min_widget.dart). getChar/getStringAlphaNum ne le
+// masquent pas eux-mêmes, donc on simule ce rendu dans les tests.
+void clearDirty(TMinitel minitel) {
+  for (int line = 0; line <= minitel.lastLine; line++) {
+    for (int column = 0; column <= minitel.lastColumn + 1; column++) {
+      minitel.screen[line][column].code &= ~kIsDirty;
+    }
+  }
+}
+
 void main() {
   group('TMinitel Videotex 40 cols character insert mode', () {
     late TMinitel minitel;
@@ -136,6 +147,48 @@ void main() {
       // Depuis Téléinformatique, `?3 h` ne fait pas revenir en 40 colonnes.
       minitel.emulate([0x1b, 0x5b, 0x3f, 0x33, 0x68]);
       expect(minitel.screenMode, TMinitelScreenMode.teleinfo80);
+    });
+  });
+
+  group('resolveMainCell / getStringAlphaNum sur caractères double taille',
+      () {
+    test('double hauteur : les cases du haut résolvent vers la case du bas',
+        () {
+      final minitel = TMinitel();
+      minitel.emulate(cursorTo(2, 5));
+      minitel.emulate('\x1bM'.codeUnits); // ESC M : double hauteur
+      minitel.emulate('A'.codeUnits);
+      clearDirty(minitel);
+
+      // Case principale (bas) : ligne 2, colonne 5 -> x=4 (0-indexé).
+      expect(minitel.isDoublePart(4, 2), isFalse);
+      expect(minitel.getChar(4, 2), 'A');
+
+      // Copie visuelle (haut) : ligne 1, même colonne.
+      expect(minitel.isDoublePart(4, 1), isTrue);
+      expect(minitel.resolveMainCell(4, 1), (4, 2));
+
+      // Un tap sur la copie du haut doit retrouver le mot en entier.
+      expect(minitel.getStringAlphaNum(4, 1).toUpperCase(), 'A');
+    });
+
+    test(
+        'double hauteur/largeur : la copie en haut à droite résolve vers la '
+        'case principale (bas gauche)', () {
+      final minitel = TMinitel();
+      minitel.emulate(cursorTo(2, 5));
+      minitel.emulate('\x1bO'.codeUnits); // ESC O : double hauteur+largeur
+      minitel.emulate('A'.codeUnits);
+      clearDirty(minitel);
+
+      // Copie visuelle haut-droite : ligne 1, colonne 6 -> x=5.
+      expect(minitel.isDoublePart(5, 1), isTrue);
+      expect(minitel.resolveMainCell(5, 1), (4, 2));
+      expect(minitel.getStringAlphaNum(5, 1).toUpperCase(), 'A');
+
+      // Copie visuelle bas-droite fonctionnait déjà avant le correctif.
+      expect(minitel.isDoublePart(5, 2), isTrue);
+      expect(minitel.getStringAlphaNum(5, 2).toUpperCase(), 'A');
     });
   });
 }

@@ -163,6 +163,16 @@ changements non commités — pas seulement le dernier commit.
 
 ## Bugs
 
+
+* [ ] Caractères double hauteur sur ligne 1 : on ne doit pas reporter en ligne
+  0, la ligne 0 est autonomme, en aucun cas elle ne doit être impactée par ce
+  qui se passe en zone Videotex (ligne 1 à 24).
+* [x] Un tap sur un caractère en double hauteur ne marchait que sur la case du
+  bas (celle qui contient réellement le caractère) : les cases du haut
+  n'étant que des copies visuelles, elles étaient ignorées par
+  `getStringAlphaNum` (qui ne regarde que la ligne tapée). Corrigé en
+  ajoutant `TMinitel.resolveMainCell`, qui retrouve la case principale à
+  partir d'une case copie avant de chercher le mot tapé.
 * [x] **Série : Ajouter configuration par défaut (1200)**
 * [x] **Série : mode 1200 et 4800 (comme sur minitel), du coup MinSettings au max**
 * [x] Sortir de la ligne 0 sur \r\n (à vérifier sur Minitel)

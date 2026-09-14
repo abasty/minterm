@@ -1934,7 +1934,27 @@ class TMinitel {
   bool isDoublePart(int x, int y) =>
       (screen[y][x + 1].lAttr & kDoublePart) != 0;
 
+  /// If (x, y) is a visual "part" cell of a double-size character, returns
+  /// the coordinates of the cell that actually holds the character. Returns
+  /// (x, y) unchanged otherwise.
+  (int, int) resolveMainCell(int x, int y) {
+    final attr = screen[y][x + 1].lAttr;
+    if ((attr & kDoublePart) == 0) return (x, y);
+    switch (attr & kSizeMask) {
+      case kAttrDoubleHeight: // top-left part -> main is below
+        return (x, y + 1);
+      case kAttrDoubleWidth: // bottom-right part -> main is to the left
+        return (x - 1, y);
+      case kAttrDoubleHeightWidth: // top-right part -> main is below-left
+        return (x - 1, y + 1);
+    }
+    return (x, y);
+  }
+
   String getStringAlphaNum(int x, int y) {
+    final resolved = resolveMainCell(x, y);
+    x = resolved.$1;
+    y = resolved.$2;
     final alphaNum = RegExp(r'^[a-zA-Z0-9*]$');
     final buffer = StringBuffer();
     // Get characters to the left
