@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app_prefs/app_prefs.dart';
+import 'clipboard/clipboard_paste_listener.dart';
 import 'min/min_emulator.dart';
 import 'min/min_model.dart';
 import 'min/min_term.dart';
@@ -97,6 +99,15 @@ void main(List<String> args) async {
   window_setup.setEscapeInFullscreenHandler(() {
     MinModel().handleKeys('\x1b');
   });
+
+  registerPasteListener(
+    () => !_hasEditableTextFocus(),
+    (text) {
+      if (text.isNotEmpty) {
+        MinModel().pasteText(text);
+      }
+    },
+  );
 
   HardwareKeyboard.instance.addHandler((event) {
     if (_hasEditableTextFocus()) {
@@ -224,6 +235,15 @@ void main(List<String> args) async {
         case LogicalKeyboardKey.keyV:
           // Coller le presse-papier host dans l'émulateur (Ctrl+V / Cmd+V).
           if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
+            if (kIsWeb) {
+              // En web, ne pas intercepter l'évènement ici : on laisse le
+              // navigateur déclencher son évènement natif `paste`, capté
+              // par registerPasteListener (voir clipboard/). L'API
+              // asynchrone Clipboard.getData() est peu fiable sur
+              // Safari/WebKit pour un raccourci clavier (cf. commentaire
+              // dans clipboard_paste_listener_web.dart).
+              return false;
+            }
             Clipboard.getData(Clipboard.kTextPlain).then((data) {
               final text = data?.text;
               if (text != null && text.isNotEmpty) {
