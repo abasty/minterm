@@ -231,6 +231,19 @@ physique comme sur le clavier bitmap :
 | Shift + ← | Suppression de caractère |
 | Shift + → | Bascule mode insertion caractère (les caractères tapés ensuite décalent le reste de la ligne au lieu de l'écraser) |
 
+### Coller depuis le presse-papier
+
+Ctrl+V (Cmd+V sur Mac) colle le texte du presse-papier de l'ordinateur dans
+l'émulateur : chaque caractère est traduit en la séquence qu'un clavier
+Minitel physique aurait envoyée (accents, retour à la ligne), comme si
+l'utilisateur l'avait tapé au clavier. L'envoi est cadencé sur la vitesse de
+connexion courante, pour ne pas noyer un serveur Minitel distant — un collage
+long peut donc prendre quelques secondes à s'afficher entièrement sur les
+vitesses lentes (300/1200 bauds).
+
+Le sens inverse (sélectionner du texte affiché à l'écran pour le copier vers
+le presse-papier de l'ordinateur) n'est pas encore disponible.
+
 ## Affichage
 
 - **Couleur** (icône palette dans la barre d'outils, ou interrupteur
