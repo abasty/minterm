@@ -95,6 +95,7 @@ class MinSettings extends ChangeNotifier {
   }
   MinSettings._internal() {
     MinModel().minitel.onDrcsGlyph = updateDrcsGlyph;
+    MinModel().minitel.onDrcsReset = resetDrcsGlyphs;
     MinModel().minitel.onColorModeChange = (useColor) {
       colors = useColor ? MinColors : MinGrey;
     };
@@ -168,6 +169,34 @@ class MinSettings extends ChangeNotifier {
       }
       notifyListeners();
       MinModel().markScreenDirty();
+    });
+  }
+
+  /// Efface tous les glyphes DRCS téléchargés, en restaurant les polices
+  /// "programmables" (_fontG0p/_fontG1p) à l'identique des polices standard
+  /// (_fontG0G2/_fontG1). Appelé à la déconnexion / au changement de service
+  /// (voir TMinitel.resetDrcs / MinModel.end()) — un Minitel réel perd sa
+  /// mémoire DRCS à l'extinction, elle ne doit pas survivre d'un service à
+  /// l'autre.
+  void resetDrcsGlyphs() {
+    if (!isLoaded) return; // Polices pas encore chargées : rien à réinitialiser.
+    _fontG0G2.toByteData(format: ui.ImageByteFormat.rawRgba).then((bd) {
+      _pixelsG0p = Uint8List.fromList(bd!.buffer.asUint8List());
+      ui.decodeImageFromPixels(_pixelsG0p!, 64, 160, ui.PixelFormat.rgba8888,
+          (img) {
+        _fontG0p = img;
+        notifyListeners();
+        MinModel().markScreenDirty();
+      });
+    });
+    _fontG1.toByteData(format: ui.ImageByteFormat.rawRgba).then((bd) {
+      _pixelsG1p = Uint8List.fromList(bd!.buffer.asUint8List());
+      ui.decodeImageFromPixels(_pixelsG1p!, 64, 160, ui.PixelFormat.rgba8888,
+          (img) {
+        _fontG1p = img;
+        notifyListeners();
+        MinModel().markScreenDirty();
+      });
     });
   }
 

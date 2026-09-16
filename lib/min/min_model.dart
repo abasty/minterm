@@ -614,6 +614,7 @@ class MinModel extends ChangeNotifier {
 
     _stopThrottleTimer();
     _codes.clear();
+    minitel.resetDrcs();
 
     if (isConnected) {
       _serialSubscription?.cancel();

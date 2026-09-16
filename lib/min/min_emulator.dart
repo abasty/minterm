@@ -177,6 +177,10 @@ class TMinitel {
   // the previous B1 — STUM2 §2.3.3.2/2.3.3.3) instead of being a no-op.
   bool _drcsFormOpen = false;
   void Function(bool isG1, int code, Uint8List pixels80)? onDrcsGlyph;
+  // Appelé pour effacer tous les glyphes DRCS téléchargés (déconnexion /
+  // changement de service) : un Minitel réel perd sa mémoire DRCS à
+  // l'extinction, elle ne doit donc pas survivre d'un service à l'autre.
+  void Function()? onDrcsReset;
 
   // Séquence magique non standard PRO2 0x11 : bascule couleur / noir et blanc.
   void Function(bool useColor)? onColorModeChange;
@@ -321,6 +325,21 @@ class TMinitel {
     _drcsFormOpen = false;
     _g0IsDrcs = false;
     _g1IsDrcs = false;
+  }
+
+  /// Réinitialise l'état de téléchargement DRCS en cours et efface tous les
+  /// glyphes précédemment téléchargés via [onDrcsReset]. À appeler à la
+  /// déconnexion / au changement de service (voir `MinModel.end()`) — pas à
+  /// un simple `clearScreen()` en cours de session, qui ne doit pas faire
+  /// perdre les DRCS du service courant.
+  void resetDrcs() {
+    _drcsHeaderStep = 0;
+    _drcsCurrentCode = 0;
+    _drcsPixelIndex = 0;
+    _drcsFormOpen = false;
+    _g0IsDrcs = false;
+    _g1IsDrcs = false;
+    onDrcsReset?.call();
   }
 
   void clearScreenPreserveLine0() {

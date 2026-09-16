@@ -242,4 +242,36 @@ void main() {
       }
     });
   });
+
+  group('resetDrcs (déconnexion / changement de service)', () {
+    test(
+        'clears the DRCS charset selection so a previously-DRCS code renders '
+        'as standard G0 again, and fires onDrcsReset', () {
+      final minitel = TMinitel();
+
+      // Télécharge un glyphe en position 0x21 du jeu G'0.
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        ..._buildDrcsGlyphData(0x21, [_exampleGlyphBytes]),
+      ]);
+
+      // ESC 2/8 2/0 4/2 : désigne G'0 (DRCS) comme jeu G0 courant.
+      minitel.emulate([0x1b, 0x28, 0x20, 0x42]);
+      minitel.emulate([0x21]); // Écrit le code téléchargé.
+
+      expect(minitel.screen[1][1].lAttr & kDRCSCharset, isNot(0),
+          reason: 'le caractère doit être marqué DRCS avant reset');
+
+      var resetFired = false;
+      minitel.onDrcsReset = () => resetFired = true;
+      minitel.resetDrcs();
+      expect(resetFired, isTrue);
+
+      minitel.emulate([0x21]); // Même code, réécrit après le reset.
+
+      expect(minitel.screen[1][2].lAttr & kDRCSCharset, 0,
+          reason:
+              'après reset, G0 doit être revenu au jeu standard (non-DRCS)');
+    });
+  });
 }
