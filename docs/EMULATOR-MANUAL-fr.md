@@ -167,16 +167,22 @@ Minterm reçoit et affiche automatiquement ces caractères redéfinissables
 
 ### Clavier virtuel
 
-Sur mobile, l'icône clavier de la barre d'outils fait défiler trois modes :
+Sur mobile, l'icône clavier de la barre d'outils fait défiler quatre modes :
 clavier bitmap (image d'un clavier Minitel), clavier virtuel + zone de saisie
-compacte (pratique pour la saisie au clavier tactile du système), ou clavier
-compact seul.
+compacte (pratique pour la saisie au clavier tactile du système), clavier
+compact seul, ou aucun clavier virtuel.
 
-Sur desktop web/natif, la même icône bascule entre le clavier **bitmap**
-(image) et le clavier **compact** (boutons). Le clavier bitmap comporte ses
-propres touches **Ctrl** et **Shift**, qui fonctionnent comme des *bascules* :
-on appuie dessus, puis sur la touche à combiner ; un petit indicateur rond
-s'allume sur la touche tant qu'elle est active.
+Sur desktop/web, la même icône fait défiler trois modes : clavier **bitmap**
+(image), clavier **compact** (boutons), ou aucun clavier virtuel. Le clavier
+bitmap comporte ses propres touches **Ctrl** et **Shift**, qui fonctionnent
+comme des *bascules* : on appuie dessus, puis sur la touche à combiner ; un
+petit indicateur rond s'allume sur la touche tant qu'elle est active.
+
+Le mode **aucun clavier virtuel** masque entièrement le clavier à l'écran,
+au profit de l'affichage Minitel qui occupe alors tout l'espace disponible —
+utile sur un appareil équipé d'un clavier physique (ordinateur, tablette
+avec clavier Bluetooth...). La saisie au clavier physique et le tap/clic à
+la souris sur l'écran restent opérants comme dans les autres modes.
 
 ### Clavier physique (PC)
 

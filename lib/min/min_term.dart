@@ -241,6 +241,8 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
       case MobileKeyboardLayoutMode.virtualCompact:
         return MobileKeyboardLayoutMode.compactOnly;
       case MobileKeyboardLayoutMode.compactOnly:
+        return MobileKeyboardLayoutMode.none;
+      case MobileKeyboardLayoutMode.none:
         return MobileKeyboardLayoutMode.bitmap;
     }
   }
@@ -256,6 +258,11 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
         return (Icons.keyboard, 'Mode clavier: virtuel + compact');
       case MobileKeyboardLayoutMode.compactOnly:
         return (Icons.view_stream, 'Mode clavier: compact uniquement');
+      case MobileKeyboardLayoutMode.none:
+        return (
+          Icons.keyboard_hide,
+          'Mode clavier: aucun (clavier physique uniquement)'
+        );
     }
   }
 
@@ -302,18 +309,33 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
 class DesktopKeyboardLayoutButton extends StatelessWidget {
   const DesktopKeyboardLayoutButton({super.key});
 
+  (IconData, String) _visuals(DesktopKeyboardMode mode) {
+    switch (mode) {
+      case DesktopKeyboardMode.image:
+        return (Icons.keyboard, 'Clavier: image (basculer vers compact)');
+      case DesktopKeyboardMode.compact:
+        return (
+          Icons.keyboard_alt_outlined,
+          'Clavier: compact (basculer vers aucun)'
+        );
+      case DesktopKeyboardMode.none:
+        return (
+          Icons.keyboard_hide,
+          'Clavier: aucun, clavier physique uniquement (basculer vers image)'
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, _) {
-        final imageMode = MinSettings().desktopImageKeyboardEnabled;
+        final visuals = _visuals(MinSettings().desktopKeyboardMode);
         return IconButton(
-          tooltip: imageMode
-              ? 'Utiliser le clavier compact'
-              : 'Utiliser le clavier image',
-          icon: Icon(imageMode ? Icons.keyboard_hide : Icons.keyboard),
-          onPressed: () => MinSettings.toggleDesktopImageKeyboard(),
+          tooltip: visuals.$2,
+          icon: Icon(visuals.$1),
+          onPressed: () => MinSettings.cycleDesktopKeyboardMode(),
         );
       },
     );

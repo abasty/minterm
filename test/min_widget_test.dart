@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
@@ -128,6 +129,8 @@ import 'package:minterm/min/min_widget.dart';
 void main() {
   setUp(() {
     MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+    MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
+    MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.bitmap);
   });
 
   testWidgets('MinWidget creation', (WidgetTester tester) async {
@@ -216,5 +219,95 @@ void main() {
 
     expect(MinModel().minitel.keyboardLowercase, isFalse);
     expect(find.text('Majuscule'), findsOneWidget);
+  });
+
+  group('Mode clavier "aucun" (clavier physique/souris uniquement)', () {
+    test('DesktopKeyboardMode cycles compact -> none -> image -> compact', () {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
+
+      MinSettings.cycleDesktopKeyboardMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+
+      MinSettings.cycleDesktopKeyboardMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+
+      MinSettings.cycleDesktopKeyboardMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.compact);
+    });
+
+    testWidgets('DesktopKeyboardMode.none renders no virtual keyboard', (
+      WidgetTester tester,
+    ) async {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.none);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: MinKeyboard()),
+        ),
+      );
+
+      expect(find.text('Cx/Fin'), findsNothing);
+      expect(find.text('Sommaire'), findsNothing);
+      expect(find.text('Envoi'), findsNothing);
+    });
+
+    testWidgets(
+        'MobileKeyboardButton cycles bitmap -> virtualCompact -> '
+        'compactOnly -> none -> bitmap', (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: MobileKeyboardButton()),
+          ),
+        );
+        // initState() force le mode à bitmap au montage.
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.bitmap);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.virtualCompact);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.compactOnly);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(
+            MinSettings().mobileKeyboardLayout, MobileKeyboardLayoutMode.none);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.bitmap);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('MinKeyboard renders nothing in mobile "none" mode', (
+      WidgetTester tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.none);
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: MinKeyboard()),
+          ),
+        );
+
+        expect(find.text('Cx/Fin'), findsNothing);
+        expect(find.text('Sommaire'), findsNothing);
+        expect(find.text('Envoi'), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
   });
 }
