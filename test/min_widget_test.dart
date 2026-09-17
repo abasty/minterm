@@ -131,6 +131,7 @@ void main() {
     MinModel().setScreenMode(TMinitelScreenMode.videotex40);
     MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
     MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.bitmap);
+    MinSettings.setChromeVisible(true);
   });
 
   testWidgets('MinWidget creation', (WidgetTester tester) async {
@@ -249,6 +250,28 @@ void main() {
       expect(find.text('Cx/Fin'), findsNothing);
       expect(find.text('Sommaire'), findsNothing);
       expect(find.text('Envoi'), findsNothing);
+    });
+
+    test('setDesktopKeyboardMode(none) does not affect the AppBar (chrome)',
+        () {
+      expect(MinSettings().chromeVisible, isTrue);
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test('setMobileKeyboardLayout(none) does not affect the AppBar (chrome)',
+        () {
+      expect(MinSettings().chromeVisible, isTrue);
+      MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test('toggleChromeVisible flips chromeVisible each call', () {
+      expect(MinSettings().chromeVisible, isTrue);
+      MinSettings.toggleChromeVisible();
+      expect(MinSettings().chromeVisible, isFalse);
+      MinSettings.toggleChromeVisible();
+      expect(MinSettings().chromeVisible, isTrue);
     });
 
     testWidgets(

@@ -254,6 +254,15 @@ void main(List<String> args) async {
             MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
           break;
+        case LogicalKeyboardKey.keyF:
+          // Ctrl+F / Cmd+F : bascule l'affichage de la barre d'outils
+          // (menu, icônes), indépendamment du mode clavier.
+          if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
+            MinSettings.toggleChromeVisible();
+          } else {
+            MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
+          }
+          break;
         default:
           // Other keys
           if (event.character != null) {

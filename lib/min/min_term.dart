@@ -44,6 +44,7 @@ class MinTerm extends StatelessWidget {
                 SetColors(),
                 SetBackground(),
                 const SetSoundMode(),
+                const SetAppBarVisible(),
                 Divider(),
                 CaptureToggle(),
                 CaptureFileActions(),
@@ -55,32 +56,35 @@ class MinTerm extends StatelessWidget {
               ],
             ),
           ),
-          appBar: AppBar(
-            leading: Builder(
-              builder: (context) => _PointerOnlyFocus(
-                child: IconButton(
-                  tooltip: 'Ouvrir le menu',
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-            ),
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            foregroundColor: isDarkMode ? Colors.white : Colors.black,
-            title: const Text('Minterm'),
-            actions: [
-              if (window_setup.isWindowControlsSupported)
-                const _PointerOnlyFocus(child: FullscreenToggleButton()),
-              if (_isMobileDevice)
-                const _PointerOnlyFocus(child: MobileKeyboardButton()),
-              if (!_isMobileDevice)
-                const _PointerOnlyFocus(child: DesktopKeyboardLayoutButton()),
-              const _PointerOnlyFocus(child: KeyboardCaseIndicator()),
-              _PointerOnlyFocus(child: CaptureButton()),
-              const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
-              const _PointerOnlyFocus(child: ColorsButton()),
-            ],
-          ),
+          appBar: MinSettings().chromeVisible
+              ? AppBar(
+                  leading: Builder(
+                    builder: (context) => _PointerOnlyFocus(
+                      child: IconButton(
+                        tooltip: 'Ouvrir le menu',
+                        icon: const Icon(Icons.menu),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
+                  ),
+                  backgroundColor: isDarkMode ? Colors.black : Colors.white,
+                  foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                  title: const Text('Minterm'),
+                  actions: [
+                    if (window_setup.isWindowControlsSupported)
+                      const _PointerOnlyFocus(child: FullscreenToggleButton()),
+                    if (_isMobileDevice)
+                      const _PointerOnlyFocus(child: MobileKeyboardButton()),
+                    if (!_isMobileDevice)
+                      const _PointerOnlyFocus(
+                          child: DesktopKeyboardLayoutButton()),
+                    const _PointerOnlyFocus(child: KeyboardCaseIndicator()),
+                    _PointerOnlyFocus(child: CaptureButton()),
+                    const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
+                    const _PointerOnlyFocus(child: ColorsButton()),
+                  ],
+                )
+              : null,
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -743,6 +747,24 @@ class SetKeyboardCase extends StatelessWidget {
               Text(lowercase ? 'Minuscule' : 'Majuscule'),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class SetAppBarVisible extends StatelessWidget {
+  const SetAppBarVisible({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        return SwitchListTile(
+          title: const Text('Barre d\'outils'),
+          value: MinSettings().chromeVisible,
+          onChanged: (_) => MinSettings.toggleChromeVisible(),
         );
       },
     );

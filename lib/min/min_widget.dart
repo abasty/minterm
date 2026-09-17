@@ -112,6 +112,7 @@ class MinSettings extends ChangeNotifier {
   SoundMode _soundMode = SoundMode.bipAndKeyboard;
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
+  bool _chromeVisible = true;
 
   factory MinSettings() {
     return _singleton;
@@ -242,6 +243,8 @@ class MinSettings extends ChangeNotifier {
 
   Color get appBackgroundColor => _appBackgroundColor;
 
+  bool get chromeVisible => _chromeVisible;
+
   static void setScale(double scale) {
     _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
@@ -304,6 +307,18 @@ class MinSettings extends ChangeNotifier {
     if (_singleton._mobileKeyboardLayout == mode) return;
     _singleton._mobileKeyboardLayout = mode;
     _singleton.notifyListeners();
+  }
+
+  static void setChromeVisible(bool visible) {
+    if (_singleton._chromeVisible == visible) return;
+    _singleton._chromeVisible = visible;
+    _singleton.notifyListeners();
+  }
+
+  /// Bascule l'affichage de l'AppBar (menu, icônes), indépendamment du mode
+  /// clavier. Voir Ctrl+F dans main.dart et le toggle "Barre d'outils" du menu.
+  static void toggleChromeVisible() {
+    setChromeVisible(!_singleton._chromeVisible);
   }
 
   static void setSoundMode(SoundMode mode) {
