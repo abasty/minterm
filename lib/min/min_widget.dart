@@ -114,10 +114,12 @@ class MinSettings extends ChangeNotifier {
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
-  // Étape du cycle plein écran Ctrl+F : 0 = normal, 1 = sans clavier/sans
-  // barre d'outils, 2 = sans clavier/avec barre d'outils. Valeurs à restaurer
-  // mémorisées au premier appui, voir cycleImmersiveMode().
-  int _immersiveStep = 0;
+  // true entre l'entrée et la sortie du cycle plein écran Ctrl+F (clavier
+  // forcé à "aucun" + plein écran). La sous-étape (barre d'outils visible ou
+  // non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
+  // chaque appui de _chromeVisible, pour rester cohérent même si la barre
+  // d'outils est basculée manuellement (menu) en cours de cycle.
+  bool _immersiveActive = false;
   DesktopKeyboardMode _restoreDesktopKeyboardMode = DesktopKeyboardMode.compact;
   bool _restoreChromeVisible = true;
 
@@ -329,30 +331,34 @@ class MinSettings extends ChangeNotifier {
   }
 
   /// Cycle plein écran déclenché par Ctrl+F (voir main.dart) : 1er appui ->
-  /// sans clavier virtuel ni barre d'outils (+ plein écran) ; 2e appui ->
-  /// barre d'outils réaffichée, toujours sans clavier ; 3e appui -> retour à
-  /// l'état d'avant le cycle (clavier, barre d'outils, plein écran).
+  /// sans clavier virtuel, barre d'outils conservée (+ plein écran) ; 2e
+  /// appui -> barre d'outils masquée à son tour, toujours sans clavier ; 3e
+  /// appui -> retour à l'état d'avant le cycle (clavier, barre d'outils,
+  /// plein écran).
+  ///
+  /// La sous-étape (barre d'outils visible ou non pendant le plein écran)
+  /// est déduite de _chromeVisible à chaque appui plutôt que mémorisée à
+  /// part, pour que Ctrl+F reste cohérent même si la barre d'outils a été
+  /// basculée manuellement (menu) en cours de cycle : la bascule manuelle
+  /// fait juste "sauter" à la sous-étape qui correspond à l'état affiché.
   static void cycleImmersiveMode() {
     final s = _singleton;
-    switch (s._immersiveStep) {
-      case 0:
-        s._restoreDesktopKeyboardMode = s._desktopKeyboardMode;
-        s._restoreChromeVisible = s._chromeVisible;
-        s._desktopKeyboardMode = DesktopKeyboardMode.none;
-        s._chromeVisible = false;
-        s._immersiveStep = 1;
-        window_setup.toggleFullscreen();
-        break;
-      case 1:
-        s._chromeVisible = true;
-        s._immersiveStep = 2;
-        break;
-      default:
-        s._desktopKeyboardMode = s._restoreDesktopKeyboardMode;
-        s._chromeVisible = s._restoreChromeVisible;
-        s._immersiveStep = 0;
-        window_setup.toggleFullscreen();
-        break;
+    if (!s._immersiveActive) {
+      // Étape 0 -> 1 : entrée en plein écran, barre d'outils conservée.
+      s._restoreDesktopKeyboardMode = s._desktopKeyboardMode;
+      s._restoreChromeVisible = s._chromeVisible;
+      s._desktopKeyboardMode = DesktopKeyboardMode.none;
+      s._immersiveActive = true;
+      window_setup.toggleFullscreen();
+    } else if (s._chromeVisible) {
+      // Étape 1 -> 2 : la barre d'outils se masque à son tour.
+      s._chromeVisible = false;
+    } else {
+      // Étape 2 -> 0 : retour à l'état d'avant le cycle.
+      s._desktopKeyboardMode = s._restoreDesktopKeyboardMode;
+      s._chromeVisible = s._restoreChromeVisible;
+      s._immersiveActive = false;
+      window_setup.toggleFullscreen();
     }
     s.notifyListeners();
   }

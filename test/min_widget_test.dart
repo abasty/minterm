@@ -286,7 +286,7 @@ void main() {
       expect(MinSettings().chromeVisible, isTrue);
     });
 
-    test('cycleImmersiveMode cycles no-chrome -> chrome -> restored state',
+    test('cycleImmersiveMode cycles chrome -> no-chrome -> restored state',
         () {
       MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
@@ -294,12 +294,41 @@ void main() {
 
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
-      expect(MinSettings().chromeVisible, isFalse);
+      expect(MinSettings().chromeVisible, isTrue);
 
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isFalse);
+
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test(
+        'manually toggling "Barre d\'outils" mid-cycle just moves Ctrl+F to '
+        'the matching sub-step, instead of desyncing it', () {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
+
+      MinSettings.cycleImmersiveMode(); // step 0 -> 1 (snapshot: image, true)
+      MinSettings.cycleImmersiveMode(); // step 1 -> 2 (chrome hidden)
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isFalse);
+
+      // Manual override mid-cycle (menu switch): Ctrl+F stays in the cycle
+      // (still no virtual keyboard), it just adapts to the toolbar now
+      // being visible again, as if we were back at step 1.
+      MinSettings.toggleChromeVisible();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isTrue);
 
+      // Next Ctrl+F continues from that sub-step: hides the toolbar again.
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isFalse);
+
+      // And the following one exits the cycle, restoring the pre-cycle
+      // keyboard mode and toolbar visibility.
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
       expect(MinSettings().chromeVisible, isTrue);

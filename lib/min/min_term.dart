@@ -13,6 +13,10 @@ import 'min_model.dart';
 import 'min_serial.dart';
 import 'min_widget.dart';
 
+/// Permet d'ouvrir le menu (drawer) depuis en dehors de l'arbre de widgets,
+/// par ex. le raccourci clavier Ctrl+M dans main.dart, sans BuildContext.
+final GlobalKey<ScaffoldState> minScaffoldKey = GlobalKey<ScaffoldState>();
+
 class MinTerm extends StatelessWidget {
   const MinTerm({super.key});
 
@@ -30,6 +34,7 @@ class MinTerm extends StatelessWidget {
         final appBackground = MinSettings().appBackgroundColor;
         final isDarkMode = appBackground.computeLuminance() < 0.5;
         return Scaffold(
+          key: minScaffoldKey,
           backgroundColor: appBackground,
           drawer: Drawer(
             child: ListView(
