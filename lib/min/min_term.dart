@@ -69,7 +69,6 @@ class MinTerm extends StatelessWidget {
                   ),
                   backgroundColor: isDarkMode ? Colors.black : Colors.white,
                   foregroundColor: isDarkMode ? Colors.white : Colors.black,
-                  title: const Text('Minterm'),
                   actions: [
                     if (window_setup.isWindowControlsSupported)
                       const _PointerOnlyFocus(child: FullscreenToggleButton()),
@@ -381,7 +380,7 @@ class FullscreenToggleButton extends StatelessWidget {
             isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
           ),
           onPressed: () {
-            window_setup.toggleFullscreen();
+            MinSettings.cycleImmersiveMode();
           },
         );
       },
@@ -703,8 +702,7 @@ class SetScreenMode extends StatelessWidget {
           onTap = () => MinModel().enterTeleinformatique();
         } else {
           label = 'Téléinfo 80';
-          onTap = () =>
-              MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+          onTap = () => MinModel().setScreenMode(TMinitelScreenMode.videotex40);
         }
         return ListTile(
           onTap: onTap,

@@ -255,10 +255,11 @@ void main(List<String> args) async {
           }
           break;
         case LogicalKeyboardKey.keyF:
-          // Ctrl+F / Cmd+F : bascule l'affichage de la barre d'outils
-          // (menu, icônes), indépendamment du mode clavier.
+          // Ctrl+F / Cmd+F : cycle plein écran immersif (sans clavier/sans
+          // barre d'outils -> sans clavier/avec barre d'outils -> retour à
+          // l'état d'avant), voir MinSettings.cycleImmersiveMode().
           if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
-            MinSettings.toggleChromeVisible();
+            MinSettings.cycleImmersiveMode();
           } else {
             MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }

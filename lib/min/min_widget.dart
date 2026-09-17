@@ -9,6 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../window/window_setup.dart' as window_setup;
 import 'min_emulator.dart';
 import 'min_model.dart';
 
@@ -113,6 +114,12 @@ class MinSettings extends ChangeNotifier {
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
+  // Étape du cycle plein écran Ctrl+F : 0 = normal, 1 = sans clavier/sans
+  // barre d'outils, 2 = sans clavier/avec barre d'outils. Valeurs à restaurer
+  // mémorisées au premier appui, voir cycleImmersiveMode().
+  int _immersiveStep = 0;
+  DesktopKeyboardMode _restoreDesktopKeyboardMode = DesktopKeyboardMode.compact;
+  bool _restoreChromeVisible = true;
 
   factory MinSettings() {
     return _singleton;
@@ -316,9 +323,38 @@ class MinSettings extends ChangeNotifier {
   }
 
   /// Bascule l'affichage de l'AppBar (menu, icônes), indépendamment du mode
-  /// clavier. Voir Ctrl+F dans main.dart et le toggle "Barre d'outils" du menu.
+  /// clavier. Utilisé par le toggle "Barre d'outils" du menu.
   static void toggleChromeVisible() {
     setChromeVisible(!_singleton._chromeVisible);
+  }
+
+  /// Cycle plein écran déclenché par Ctrl+F (voir main.dart) : 1er appui ->
+  /// sans clavier virtuel ni barre d'outils (+ plein écran) ; 2e appui ->
+  /// barre d'outils réaffichée, toujours sans clavier ; 3e appui -> retour à
+  /// l'état d'avant le cycle (clavier, barre d'outils, plein écran).
+  static void cycleImmersiveMode() {
+    final s = _singleton;
+    switch (s._immersiveStep) {
+      case 0:
+        s._restoreDesktopKeyboardMode = s._desktopKeyboardMode;
+        s._restoreChromeVisible = s._chromeVisible;
+        s._desktopKeyboardMode = DesktopKeyboardMode.none;
+        s._chromeVisible = false;
+        s._immersiveStep = 1;
+        window_setup.toggleFullscreen();
+        break;
+      case 1:
+        s._chromeVisible = true;
+        s._immersiveStep = 2;
+        break;
+      default:
+        s._desktopKeyboardMode = s._restoreDesktopKeyboardMode;
+        s._chromeVisible = s._restoreChromeVisible;
+        s._immersiveStep = 0;
+        window_setup.toggleFullscreen();
+        break;
+    }
+    s.notifyListeners();
   }
 
   static void setSoundMode(SoundMode mode) {

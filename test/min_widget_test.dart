@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
 import 'package:minterm/min/min_model.dart';
@@ -127,6 +128,17 @@ import 'package:minterm/min/min_widget.dart';
 */
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // window_manager n'a pas d'implémentation native en test : on simule son
+  // channel pour que window_setup.toggleFullscreen() (utilisé par
+  // MinSettings.cycleImmersiveMode()) ne lève pas de MissingPluginException.
+  const windowManagerChannel = MethodChannel('window_manager');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(windowManagerChannel, (call) async {
+    if (call.method == 'isFullScreen') return false;
+    return null;
+  });
+
   setUp(() {
     MinModel().setScreenMode(TMinitelScreenMode.videotex40);
     MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
@@ -271,6 +283,25 @@ void main() {
       MinSettings.toggleChromeVisible();
       expect(MinSettings().chromeVisible, isFalse);
       MinSettings.toggleChromeVisible();
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test('cycleImmersiveMode cycles no-chrome -> chrome -> restored state',
+        () {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+      expect(MinSettings().chromeVisible, isTrue);
+
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isFalse);
+
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
       expect(MinSettings().chromeVisible, isTrue);
     });
 
