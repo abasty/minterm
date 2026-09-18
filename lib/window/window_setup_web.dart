@@ -13,6 +13,9 @@ extension type _KeyboardEvent._(JSObject _) implements JSObject {
 extension type _FullscreenDocument._(JSObject _) implements JSObject {
   external _FullscreenElement? get documentElement;
   external _FullscreenElement? get fullscreenElement;
+  // Nullable : la propriété est absente là où l'API Fullscreen n'existe pas
+  // (Safari iOS ne l'expose que pour les <video>).
+  external bool? get fullscreenEnabled;
   external JSPromise<JSAny?> exitFullscreen();
   external void addEventListener(
     String type,
@@ -24,10 +27,13 @@ extension type _FullscreenDocument._(JSObject _) implements JSObject {
 @JS('document')
 external _FullscreenDocument get _document;
 
-// Icône masquée en web (F11 reste le seul moyen d'entrer en plein écran),
-// mais toute la logique de plein écran (bascule, synchronisation, Échap)
-// reste active pour ces raccourcis clavier.
-const bool isWindowControlsSupported = false;
+/// Le clic sur l'icône produit une "user activation", seule façon fiable
+/// d'obtenir requestFullscreen() en web (un raccourci clavier avec
+/// modificateur n'en produit jamais, cf. MinSettings.cycleImmersiveMode).
+/// document.fullscreenEnabled est faux là où l'API est indisponible (Safari
+/// iOS) ou interdite (iframe sans allow="fullscreen") : inutile d'afficher
+/// une icône qui ne pourrait rien faire.
+bool get isFullscreenToggleSupported => _document.fullscreenEnabled ?? false;
 
 final ValueNotifier<bool> fullscreenListenable = ValueNotifier<bool>(false);
 
@@ -64,12 +70,16 @@ Future<void> initializeWindow() async {
   _syncFullscreenState();
 }
 
-Future<void> toggleFullscreen() async {
+Future<void> toggleFullscreen() =>
+    setFullscreen(_document.fullscreenElement == null);
+
+Future<void> setFullscreen(bool enabled) async {
+  if (enabled == (_document.fullscreenElement != null)) return;
   try {
-    if (_document.fullscreenElement != null) {
-      await _document.exitFullscreen().toDart;
-    } else {
+    if (enabled) {
       await _document.documentElement?.requestFullscreen().toDart;
+    } else {
+      await _document.exitFullscreen().toDart;
     }
   } catch (_) {
     // Le navigateur peut refuser (ex: pas déclenché par un geste utilisateur,

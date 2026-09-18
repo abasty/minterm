@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
 import 'package:minterm/min/min_model.dart';
 import 'package:minterm/min/min_term.dart';
 import 'package:minterm/min/min_widget.dart';
+import 'package:minterm/window/window_setup.dart' as window_setup;
 
 /*
     drawString(
@@ -126,8 +129,21 @@ import 'package:minterm/min/min_widget.dart';
 */
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // window_manager n'a pas d'implémentation native en test : sans ce mock,
+  // le plein écran demandé par cycleImmersiveMode() lève une
+  // MissingPluginException dans un Future non attendu.
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+    const MethodChannel('window_manager'),
+    (call) async => call.method == 'isFullScreen' ? false : null,
+  );
+
   setUp(() {
     MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+    MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
+    MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.bitmap);
+    MinSettings.setChromeVisible(true);
   });
 
   testWidgets('MinWidget creation', (WidgetTester tester) async {
@@ -216,5 +232,167 @@ void main() {
 
     expect(MinModel().minitel.keyboardLowercase, isFalse);
     expect(find.text('Majuscule'), findsOneWidget);
+  });
+
+  group('Mode clavier "aucun" (clavier physique/souris uniquement)', () {
+    test('DesktopKeyboardMode cycles compact -> none -> image -> compact', () {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
+
+      MinSettings.cycleDesktopKeyboardMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+
+      MinSettings.cycleDesktopKeyboardMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+
+      MinSettings.cycleDesktopKeyboardMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.compact);
+    });
+
+    testWidgets('DesktopKeyboardMode.none renders no virtual keyboard', (
+      WidgetTester tester,
+    ) async {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.none);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: MinKeyboard()),
+        ),
+      );
+
+      expect(find.text('Cx/Fin'), findsNothing);
+      expect(find.text('Sommaire'), findsNothing);
+      expect(find.text('Envoi'), findsNothing);
+    });
+
+    test('setDesktopKeyboardMode(none) does not affect the AppBar (chrome)',
+        () {
+      expect(MinSettings().chromeVisible, isTrue);
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test('setMobileKeyboardLayout(none) does not affect the AppBar (chrome)',
+        () {
+      expect(MinSettings().chromeVisible, isTrue);
+      MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test('toggleChromeVisible flips chromeVisible each call', () {
+      expect(MinSettings().chromeVisible, isTrue);
+      MinSettings.toggleChromeVisible();
+      expect(MinSettings().chromeVisible, isFalse);
+      MinSettings.toggleChromeVisible();
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    test('cycleImmersiveMode cycles no-chrome -> chrome -> restored state',
+        () async {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+      expect(MinSettings().chromeVisible, isTrue);
+
+      // 1er appui : plein écran, sans clavier ni barre d'outils.
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isFalse);
+      await Future<void>.delayed(Duration.zero);
+      expect(window_setup.fullscreenListenable.value, isTrue);
+
+      // 2e appui : la barre d'outils revient, toujours en plein écran.
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+      expect(window_setup.fullscreenListenable.value, isTrue);
+
+      // 3e appui : retour à l'état d'avant le cycle.
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+      expect(MinSettings().chromeVisible, isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(window_setup.fullscreenListenable.value, isFalse);
+    });
+
+    test(
+        'manually toggling "Barre d\'outils" mid-cycle just moves Ctrl+Z to '
+        'the matching sub-step, instead of desyncing it', () {
+      MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
+
+      MinSettings.cycleImmersiveMode(); // step 0 -> 1 (snapshot: image, true)
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isFalse);
+
+      // Manual override mid-cycle (menu switch): Ctrl+Z stays in the cycle
+      // (still no virtual keyboard), the toolbar coming back just means we
+      // are now at the sub-step the 2nd press would have produced.
+      MinSettings.toggleChromeVisible();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+
+      // So the next Ctrl+Z exits the cycle, restoring the pre-cycle keyboard
+      // mode and toolbar visibility, rather than desyncing.
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
+      expect(MinSettings().chromeVisible, isTrue);
+    });
+
+    testWidgets(
+        'MobileKeyboardButton cycles bitmap -> virtualCompact -> '
+        'compactOnly -> none -> bitmap', (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: MobileKeyboardButton()),
+          ),
+        );
+        // initState() force le mode à bitmap au montage.
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.bitmap);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.virtualCompact);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.compactOnly);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(
+            MinSettings().mobileKeyboardLayout, MobileKeyboardLayoutMode.none);
+
+        await tester.tap(find.byType(IconButton));
+        await tester.pumpAndSettle();
+        expect(MinSettings().mobileKeyboardLayout,
+            MobileKeyboardLayoutMode.bitmap);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('MinKeyboard renders nothing in mobile "none" mode', (
+      WidgetTester tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        MinSettings.setMobileKeyboardLayout(MobileKeyboardLayoutMode.none);
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: MinKeyboard()),
+          ),
+        );
+
+        expect(find.text('Cx/Fin'), findsNothing);
+        expect(find.text('Sommaire'), findsNothing);
+        expect(find.text('Envoi'), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
   });
 }

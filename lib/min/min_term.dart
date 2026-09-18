@@ -13,6 +13,10 @@ import 'min_model.dart';
 import 'min_serial.dart';
 import 'min_widget.dart';
 
+/// Permet d'ouvrir le menu (drawer) depuis en dehors de l'arbre de widgets,
+/// par ex. le raccourci clavier Ctrl+M dans main.dart, sans BuildContext.
+final GlobalKey<ScaffoldState> minScaffoldKey = GlobalKey<ScaffoldState>();
+
 class MinTerm extends StatelessWidget {
   const MinTerm({super.key});
 
@@ -30,6 +34,7 @@ class MinTerm extends StatelessWidget {
         final appBackground = MinSettings().appBackgroundColor;
         final isDarkMode = appBackground.computeLuminance() < 0.5;
         return Scaffold(
+          key: minScaffoldKey,
           backgroundColor: appBackground,
           drawer: Drawer(
             child: ListView(
@@ -44,6 +49,7 @@ class MinTerm extends StatelessWidget {
                 SetColors(),
                 SetBackground(),
                 const SetSoundMode(),
+                const SetAppBarVisible(),
                 Divider(),
                 CaptureToggle(),
                 CaptureFileActions(),
@@ -55,32 +61,34 @@ class MinTerm extends StatelessWidget {
               ],
             ),
           ),
-          appBar: AppBar(
-            leading: Builder(
-              builder: (context) => _PointerOnlyFocus(
-                child: IconButton(
-                  tooltip: 'Ouvrir le menu',
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-            ),
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            foregroundColor: isDarkMode ? Colors.white : Colors.black,
-            title: const Text('Minterm'),
-            actions: [
-              if (window_setup.isWindowControlsSupported)
-                const _PointerOnlyFocus(child: FullscreenToggleButton()),
-              if (_isMobileDevice)
-                const _PointerOnlyFocus(child: MobileKeyboardButton()),
-              if (!_isMobileDevice)
-                const _PointerOnlyFocus(child: DesktopKeyboardLayoutButton()),
-              const _PointerOnlyFocus(child: KeyboardCaseIndicator()),
-              _PointerOnlyFocus(child: CaptureButton()),
-              const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
-              const _PointerOnlyFocus(child: ColorsButton()),
-            ],
-          ),
+          appBar: MinSettings().chromeVisible
+              ? AppBar(
+                  leading: Builder(
+                    builder: (context) => _PointerOnlyFocus(
+                      child: IconButton(
+                        tooltip: 'Ouvrir le menu',
+                        icon: const Icon(Icons.menu),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
+                  ),
+                  backgroundColor: isDarkMode ? Colors.black : Colors.white,
+                  foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                  actions: [
+                    if (window_setup.isFullscreenToggleSupported)
+                      const _PointerOnlyFocus(child: FullscreenToggleButton()),
+                    if (_isMobileDevice)
+                      const _PointerOnlyFocus(child: MobileKeyboardButton()),
+                    if (!_isMobileDevice)
+                      const _PointerOnlyFocus(
+                          child: DesktopKeyboardLayoutButton()),
+                    const _PointerOnlyFocus(child: KeyboardCaseIndicator()),
+                    _PointerOnlyFocus(child: CaptureButton()),
+                    const _PointerOnlyFocus(child: ReplayCaptureIndicator()),
+                    const _PointerOnlyFocus(child: ColorsButton()),
+                  ],
+                )
+              : null,
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -241,6 +249,8 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
       case MobileKeyboardLayoutMode.virtualCompact:
         return MobileKeyboardLayoutMode.compactOnly;
       case MobileKeyboardLayoutMode.compactOnly:
+        return MobileKeyboardLayoutMode.none;
+      case MobileKeyboardLayoutMode.none:
         return MobileKeyboardLayoutMode.bitmap;
     }
   }
@@ -256,6 +266,11 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
         return (Icons.keyboard, 'Mode clavier: virtuel + compact');
       case MobileKeyboardLayoutMode.compactOnly:
         return (Icons.view_stream, 'Mode clavier: compact uniquement');
+      case MobileKeyboardLayoutMode.none:
+        return (
+          Icons.keyboard_hide,
+          'Mode clavier: aucun (clavier physique uniquement)'
+        );
     }
   }
 
@@ -302,18 +317,33 @@ class _MobileKeyboardButtonState extends State<MobileKeyboardButton> {
 class DesktopKeyboardLayoutButton extends StatelessWidget {
   const DesktopKeyboardLayoutButton({super.key});
 
+  (IconData, String) _visuals(DesktopKeyboardMode mode) {
+    switch (mode) {
+      case DesktopKeyboardMode.image:
+        return (Icons.keyboard, 'Clavier: image (basculer vers compact)');
+      case DesktopKeyboardMode.compact:
+        return (
+          Icons.keyboard_alt_outlined,
+          'Clavier: compact (basculer vers aucun)'
+        );
+      case DesktopKeyboardMode.none:
+        return (
+          Icons.keyboard_hide,
+          'Clavier: aucun, clavier physique uniquement (basculer vers image)'
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, _) {
-        final imageMode = MinSettings().desktopImageKeyboardEnabled;
+        final visuals = _visuals(MinSettings().desktopKeyboardMode);
         return IconButton(
-          tooltip: imageMode
-              ? 'Utiliser le clavier compact'
-              : 'Utiliser le clavier image',
-          icon: Icon(imageMode ? Icons.keyboard_hide : Icons.keyboard),
-          onPressed: () => MinSettings.toggleDesktopImageKeyboard(),
+          tooltip: visuals.$2,
+          icon: Icon(visuals.$1),
+          onPressed: () => MinSettings.cycleDesktopKeyboardMode(),
         );
       },
     );
@@ -677,8 +707,7 @@ class SetScreenMode extends StatelessWidget {
           onTap = () => MinModel().enterTeleinformatique();
         } else {
           label = 'Téléinfo 80';
-          onTap = () =>
-              MinModel().setScreenMode(TMinitelScreenMode.videotex40);
+          onTap = () => MinModel().setScreenMode(TMinitelScreenMode.videotex40);
         }
         return ListTile(
           onTap: onTap,
@@ -721,6 +750,24 @@ class SetKeyboardCase extends StatelessWidget {
               Text(lowercase ? 'Minuscule' : 'Majuscule'),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class SetAppBarVisible extends StatelessWidget {
+  const SetAppBarVisible({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        return SwitchListTile(
+          title: const Text('Barre d\'outils'),
+          value: MinSettings().chromeVisible,
+          onChanged: (_) => MinSettings.toggleChromeVisible(),
         );
       },
     );

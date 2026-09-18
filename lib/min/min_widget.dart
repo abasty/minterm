@@ -9,6 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../window/window_setup.dart' as window_setup;
 import 'min_emulator.dart';
 import 'min_model.dart';
 
@@ -16,6 +17,29 @@ enum MobileKeyboardLayoutMode {
   bitmap,
   virtualCompact,
   compactOnly,
+  none,
+}
+
+enum DesktopKeyboardMode {
+  image,
+  compact,
+  none,
+}
+
+// Partagé entre MinScreenAndKeyboard (dimensionnement) et MinKeyboard (choix
+// du widget), pour ne pas dupliquer une 3e fois cette logique déjà présente
+// deux fois.
+bool wantsNoVirtualKeyboard(MinSettings settings, bool isMobileTarget) {
+  return isMobileTarget
+      ? settings.mobileKeyboardLayout == MobileKeyboardLayoutMode.none
+      : settings.desktopKeyboardMode == DesktopKeyboardMode.none;
+}
+
+bool wantsImageKeyboard(MinSettings settings, bool isMobileTarget) {
+  final allowImageKeyboardOnMobile = isMobileTarget &&
+      settings.mobileKeyboardLayout == MobileKeyboardLayoutMode.bitmap;
+  return allowImageKeyboardOnMobile ||
+      settings.desktopKeyboardMode == DesktopKeyboardMode.image;
 }
 
 enum SoundMode {
@@ -81,14 +105,23 @@ class MinSettings extends ChangeNotifier {
   var duration = durationMax;
   var _colors = MinGrey;
   int _loaded = 0;
-  bool _keyboard = false;
   bool _capslock = true;
-  bool _desktopImageKeyboardEnabled = false;
+  // Défaut = compact, comme l'ancien bool _desktopImageKeyboardEnabled=false.
+  DesktopKeyboardMode _desktopKeyboardMode = DesktopKeyboardMode.compact;
   MobileKeyboardLayoutMode _mobileKeyboardLayout =
       MobileKeyboardLayoutMode.bitmap;
   SoundMode _soundMode = SoundMode.bipAndKeyboard;
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
+  bool _chromeVisible = true;
+  // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (plein écran
+  // + clavier virtuel forcé à "aucun"). La sous-étape (barre d'outils visible
+  // ou non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
+  // chaque appui de _chromeVisible, pour rester cohérent même si la barre
+  // d'outils est basculée manuellement (menu) en cours de cycle.
+  bool _immersiveActive = false;
+  DesktopKeyboardMode _restoreDesktopKeyboardMode = DesktopKeyboardMode.compact;
+  bool _restoreChromeVisible = true;
 
   factory MinSettings() {
     return _singleton;
@@ -202,11 +235,9 @@ class MinSettings extends ChangeNotifier {
 
   bool get isLoaded => _loaded == 4;
 
-  bool get keyboard => _keyboard;
-
   bool get capslock => _capslock;
 
-  bool get desktopImageKeyboardEnabled => _desktopImageKeyboardEnabled;
+  DesktopKeyboardMode get desktopKeyboardMode => _desktopKeyboardMode;
 
   MobileKeyboardLayoutMode get mobileKeyboardLayout => _mobileKeyboardLayout;
 
@@ -220,6 +251,8 @@ class MinSettings extends ChangeNotifier {
       _soundMode == SoundMode.keyboard;
 
   Color get appBackgroundColor => _appBackgroundColor;
+
+  bool get chromeVisible => _chromeVisible;
 
   static void setScale(double scale) {
     _singleton.duration = 0;
@@ -259,21 +292,24 @@ class MinSettings extends ChangeNotifier {
     _singleton.notifyListeners();
   }
 
-  static void toggleKeyboard() {
-    _singleton.duration = durationMax;
-    _singleton._keyboard = !_singleton._keyboard;
-    _singleton.notifyListeners();
-  }
-
   static void toggleCapslock() {
     _singleton._capslock = !_singleton._capslock;
     _singleton.notifyListeners();
   }
 
-  static void toggleDesktopImageKeyboard() {
-    _singleton._desktopImageKeyboardEnabled =
-        !_singleton._desktopImageKeyboardEnabled;
+  static void setDesktopKeyboardMode(DesktopKeyboardMode mode) {
+    if (_singleton._desktopKeyboardMode == mode) return;
+    _singleton._desktopKeyboardMode = mode;
     _singleton.notifyListeners();
+  }
+
+  static void cycleDesktopKeyboardMode() {
+    const next = {
+      DesktopKeyboardMode.image: DesktopKeyboardMode.compact,
+      DesktopKeyboardMode.compact: DesktopKeyboardMode.none,
+      DesktopKeyboardMode.none: DesktopKeyboardMode.image,
+    };
+    setDesktopKeyboardMode(next[_singleton._desktopKeyboardMode]!);
   }
 
   static void setMobileKeyboardLayout(MobileKeyboardLayoutMode mode) {
@@ -282,22 +318,62 @@ class MinSettings extends ChangeNotifier {
     _singleton.notifyListeners();
   }
 
-  static void setSoundMode(SoundMode mode) {
-    if (_singleton._soundMode == mode) return;
-    _singleton._soundMode = mode;
+  static void setChromeVisible(bool visible) {
+    if (_singleton._chromeVisible == visible) return;
+    _singleton._chromeVisible = visible;
     _singleton.notifyListeners();
   }
 
-  static void cycleMobileKeyboardLayout() {
-    switch (_singleton._mobileKeyboardLayout) {
-      case MobileKeyboardLayoutMode.bitmap:
-        _singleton._mobileKeyboardLayout =
-            MobileKeyboardLayoutMode.virtualCompact;
-      case MobileKeyboardLayoutMode.virtualCompact:
-        _singleton._mobileKeyboardLayout = MobileKeyboardLayoutMode.compactOnly;
-      case MobileKeyboardLayoutMode.compactOnly:
-        _singleton._mobileKeyboardLayout = MobileKeyboardLayoutMode.bitmap;
+  /// Bascule l'affichage de l'AppBar (menu, icônes), indépendamment du mode
+  /// clavier. Utilisé par le toggle "Barre d'outils" du menu.
+  static void toggleChromeVisible() {
+    setChromeVisible(!_singleton._chromeVisible);
+  }
+
+  /// Cycle "mode zen" déclenché par Ctrl+Z (voir main.dart) : 1er appui ->
+  /// plein écran, sans clavier virtuel ni barre d'outils ; 2e appui -> la
+  /// barre d'outils revient (toujours plein écran, toujours sans clavier) ;
+  /// 3e appui -> retour à l'état d'avant le cycle.
+  ///
+  /// Le plein écran passe par setFullscreen() et non par une bascule : en
+  /// web, requestFullscreen() exige une "transient user activation" que le
+  /// standard HTML refuse aux keydown portant un modificateur (Ctrl/Cmd sont
+  /// des "shortcut keys"). L'entrée en plein écran peut donc être refusée par
+  /// le navigateur ; une direction explicite garantit qu'un refus reste sans
+  /// conséquence sur la sortie. L'icône dédiée, elle, marche toujours (un
+  /// clic produit bien l'activation).
+  ///
+  /// La sous-étape (barre d'outils visible ou non) est déduite de
+  /// _chromeVisible à chaque appui plutôt que mémorisée à part, pour que
+  /// Ctrl+Z reste cohérent même si la barre d'outils a été basculée
+  /// manuellement (menu) en cours de cycle : la bascule manuelle fait juste
+  /// "sauter" à la sous-étape qui correspond à l'état affiché.
+  static void cycleImmersiveMode() {
+    final s = _singleton;
+    if (!s._immersiveActive) {
+      // Étape 0 -> 1 : plein écran, sans clavier ni barre d'outils.
+      s._restoreDesktopKeyboardMode = s._desktopKeyboardMode;
+      s._restoreChromeVisible = s._chromeVisible;
+      s._desktopKeyboardMode = DesktopKeyboardMode.none;
+      s._chromeVisible = false;
+      s._immersiveActive = true;
+      window_setup.setFullscreen(true);
+    } else if (!s._chromeVisible) {
+      // Étape 1 -> 2 : la barre d'outils revient.
+      s._chromeVisible = true;
+    } else {
+      // Étape 2 -> 0 : retour à l'état d'avant le cycle.
+      s._desktopKeyboardMode = s._restoreDesktopKeyboardMode;
+      s._chromeVisible = s._restoreChromeVisible;
+      s._immersiveActive = false;
+      window_setup.setFullscreen(false);
     }
+    s.notifyListeners();
+  }
+
+  static void setSoundMode(SoundMode mode) {
+    if (_singleton._soundMode == mode) return;
+    _singleton._soundMode = mode;
     _singleton.notifyListeners();
   }
 
@@ -413,12 +489,12 @@ class MinScreenAndKeyboard extends StatelessWidget {
               const displayColumns = 80;
               const displayWidth = 8.0 * displayColumns;
               const displayHeight = displayWidth * 3.0 / 4.0;
-              final allowImageKeyboardOnMobile = _isMobileTarget &&
-                  settings.mobileKeyboardLayout ==
-                      MobileKeyboardLayoutMode.bitmap;
-              final imageKeyboardEnabled = allowImageKeyboardOnMobile ||
-                  settings.desktopImageKeyboardEnabled;
-              final keyboardBaseHeight = imageKeyboardEnabled ? 500.0 : 48.0;
+              final keyboardBaseHeight =
+                  wantsNoVirtualKeyboard(settings, _isMobileTarget)
+                      ? 0.0
+                      : wantsImageKeyboard(settings, _isMobileTarget)
+                          ? 500.0
+                          : 48.0;
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -455,36 +531,43 @@ class MinScreenAndKeyboard extends StatelessWidget {
                         children: [
                           SizedBox(
                             height: viewportHeight,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTapDown: (TapDownDetails details) {
-                                final tapPosition = details.localPosition;
-                                final x = math.max(
-                                  0,
-                                  math.min(
-                                    minmodel.minitel.columns - 1,
-                                    (tapPosition.dx / cellWidth).toInt(),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTapDown: (TapDownDetails details) {
+                                    final tapPosition = details.localPosition;
+                                    final x = math.max(
+                                      0,
+                                      math.min(
+                                        minmodel.minitel.columns - 1,
+                                        (tapPosition.dx / cellWidth).toInt(),
+                                      ),
+                                    );
+                                    final y = math.max(
+                                      0,
+                                      math.min(
+                                        minmodel.minitel.rows - 1,
+                                        (tapPosition.dy / cellHeight).toInt(),
+                                      ),
+                                    );
+                                    minmodel.handleTap(x, y);
+                                  },
+                                  child: CustomPaint(
+                                    painter: _MinPainter(minmodel),
                                   ),
-                                );
-                                final y = math.max(
-                                  0,
-                                  math.min(
-                                    minmodel.minitel.rows - 1,
-                                    (tapPosition.dy / cellHeight).toInt(),
-                                  ),
-                                );
-                                minmodel.handleTap(x, y);
-                              },
-                              child: CustomPaint(
-                                painter: _MinPainter(minmodel),
-                              ),
+                                ),
+                                // Ancré sur l'affichage (pas sur le slot
+                                // clavier) pour rester visible même en mode
+                                // "sans clavier virtuel" (hauteur clavier 0).
+                                const _ReplayPausedOverlay(),
+                              ],
                             ),
                           ),
                           SizedBox(
                             height: keyboardHeight,
-                            child: _KeyboardWithReplayOverlay(
-                              scale: fittedScale,
-                            ),
+                            child: MinKeyboard(scaleOverride: fittedScale),
                           ),
                         ],
                       ),
@@ -500,66 +583,55 @@ class MinScreenAndKeyboard extends StatelessWidget {
   }
 }
 
-class _KeyboardWithReplayOverlay extends StatelessWidget {
-  final double scale;
-
-  const _KeyboardWithReplayOverlay({required this.scale});
+class _ReplayPausedOverlay extends StatelessWidget {
+  const _ReplayPausedOverlay();
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      alignment: Alignment.center,
-      children: [
-        MinKeyboard(scaleOverride: scale),
-        ListenableBuilder(
-          listenable: MinModel(),
-          builder: (context, _) {
-            final paused = MinModel().isReplayPaused;
-            return IgnorePointer(
-              ignoring: !paused,
-              child: Center(
-                child: GestureDetector(
-                  onTap:
-                      paused ? () => MinModel().resumeReplayAfterPause() : null,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOut,
-                    opacity: paused ? 1 : 0,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final overlayWidth = constraints.maxWidth > 24
-                            ? constraints.maxWidth - 24
-                            : constraints.maxWidth;
-                        return Container(
-                          width: overlayWidth,
-                          height: 52,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color:
-                                const Color(0xFFD32F2F).withValues(alpha: 0.92),
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: const Text(
-                            'Pause lecture: touche/clic pour continuer, ESC pour quitter',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+    return ListenableBuilder(
+      listenable: MinModel(),
+      builder: (context, _) {
+        final paused = MinModel().isReplayPaused;
+        return IgnorePointer(
+          ignoring: !paused,
+          child: Center(
+            child: GestureDetector(
+              onTap: paused ? () => MinModel().resumeReplayAfterPause() : null,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOut,
+                opacity: paused ? 1 : 0,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final overlayWidth = constraints.maxWidth > 24
+                        ? constraints.maxWidth - 24
+                        : constraints.maxWidth;
+                    return Container(
+                      width: overlayWidth,
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD32F2F).withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: const Text(
+                        'Pause lecture: touche/clic pour continuer, ESC pour quitter',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  },
                 ),
               ),
-            );
-          },
-        ),
-      ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -969,12 +1041,10 @@ class MinKeyboard extends StatelessWidget {
     return ListenableBuilder(
       listenable: MinModel(),
       builder: (context, child) {
-        final allowImageKeyboardOnMobile = _isMobileTarget &&
-            MinSettings().mobileKeyboardLayout ==
-                MobileKeyboardLayoutMode.bitmap;
-        final useImageKeyboard = allowImageKeyboardOnMobile ||
-            MinSettings().desktopImageKeyboardEnabled;
-        if (useImageKeyboard) {
+        if (wantsNoVirtualKeyboard(MinSettings(), _isMobileTarget)) {
+          return const SizedBox.shrink();
+        }
+        if (wantsImageKeyboard(MinSettings(), _isMobileTarget)) {
           return _MinMinitelImageKeyboard();
         }
         return MinMinitelKeyboard(scaleOverride: scaleOverride);
