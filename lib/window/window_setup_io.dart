@@ -6,6 +6,9 @@ import 'package:window_manager/window_manager.dart';
 bool get isWindowControlsSupported =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
+/// Pas de plein écran fenêtré sur mobile : l'app y est déjà plein écran.
+bool get isFullscreenToggleSupported => isWindowControlsSupported;
+
 final ValueNotifier<bool> fullscreenListenable = ValueNotifier<bool>(false);
 
 Future<void> initializeWindow() async {

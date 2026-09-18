@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'window_setup_web.dart' if (dart.library.io) 'window_setup_io.dart'
     as impl;
 
-bool get isWindowControlsSupported => impl.isWindowControlsSupported;
+bool get isFullscreenToggleSupported => impl.isFullscreenToggleSupported;
 
 ValueListenable<bool> get fullscreenListenable => impl.fullscreenListenable;
 

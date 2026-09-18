@@ -75,7 +75,7 @@ class MinTerm extends StatelessWidget {
                   backgroundColor: isDarkMode ? Colors.black : Colors.white,
                   foregroundColor: isDarkMode ? Colors.white : Colors.black,
                   actions: [
-                    if (window_setup.isWindowControlsSupported)
+                    if (window_setup.isFullscreenToggleSupported)
                       const _PointerOnlyFocus(child: FullscreenToggleButton()),
                     if (_isMobileDevice)
                       const _PointerOnlyFocus(child: MobileKeyboardButton()),
