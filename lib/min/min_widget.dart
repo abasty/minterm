@@ -9,7 +9,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../window/window_setup.dart' as window_setup;
 import 'min_emulator.dart';
 import 'min_model.dart';
 
@@ -114,11 +113,11 @@ class MinSettings extends ChangeNotifier {
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
-  // true entre l'entrée et la sortie du cycle plein écran Ctrl+F (clavier
-  // forcé à "aucun" + plein écran). La sous-étape (barre d'outils visible ou
-  // non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
-  // chaque appui de _chromeVisible, pour rester cohérent même si la barre
-  // d'outils est basculée manuellement (menu) en cours de cycle.
+  // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (clavier
+  // virtuel forcé à "aucun"). La sous-étape (barre d'outils visible ou non)
+  // n'est pas mémorisée à part : cycleImmersiveMode() la déduit à chaque
+  // appui de _chromeVisible, pour rester cohérent même si la barre d'outils
+  // est basculée manuellement (menu) en cours de cycle.
   bool _immersiveActive = false;
   DesktopKeyboardMode _restoreDesktopKeyboardMode = DesktopKeyboardMode.compact;
   bool _restoreChromeVisible = true;
@@ -330,26 +329,31 @@ class MinSettings extends ChangeNotifier {
     setChromeVisible(!_singleton._chromeVisible);
   }
 
-  /// Cycle plein écran déclenché par Ctrl+F (voir main.dart) : 1er appui ->
-  /// sans clavier virtuel, barre d'outils conservée (+ plein écran) ; 2e
-  /// appui -> barre d'outils masquée à son tour, toujours sans clavier ; 3e
-  /// appui -> retour à l'état d'avant le cycle (clavier, barre d'outils,
-  /// plein écran).
+  /// Cycle "mode zen" déclenché par Ctrl+Z (voir main.dart) : 1er appui ->
+  /// sans clavier virtuel, barre d'outils conservée ; 2e appui -> barre
+  /// d'outils masquée à son tour, toujours sans clavier ; 3e appui -> retour
+  /// à l'état d'avant le cycle (clavier, barre d'outils).
   ///
-  /// La sous-étape (barre d'outils visible ou non pendant le plein écran)
-  /// est déduite de _chromeVisible à chaque appui plutôt que mémorisée à
-  /// part, pour que Ctrl+F reste cohérent même si la barre d'outils a été
-  /// basculée manuellement (menu) en cours de cycle : la bascule manuelle
-  /// fait juste "sauter" à la sous-étape qui correspond à l'état affiché.
+  /// Le plein écran ne fait volontairement pas partie du cycle : en web,
+  /// requestFullscreen() exige une "transient user activation" que le
+  /// standard HTML refuse aux keydown portant un modificateur (Ctrl/Cmd sont
+  /// des "shortcut keys"). Un raccourci Ctrl+X ne peut donc jamais y entrer
+  /// de façon fiable — le plein écran reste sur l'icône dédiée (un clic, lui,
+  /// produit bien l'activation) et sur F11.
+  ///
+  /// La sous-étape (barre d'outils visible ou non) est déduite de
+  /// _chromeVisible à chaque appui plutôt que mémorisée à part, pour que
+  /// Ctrl+Z reste cohérent même si la barre d'outils a été basculée
+  /// manuellement (menu) en cours de cycle : la bascule manuelle fait juste
+  /// "sauter" à la sous-étape qui correspond à l'état affiché.
   static void cycleImmersiveMode() {
     final s = _singleton;
     if (!s._immersiveActive) {
-      // Étape 0 -> 1 : entrée en plein écran, barre d'outils conservée.
+      // Étape 0 -> 1 : barre d'outils conservée.
       s._restoreDesktopKeyboardMode = s._desktopKeyboardMode;
       s._restoreChromeVisible = s._chromeVisible;
       s._desktopKeyboardMode = DesktopKeyboardMode.none;
       s._immersiveActive = true;
-      window_setup.toggleFullscreen();
     } else if (s._chromeVisible) {
       // Étape 1 -> 2 : la barre d'outils se masque à son tour.
       s._chromeVisible = false;
@@ -358,7 +362,6 @@ class MinSettings extends ChangeNotifier {
       s._desktopKeyboardMode = s._restoreDesktopKeyboardMode;
       s._chromeVisible = s._restoreChromeVisible;
       s._immersiveActive = false;
-      window_setup.toggleFullscreen();
     }
     s.notifyListeners();
   }

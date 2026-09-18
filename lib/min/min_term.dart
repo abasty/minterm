@@ -385,7 +385,7 @@ class FullscreenToggleButton extends StatelessWidget {
             isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
           ),
           onPressed: () {
-            MinSettings.cycleImmersiveMode();
+            window_setup.toggleFullscreen();
           },
         );
       },

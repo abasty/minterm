@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
 import 'package:minterm/min/min_model.dart';
@@ -128,17 +127,6 @@ import 'package:minterm/min/min_widget.dart';
 */
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  // window_manager n'a pas d'implémentation native en test : on simule son
-  // channel pour que window_setup.toggleFullscreen() (utilisé par
-  // MinSettings.cycleImmersiveMode()) ne lève pas de MissingPluginException.
-  const windowManagerChannel = MethodChannel('window_manager');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(windowManagerChannel, (call) async {
-    if (call.method == 'isFullScreen') return false;
-    return null;
-  });
-
   setUp(() {
     MinModel().setScreenMode(TMinitelScreenMode.videotex40);
     MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
@@ -306,7 +294,7 @@ void main() {
     });
 
     test(
-        'manually toggling "Barre d\'outils" mid-cycle just moves Ctrl+F to '
+        'manually toggling "Barre d\'outils" mid-cycle just moves Ctrl+Z to '
         'the matching sub-step, instead of desyncing it', () {
       MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
 
@@ -315,14 +303,14 @@ void main() {
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isFalse);
 
-      // Manual override mid-cycle (menu switch): Ctrl+F stays in the cycle
+      // Manual override mid-cycle (menu switch): Ctrl+Z stays in the cycle
       // (still no virtual keyboard), it just adapts to the toolbar now
       // being visible again, as if we were back at step 1.
       MinSettings.toggleChromeVisible();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isTrue);
 
-      // Next Ctrl+F continues from that sub-step: hides the toolbar again.
+      // Next Ctrl+Z continues from that sub-step: hides the toolbar again.
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isFalse);

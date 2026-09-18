@@ -254,10 +254,11 @@ void main(List<String> args) async {
             MinModel().handleKeys(_resolveKeyboardCaseChar(event, shift));
           }
           break;
-        case LogicalKeyboardKey.keyF:
-          // Ctrl+F / Cmd+F : cycle plein écran immersif (sans clavier/avec
-          // barre d'outils -> sans clavier/sans barre d'outils -> retour à
-          // l'état d'avant), voir MinSettings.cycleImmersiveMode().
+        case LogicalKeyboardKey.keyZ:
+          // Ctrl+Z / Cmd+Z : cycle "mode zen" (sans clavier/avec barre
+          // d'outils -> sans clavier/sans barre d'outils -> retour à l'état
+          // d'avant), voir MinSettings.cycleImmersiveMode(). Le plein écran
+          // n'en fait pas partie : il reste sur l'icône dédiée et F11.
           if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
             MinSettings.cycleImmersiveMode();
           } else {
@@ -266,7 +267,7 @@ void main(List<String> args) async {
           break;
         case LogicalKeyboardKey.keyM:
           // Ctrl+M / Cmd+M : bascule le menu (ouvre/ferme), y compris barre
-          // d'outils masquée (mode immersif Ctrl+F).
+          // d'outils masquée (mode zen Ctrl+Z).
           if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
             final scaffold = minScaffoldKey.currentState;
             if (scaffold?.isDrawerOpen ?? false) {
