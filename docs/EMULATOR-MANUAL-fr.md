@@ -34,6 +34,7 @@ automatiquement à un service au chargement de la page, par exemple :
 - [Le clavier](#le-clavier)
 - [Affichage](#affichage)
 - [Plein écran](#plein-écran)
+- [Mode zen (Ctrl+Z)](#mode-zen-ctrlz)
 - [Capture et relecture d'une session](#capture-et-relecture-dune-session)
 - [Menu et autres réglages](#menu-et-autres-réglages)
 - [Annexe : table des touches spéciales](#annexe--table-des-touches-spéciales)
@@ -54,9 +55,13 @@ automatiquement à un service au chargement de la page, par exemple :
 | 5 | 🎨 (palette) | Bascule couleur / niveaux de gris — voir [Affichage](#affichage) |
 
 Selon la plateforme, d'autres icônes peuvent apparaître dans la barre d'outils
-et ne sont pas repérées sur cette capture : plein écran sur desktop (voir
-[Plein écran](#plein-écran)) et fond clair/sombre (voir
+et ne sont pas repérées sur cette capture : plein écran sur desktop et en web
+(voir [Plein écran](#plein-écran)) et fond clair/sombre (voir
 [Affichage](#affichage)).
+
+La barre d'outils elle-même peut être masquée, pour laisser tout l'espace à
+l'affichage Minitel — voir l'interrupteur **Barre d'outils** du menu et le
+[Mode zen](#mode-zen-ctrlz).
 
 ### Menu (repères 6 à 22)
 
@@ -69,6 +74,7 @@ et ne sont pas repérées sur cette capture : plein écran sur desktop (voir
 | 10 | Couleur | Interrupteur couleur / niveaux de gris — voir [Affichage](#affichage) |
 | 11 | Fond clair | Interrupteur fond noir/blanc — voir [Affichage](#affichage) |
 | 12 | Son | Fait défiler les 4 modes sonores — voir [Son](#son) |
+| — | Barre d'outils | Interrupteur qui affiche ou masque la barre d'outils — voir [Menu et autres réglages](#menu-et-autres-réglages) |
 | 13 | Capture | Démarre/arrête l'enregistrement — voir [Capture et relecture d'une session](#capture-et-relecture-dune-session) |
 | 14 | ▶ Rejouer | Rejoue la dernière capture enregistrée |
 | 15 | ⬇ Exporter | Sauvegarde la capture courante sur le disque |
@@ -76,6 +82,9 @@ et ne sont pas repérées sur cette capture : plein écran sur desktop (voir
 | 17 | ⏻ Effacer l'écran | Efface l'écran et repositionne le curseur, avec signal sonore |
 | 18-21 | Minipavi, Minijeux, BastOS, Services... | Connexions rapides et gestion complète des connexions — voir [Se connecter à un service](#se-connecter-à-un-service) |
 | 22 | Manuel (GitHub) | Ouvre ce manuel dans le navigateur |
+
+L'interrupteur **Barre d'outils** est plus récent que cette capture d'écran :
+il se situe juste sous **Son**, et n'y porte donc pas de repère numéroté.
 
 ## Se connecter à un service
 
@@ -204,6 +213,17 @@ correspondances suivantes vers les touches fonctionnelles du Minitel :
 | Ctrl+C | Cx/Fin (40 colonnes) / interruption (80 colonnes) |
 | Ctrl+G | Bip |
 
+Deux raccourcis pilotent l'interface de l'application elle-même, et ne sont
+donc pas transmis au service connecté :
+
+| Touche PC | Fonction Minterm |
+|---|---|
+| Ctrl+Z (Cmd+Z) | Mode zen : masque clavier virtuel et barre d'outils — voir [Mode zen](#mode-zen-ctrlz) |
+| Ctrl+M (Cmd+M) | Ouvre ou ferme le menu, dans tous les états de l'affichage |
+
+Un troisième, **Ctrl+V** (Cmd+V), colle le contenu du presse-papier — voir
+[Coller depuis le presse-papier](#coller-depuis-le-presse-papier).
+
 Les accents et caractères spéciaux du clavier Minitel sont produits à partir
 des touches mortes/lettres du clavier français : `à`, `é`, `è`, `ù`, `ç`, `Ç`,
 `£`, `§`, `°`.
@@ -285,20 +305,65 @@ compact.
 
 ## Plein écran
 
-Le comportement diffère selon la plateforme :
+Une **icône plein écran** est présente dans la barre d'outils, sur desktop
+comme en web. Elle bascule l'affichage en plein écran et en ressort. Le
+[mode zen](#mode-zen-ctrlz) (Ctrl+Z) y entre également.
 
-- **Desktop (Linux, Windows, macOS)** : une icône plein écran est présente
-  dans la barre d'outils. Elle bascule la fenêtre de l'application en plein
-  écran, géré directement par l'application.
-- **Web** : il n'y a pas d'icône dédiée — c'est le navigateur qui gère son
-  propre plein écran. Utilisez **F11** pour entrer ou sortir du plein écran :
-  c'est **le seul moyen d'en sortir**. Échap ne fait pas sortir du plein
-  écran (F11 bascule le plein écran du navigateur lui-même — barre d'adresse
-  et onglets masqués —, un mode invisible pour la page qu'aucun site ne peut
-  fermer via Échap, contrairement au plein écran déclenché par une page web
-  via l'API Fullscreen, que Minterm n'utilise plus). Échap reste en revanche
-  transmise normalement au service connecté, comme n'importe quelle autre
-  touche.
+Sur **desktop** (Linux, Windows, macOS), c'est la fenêtre de l'application qui
+passe en plein écran, géré directement par l'application.
+
+En **web**, deux plein écran distincts coexistent, et il est utile de savoir
+lequel on utilise pour savoir comment en sortir :
+
+| Déclenché par | Ce qui passe en plein écran | Comment en sortir |
+|---|---|---|
+| L'icône de la barre d'outils, ou Ctrl+Z | La page (API Fullscreen du navigateur) | L'icône, le 3ᵉ appui sur Ctrl+Z, ou **Échap** |
+| **F11** | Le navigateur lui-même (barre d'adresse et onglets masqués) | **F11** uniquement — Échap ne le referme pas |
+
+Dans le premier cas, **Échap** referme le plein écran (c'est le navigateur qui
+l'impose, aucune page ne peut l'en empêcher) tout en restant transmise
+normalement au service connecté. Dans le second, le plein écran du navigateur
+est invisible pour la page : Minterm ne peut ni le détecter ni le refermer, et
+l'icône de la barre d'outils continue donc d'afficher « entrer en plein
+écran » même si vous y êtes déjà via F11.
+
+L'icône est absente lorsque le navigateur interdit le plein écran à la page :
+c'est le cas sur Safari iOS, ou lorsque Minterm est intégré dans une page tierce
+via une iframe qui ne l'autorise pas. F11 reste disponible dans ces cas.
+
+## Mode zen (Ctrl+Z)
+
+**Ctrl+Z** (Cmd+Z sur Mac) escamote tout l'habillage de l'application pour ne
+laisser que l'écran Minitel. Chaque appui fait avancer un cycle de trois
+états :
+
+| Appui | État |
+|---|---|
+| 1ᵉʳ | Plein écran, sans clavier virtuel **ni barre d'outils** |
+| 2ᵉ | La barre d'outils revient (toujours en plein écran, toujours sans clavier virtuel) |
+| 3ᵉ | Retour exact à l'état d'avant le cycle : clavier virtuel, barre d'outils et plein écran comme vous les aviez laissés |
+
+Le clavier physique et le tap/clic sur l'écran restent opérants dans tous les
+états : seul l'affichage du clavier virtuel est escamoté (comme le mode
+*aucun clavier virtuel*, voir [Clavier virtuel](#clavier-virtuel)).
+
+**Ctrl+M** ouvre et referme le menu quel que soit l'état, y compris pendant le
+premier où la barre d'outils — et donc son icône ☰ — est masquée. C'est aussi
+ce qui vous permet de revenir en arrière si vous avez masqué la barre d'outils
+depuis le menu, sans passer par Ctrl+Z.
+
+Si vous basculez l'interrupteur **Barre d'outils** du menu en cours de cycle,
+Ctrl+Z ne s'y perd pas : il reprend simplement à l'état qui correspond à ce
+que vous voyez à l'écran.
+
+> ⚠️ **En web**, l'entrée en plein écran du 1ᵉʳ appui peut être refusée par le
+> navigateur. Les navigateurs n'autorisent le plein écran qu'à la suite d'une
+> action « physique » de l'utilisateur, et un raccourci clavier comportant
+> Ctrl ou Cmd n'est pas reconnu comme telle. Le cycle des trois états
+> fonctionne quand même ; pour un plein écran garanti, utilisez l'icône de la
+> barre d'outils (un clic, lui, est toujours accepté) ou F11 — voir
+> [Plein écran](#plein-écran). Sur desktop, le plein écran du 1ᵉʳ appui
+> fonctionne systématiquement.
 
 ## Capture et relecture d'une session
 
@@ -327,8 +392,19 @@ correspondantes sont alors grisées.
 
 Le menu regroupe l'essentiel des réglages sous forme d'interrupteurs et de
 rangées d'icônes plutôt que de longues listes textuelles : Vitesse, 80 cols,
-Clavier (majuscule/minuscule), Couleur, Fond clair, Son, puis Capture et ses
-outils. Une icône ✕ en haut du menu permet de le refermer.
+Clavier (majuscule/minuscule), Couleur, Fond clair, Son, Barre d'outils, puis
+Capture et ses outils. Une icône ✕ en haut du menu permet de le refermer.
+
+Il s'ouvre par l'icône ☰ en haut à gauche, ou au clavier par **Ctrl+M**
+(Cmd+M sur Mac), qui le referme également. Ce raccourci fonctionne en
+permanence, y compris lorsque la barre d'outils est masquée et que l'icône ☰
+n'est donc plus visible.
+
+L'interrupteur **Barre d'outils** masque ou réaffiche la barre d'outils, pour
+laisser tout l'espace à l'affichage Minitel sans passer par le
+[mode zen](#mode-zen-ctrlz). Une fois la barre masquée, c'est par Ctrl+M qu'on
+rouvre le menu pour la réafficher. Ce réglage n'est pas mémorisé d'une session
+à l'autre — la barre d'outils est toujours visible au lancement.
 
 Tout en bas du menu, l'entrée **Manuel (GitHub)** ouvre ce manuel dans le
 navigateur, à l'adresse
