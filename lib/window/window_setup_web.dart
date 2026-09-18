@@ -70,12 +70,16 @@ Future<void> initializeWindow() async {
   _syncFullscreenState();
 }
 
-Future<void> toggleFullscreen() async {
+Future<void> toggleFullscreen() =>
+    setFullscreen(_document.fullscreenElement == null);
+
+Future<void> setFullscreen(bool enabled) async {
+  if (enabled == (_document.fullscreenElement != null)) return;
   try {
-    if (_document.fullscreenElement != null) {
-      await _document.exitFullscreen().toDart;
-    } else {
+    if (enabled) {
       await _document.documentElement?.requestFullscreen().toDart;
+    } else {
+      await _document.exitFullscreen().toDart;
     }
   } catch (_) {
     // Le navigateur peut refuser (ex: pas déclenché par un geste utilisateur,

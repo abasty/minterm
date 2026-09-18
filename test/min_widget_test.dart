@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
 import 'package:minterm/min/min_model.dart';
 import 'package:minterm/min/min_term.dart';
 import 'package:minterm/min/min_widget.dart';
+import 'package:minterm/window/window_setup.dart' as window_setup;
 
 /*
     drawString(
@@ -127,6 +129,16 @@ import 'package:minterm/min/min_widget.dart';
 */
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // window_manager n'a pas d'implémentation native en test : sans ce mock,
+  // le plein écran demandé par cycleImmersiveMode() lève une
+  // MissingPluginException dans un Future non attendu.
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+    const MethodChannel('window_manager'),
+    (call) async => call.method == 'isFullScreen' ? false : null,
+  );
+
   setUp(() {
     MinModel().setScreenMode(TMinitelScreenMode.videotex40);
     MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.compact);
@@ -274,23 +286,31 @@ void main() {
       expect(MinSettings().chromeVisible, isTrue);
     });
 
-    test('cycleImmersiveMode cycles chrome -> no-chrome -> restored state',
-        () {
+    test('cycleImmersiveMode cycles no-chrome -> chrome -> restored state',
+        () async {
       MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
       expect(MinSettings().chromeVisible, isTrue);
 
-      MinSettings.cycleImmersiveMode();
-      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
-      expect(MinSettings().chromeVisible, isTrue);
-
+      // 1er appui : plein écran, sans clavier ni barre d'outils.
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isFalse);
+      await Future<void>.delayed(Duration.zero);
+      expect(window_setup.fullscreenListenable.value, isTrue);
 
+      // 2e appui : la barre d'outils revient, toujours en plein écran.
+      MinSettings.cycleImmersiveMode();
+      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
+      expect(MinSettings().chromeVisible, isTrue);
+      expect(window_setup.fullscreenListenable.value, isTrue);
+
+      // 3e appui : retour à l'état d'avant le cycle.
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
       expect(MinSettings().chromeVisible, isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(window_setup.fullscreenListenable.value, isFalse);
     });
 
     test(
@@ -299,24 +319,18 @@ void main() {
       MinSettings.setDesktopKeyboardMode(DesktopKeyboardMode.image);
 
       MinSettings.cycleImmersiveMode(); // step 0 -> 1 (snapshot: image, true)
-      MinSettings.cycleImmersiveMode(); // step 1 -> 2 (chrome hidden)
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isFalse);
 
       // Manual override mid-cycle (menu switch): Ctrl+Z stays in the cycle
-      // (still no virtual keyboard), it just adapts to the toolbar now
-      // being visible again, as if we were back at step 1.
+      // (still no virtual keyboard), the toolbar coming back just means we
+      // are now at the sub-step the 2nd press would have produced.
       MinSettings.toggleChromeVisible();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
       expect(MinSettings().chromeVisible, isTrue);
 
-      // Next Ctrl+Z continues from that sub-step: hides the toolbar again.
-      MinSettings.cycleImmersiveMode();
-      expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.none);
-      expect(MinSettings().chromeVisible, isFalse);
-
-      // And the following one exits the cycle, restoring the pre-cycle
-      // keyboard mode and toolbar visibility.
+      // So the next Ctrl+Z exits the cycle, restoring the pre-cycle keyboard
+      // mode and toolbar visibility, rather than desyncing.
       MinSettings.cycleImmersiveMode();
       expect(MinSettings().desktopKeyboardMode, DesktopKeyboardMode.image);
       expect(MinSettings().chromeVisible, isTrue);

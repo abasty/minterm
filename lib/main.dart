@@ -255,10 +255,9 @@ void main(List<String> args) async {
           }
           break;
         case LogicalKeyboardKey.keyZ:
-          // Ctrl+Z / Cmd+Z : cycle "mode zen" (sans clavier/avec barre
-          // d'outils -> sans clavier/sans barre d'outils -> retour à l'état
-          // d'avant), voir MinSettings.cycleImmersiveMode(). Le plein écran
-          // n'en fait pas partie : il reste sur l'icône dédiée et F11.
+          // Ctrl+Z / Cmd+Z : cycle "mode zen" (plein écran sans clavier ni
+          // barre d'outils -> la barre d'outils revient -> retour à l'état
+          // d'avant), voir MinSettings.cycleImmersiveMode().
           if (ctrl || HardwareKeyboard.instance.isMetaPressed) {
             MinSettings.cycleImmersiveMode();
           } else {

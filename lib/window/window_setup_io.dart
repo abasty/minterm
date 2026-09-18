@@ -35,9 +35,16 @@ Future<void> toggleFullscreen() async {
     return;
   }
 
-  final nextState = !await windowManager.isFullScreen();
-  await windowManager.setFullScreen(nextState);
-  fullscreenListenable.value = nextState;
+  await setFullscreen(!await windowManager.isFullScreen());
+}
+
+Future<void> setFullscreen(bool enabled) async {
+  if (!isWindowControlsSupported) {
+    return;
+  }
+
+  await windowManager.setFullScreen(enabled);
+  fullscreenListenable.value = enabled;
 }
 
 void setEscapeInFullscreenHandler(void Function() handler) {
