@@ -1886,6 +1886,12 @@ class TMinitel {
       state.c = 1;
       state.needAttrSpace = false;
     }
+    if (state.l == 0) {
+      // Un accès en rangée 00 réassocie G0/G1 aux jeux de base (STUM2
+      // §2.2.2), annulant toute association DRCS active.
+      _g0IsDrcs = false;
+      _g1IsDrcs = false;
+    }
     state.resetAttr();
   }
 

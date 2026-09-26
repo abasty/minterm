@@ -243,6 +243,80 @@ void main() {
     });
   });
 
+  group('accès en rangée 00 (STUM2 §2.2.2)', () {
+    test(
+        'repositioning the cursor to line 0 re-associates G0/G1 to the base '
+        'charsets, cancelling an active DRCS association', () {
+      final minitel = TMinitel();
+
+      // Télécharge un glyphe en position 0x21 du jeu G'0 et l'associe à G0.
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        ..._buildDrcsGlyphData(0x21, [_exampleGlyphBytes]),
+        0x1b, 0x28, 0x20, 0x42, // ESC 2/8 2/0 4/2 : G'0 -> G0
+      ]);
+      minitel.emulate([0x21]); // Écrit le code téléchargé.
+
+      expect(minitel.screen[1][1].lAttr & kDRCSCharset, isNot(0),
+          reason: 'le caractère doit être marqué DRCS avant l\'accès rangée 00');
+
+      // US 4/0 4/1 : positionne le curseur en rangée 00 (ligne 0, colonne 1).
+      minitel.emulate([0x1F, 0x40, 0x41]);
+      // Retour en rangée normale puis réécriture du même code.
+      minitel.emulate([0x1F, 0x41, 0x41]); // US 4/1 4/1 : ligne 1, colonne 1
+      minitel.emulate([0x21]);
+
+      expect(minitel.screen[1][1].lAttr & kDRCSCharset, 0,
+          reason: 'après un accès rangée 00, G0 doit être revenu au jeu '
+              'standard (non-DRCS), sans que les glyphes téléchargés soient '
+              'perdus pour autant');
+
+      // Les glyphes téléchargés doivent en revanche rester disponibles : une
+      // nouvelle association DRCS doit à nouveau afficher la forme.
+      minitel.emulate([0x1b, 0x28, 0x20, 0x42]);
+      minitel.emulate([0x21]);
+      expect(minitel.screen[1][2].lAttr & kDRCSCharset, isNot(0),
+          reason: 'les glyphes téléchargés ne doivent pas être effacés par '
+              'un simple accès rangée 00 (contrairement à resetDrcs())');
+    });
+
+    test(
+        'replays test/drcs/msx-sonytel.vdt: real-world capture that draws a '
+        'DRCS logo then must fall back to plain text for digits/uppercase',
+        () {
+      // Regression test: this capture draws a "MSX" logo using DRCS tiles
+      // downloaded onto G'0 codes 0x21-0x4a, written across lines 3-6. The
+      // periodic "US 4/0 4/1" status-line refresh right after the logo (and
+      // repeated throughout the rest of the document) must re-associate G0
+      // to the base alphanumeric set (STUM2 §2.2.2) so that later digits and
+      // uppercase text ("15 ans", "40000 appels", dates, "SonyTEL"...)
+      // render normally instead of being read from the DRCS-overwritten
+      // font atlas. Before the fix, every character after the logo stayed
+      // flagged DRCS (437 cells instead of 46), scrambling most of the page.
+      final bytes = File('test/drcs/msx-sonytel.vdt').readAsBytesSync();
+      final minitel = TMinitel();
+
+      minitel.emulate(bytes.toList());
+
+      final drcsCells = <(int line, int col)>[];
+      for (int line = 0; line <= minitel.lastLine; line++) {
+        for (int col = 1; col <= minitel.columns; col++) {
+          if ((minitel.screen[line][col].lAttr & kDRCSCharset) != 0) {
+            drcsCells.add((line, col));
+          }
+        }
+      }
+
+      expect(drcsCells.length, 46,
+          reason: 'only the MSX logo tiles should be DRCS-flagged');
+      for (final (line, col) in drcsCells) {
+        expect(line, inInclusiveRange(3, 6),
+            reason: 'DRCS cell at line=$line col=$col falls outside the '
+                'logo area — a digit/letter cell was likely left DRCS-flagged');
+      }
+    });
+  });
+
   group('resetDrcs (déconnexion / changement de service)', () {
     test(
         'clears the DRCS charset selection so a previously-DRCS code renders '
