@@ -1693,7 +1693,7 @@ class TMinitel {
   void propagateAndMakeDirty(int l, int c) {
     var first = screen[l][c];
     markCharAsDirty(l, c);
-    for (int col = c + 1; col < lastColumn; ++col) {
+    for (int col = c + 1; col <= lastColumn; ++col) {
       var char = screen[l][col];
       if ((char.gAttr & (kG1Charset | kAttrSpace)) != 0) {
         break;

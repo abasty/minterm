@@ -73,6 +73,37 @@ void main() {
     });
   });
 
+  group('Propagation de couleur de fond (attribut espace)', () {
+    late TMinitel minitel;
+
+    setUp(() {
+      minitel = TMinitel();
+      expect(minitel.screenMode, TMinitelScreenMode.videotex40);
+    });
+
+    test(
+        'a background-color attribute space at column 1 propagates all the '
+        'way to the last column (40), not just to column 39', () {
+      minitel.emulate(cursorTo(1, 1));
+      // CAN (0x18) : comme dans une vraie bannière, remplit d'abord la ligne
+      // de caractères G0 (le fond ne se propage que sur des cases déjà en
+      // G0 ; par défaut une case vide porte encore kG1Charset).
+      minitel.emulate([0x18]);
+      minitel.emulate(cursorTo(1, 1));
+      // ESC 5/4 : couleur de fond 4 (bleu), suivi d'une espace qui porte
+      // l'attribut et déclenche sa propagation vers la droite.
+      minitel.emulate([0x1b, 0x54, 0x20]);
+
+      for (int column = 1; column <= minitel.columns; column++) {
+        expect(
+          minitel.screen[1][column].gAttr & kColorMask,
+          4,
+          reason: 'column=$column should carry the propagated background',
+        );
+      }
+    });
+  });
+
   group('Séquences magiques non standard (PRO2 0x10 / 0x11)', () {
     late TMinitel minitel;
 
