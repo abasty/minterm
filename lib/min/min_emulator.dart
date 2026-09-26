@@ -510,22 +510,32 @@ class TMinitel {
             stateCode++;
             break;
           case const (kStatePro3 + 1):
-            // PRO3 / ON/OFF / MODEM
-            _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x5a;
+            // PRO3 / ON/OFF / ECRAN (récepteur, 0x58) : aiguillage
+            // clavier->écran, le véritable contrôle d'écho local au sens
+            // STUM2 (Figure 7, "Aiguillages modifiables") — absent des
+            // aiguillages par défaut de tous les états standards (Figures 2
+            // à 5), donc l'écho est bien OFF par défaut tant qu'un service
+            // ne l'active pas ainsi.
+            //
+            // Le clavier->modem (0x5A), utilisé par certains services (ex.
+            // BASTOS) pour simuler un écho, ne pilote PAS l'écho ici : sur
+            // un vrai Minitel, ça ne fait écho que sans porteuse (état
+            // local, modem bouclé sur lui-même faute de ligne) — en état
+            // connecté (porteuse présente, ex. tout service accessible en
+            // ligne, y compris via minterm), le modem relaie vers le
+            // serveur au lieu de boucler sur l'écran (STUM2 §2.2, Figures 2
+            // et 4). Minterm modélise toute connexion réseau comme
+            // "connecté" : reproduire le bouclage clavier->modem ici
+            // provoquerait de faux positifs (constaté sur SonyTel).
+            _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x58;
             stateCode++;
             break;
           case const (kStatePro3 + 2):
-            // PRO3 / ON/OFF / MODEM / CLAVIER : aiguillage clavier<->modem.
-            // Aiguillage coupé -> le clavier n'atteint plus le modem, donc
-            // plus d'écho serveur possible -> écho local nécessaire (ON).
-            // Aiguillage rétabli -> fonctionnement normal, le serveur est
-            // censé échoer -> écho local superflu (OFF). Constaté en
-            // conditions réelles (capture SonyTel) : "\x1b\x3b\x61\x5a\x51"
-            // (aiguillage ON) précède l'entrée dans le service, où l'écho
-            // local doit être coupé pour éviter le doublement de caractères.
+            // PRO3 / ON/OFF / ECRAN / CLAVIER : mapping naturel, ON -> écho
+            // local activé, OFF -> désactivé.
             _isPro3StatusEcho = _isPro3StatusEcho && currentCode == 0x51;
             if (_isPro3StatusEcho) {
-              isEchoed = !_isPro3On;
+              isEchoed = _isPro3On;
             }
             stateCode = 0;
             break;

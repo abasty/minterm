@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minterm/min/min_emulator.dart';
 
@@ -204,21 +206,61 @@ void main() {
 
   group('TMinitel Videotex', () {
     test(
-        'PRO3 aiguillage clavier<->modem OFF/ON drives local echo '
-        '(bug réel constaté sur capture SonyTel : doublement de caractères)',
-        () {
+        'PRO3 aiguillage clavier<->écran (0x58) drives local echo — le '
+        'véritable aiguillage d\'écho au sens STUM2 (Figure 7), absent des '
+        'aiguillages par défaut de tous les états standards', () {
       final minitel = TMinitel();
-      expect(minitel.isEchoed, isTrue); // valeur par défaut
+      minitel.isEchoed = true;
 
-      // PRO3 60 (') Z Q : aiguillage coupé -> écho local activé (ON).
+      // PRO3 60 (P_OFF) X (ECRAN récepteur, 0x58) Q (CLAVIER émetteur).
+      minitel.emulate([0x1B, 0x3B, 0x60, 0x58, 0x51]);
+      expect(minitel.isEchoed, isFalse);
+
+      minitel.emulate([0x1B, 0x3B, 0x61, 0x58, 0x51]);
+      expect(minitel.isEchoed, isTrue);
+    });
+
+    test(
+        'PRO3 aiguillage clavier<->modem (0x5A) does NOT drive local echo '
+        '— ce bouclage n\'existe que sans porteuse (état local, faute de '
+        'ligne) ; en état connecté (ex. tout service accessible en ligne, y '
+        'compris via minterm) le modem relaie vers le serveur au lieu de '
+        'boucler sur l\'écran (STUM2 §2.2, Figures 2 et 4). Reproduire ce '
+        'bouclage ici donnait de faux positifs (constaté sur SonyTel, '
+        'test/drcs/msx-sonytel.vdt : caractères doublés à la frappe alors '
+        'qu\'un vrai Minitel connecté à SonyTel ne double rien).', () {
+      final minitel = TMinitel();
+      minitel.isEchoed = true;
+
       minitel.emulate([0x1B, 0x3B, 0x60, 0x5A, 0x51]);
       expect(minitel.isEchoed, isTrue);
 
-      // PRO3 61 (a) Z Q : aiguillage rétabli -> écho local coupé (OFF).
-      // C'est cette séquence, envoyée par SonyTel juste avant le contenu
-      // interactif, qui laissait l'écho local activé par erreur (logique
-      // inversée) et provoquait le doublement des caractères tapés.
       minitel.emulate([0x1B, 0x3B, 0x61, 0x5A, 0x51]);
+      expect(minitel.isEchoed, isTrue);
+    });
+
+    test(
+        'a PRO3 sequence targeting a module other than ECRAN/CLAVIER is '
+        'ignored and does not touch isEchoed', () {
+      final minitel = TMinitel();
+      minitel.isEchoed = true;
+
+      // PRO3 OFF vers PRISE (0x5B) au lieu de ECRAN : ne doit pas être
+      // confondu avec une séquence d'écho.
+      minitel.emulate([0x1B, 0x3B, 0x60, 0x5B, 0x51]);
+      expect(minitel.isEchoed, isTrue);
+    });
+
+    test(
+        'replays test/drcs/msx-sonytel.vdt: its clavier<->modem PRO3 '
+        'sequences must not toggle local echo (real Minitel connected to '
+        'SonyTel does not double typed characters there)', () {
+      final bytes = File('test/drcs/msx-sonytel.vdt').readAsBytesSync();
+      final minitel = TMinitel();
+      minitel.isEchoed = false; // état "connecté" simulé par MinModel.connect()
+
+      minitel.emulate(bytes.toList());
+
       expect(minitel.isEchoed, isFalse);
     });
 
