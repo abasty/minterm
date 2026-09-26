@@ -89003,7 +89003,7 @@ r=J.ay(s.x2[0],s.cy+1)
 r.c=(r.c|128)>>>0},
 BC(a,b){var s,r,q=this,p=J.ay(q.x2[a],b)
 q.iO(a,b)
-for(s=b+1;s<q.cy;++s){r=J.ay(q.x2[a],s)
+for(s=b+1;s<=q.cy;++s){r=J.ay(q.x2[a],s)
 if((r.a&80)!==0)break
 r.a=p.a&15
 q.iO(a,s)}},
