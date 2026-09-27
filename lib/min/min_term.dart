@@ -48,6 +48,7 @@ class MinTerm extends StatelessWidget {
                 SetKeyboardCase(),
                 SetColors(),
                 SetBackground(),
+                SetScanlines(),
                 const SetSoundMode(),
                 const SetAppBarVisible(),
                 Divider(),
@@ -454,6 +455,25 @@ class SetBackground extends StatelessWidget {
           title: const Text('Fond clair'),
           value: !isBlack,
           onChanged: (_) => MinSettings().toggleAppBackgroundColor(),
+        );
+      },
+    );
+  }
+}
+
+class SetScanlines extends StatelessWidget {
+  const SetScanlines({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final enabled = MinSettings().scanlinesEnabled;
+        return SwitchListTile(
+          title: const Text('Scanlines'),
+          value: enabled,
+          onChanged: (_) => MinSettings().toggleScanlines(),
         );
       },
     );

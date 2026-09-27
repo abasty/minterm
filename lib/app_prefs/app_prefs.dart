@@ -45,6 +45,12 @@ Future<void> loadAppPrefs() async {
         // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
       }
     }
+
+    final scanlinesEnabled = decoded['scanlinesEnabled'];
+    if (scanlinesEnabled is bool &&
+        scanlinesEnabled != MinSettings().scanlinesEnabled) {
+      MinSettings().toggleScanlines();
+    }
   } catch (error) {
     debugPrint('Failed to load app preferences: $error');
   }
@@ -57,29 +63,34 @@ void watchAndSaveAppPrefs() {
   List<Color>? lastColors;
   Color? lastBackground;
   SoundMode? lastSoundMode;
+  bool? lastScanlinesEnabled;
 
   void maybeSave() {
     final bps = MinModel().bps;
     final colors = MinSettings().colors;
     final background = MinSettings().appBackgroundColor;
     final soundMode = MinSettings().soundMode;
+    final scanlinesEnabled = MinSettings().scanlinesEnabled;
 
     if (bps == lastBps &&
         colors == lastColors &&
         background == lastBackground &&
-        soundMode == lastSoundMode) {
+        soundMode == lastSoundMode &&
+        scanlinesEnabled == lastScanlinesEnabled) {
       return;
     }
     lastBps = bps;
     lastColors = colors;
     lastBackground = background;
     lastSoundMode = soundMode;
+    lastScanlinesEnabled = scanlinesEnabled;
 
     final payload = <String, dynamic>{
       'bps': bps,
       'colorsEnabled': colors == MinColors,
       'backgroundIsBlack': background == Colors.black,
       'soundMode': soundMode.name,
+      'scanlinesEnabled': scanlinesEnabled,
     };
     unawaited(
       app_prefs_storage.saveAppPrefsJson(json.encode(payload)).catchError(

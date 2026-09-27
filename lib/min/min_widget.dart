@@ -114,6 +114,7 @@ class MinSettings extends ChangeNotifier {
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
+  bool _scanlinesEnabled = false;
   // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (plein écran
   // + clavier virtuel forcé à "aucun"). La sous-étape (barre d'outils visible
   // ou non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
@@ -254,6 +255,8 @@ class MinSettings extends ChangeNotifier {
 
   bool get chromeVisible => _chromeVisible;
 
+  bool get scanlinesEnabled => _scanlinesEnabled;
+
   static void setScale(double scale) {
     _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
@@ -387,6 +390,12 @@ class MinSettings extends ChangeNotifier {
     setAppBackgroundColor(
       _appBackgroundColor == Colors.black ? Colors.white : Colors.black,
     );
+  }
+
+  void toggleScanlines() {
+    _scanlinesEnabled = !_scanlinesEnabled;
+    MinModel().markScreenDirty();
+    notifyListeners();
   }
 }
 
@@ -971,6 +980,33 @@ class _MinPainter extends CustomPainter {
               2] // même gris que la couleur fg par défaut Téléinformatique
           ..isAntiAlias = false,
       );
+    }
+
+    // Effet scanlines : une fine ligne noire opaque sous chaque rangée de
+    // pixels du glyphe (grille 8x10), au lieu d'un pas arbitraire lié au
+    // canvas — l'espacement suit donc naturellement le zoom, comme sur un
+    // vrai tube cathodique où les lignes de balayage sont fixées par la
+    // trame du caractère. 10 lignes (rangées 0 à 9) : celle en haut de la
+    // cellule (frontière avec le caractère du dessus) plus les 9 internes.
+    // Attachée au HAUT de la cellule plutôt qu'au bas : les lignes sont
+    // dessinées ligne d'écran par ligne d'écran (voir draw()), donc le fond
+    // de la cellule suivante — peint après — écraserait une ligne de
+    // frontière attachée au bas de celle-ci. Ici, la ligne fait partie du
+    // tout dernier tracé de SA PROPRE cellule (après le masque disjoint),
+    // donc rien de postérieur ne peut plus la recouvrir. Un vrai scanline
+    // CRT ne "saute" jamais les trous du masque disjoint, d'où le noir
+    // opaque (pas un mélange semi-transparent) et le passage en tout
+    // dernier dans drawChar.
+    if (MinSettings().scanlinesEnabled) {
+      final scanlinePaint = Paint()
+        ..color = Colors.black
+        ..isAntiAlias = false;
+      for (int row = 0; row < 10; row++) {
+        canvas.drawRect(
+          _snapRect(x, y + row * scaleHeight, 8.0 * scaleWidth, 0.001, dpr),
+          scanlinePaint,
+        );
+      }
     }
   }
 
