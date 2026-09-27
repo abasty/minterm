@@ -833,6 +833,8 @@ class _MinPainter extends CustomPainter {
       cellHeight: cellHeight,
       dpr: dpr,
     );
+
+    _drawScanlines(canvas, size);
   }
 
   // Method to draw a character
@@ -982,31 +984,32 @@ class _MinPainter extends CustomPainter {
       );
     }
 
-    // Effet scanlines : une fine ligne noire opaque sous chaque rangée de
-    // pixels du glyphe (grille 8x10), au lieu d'un pas arbitraire lié au
-    // canvas — l'espacement suit donc naturellement le zoom, comme sur un
-    // vrai tube cathodique où les lignes de balayage sont fixées par la
-    // trame du caractère. 10 lignes (rangées 0 à 9) : celle en haut de la
-    // cellule (frontière avec le caractère du dessus) plus les 9 internes.
-    // Attachée au HAUT de la cellule plutôt qu'au bas : les lignes sont
-    // dessinées ligne d'écran par ligne d'écran (voir draw()), donc le fond
-    // de la cellule suivante — peint après — écraserait une ligne de
-    // frontière attachée au bas de celle-ci. Ici, la ligne fait partie du
-    // tout dernier tracé de SA PROPRE cellule (après le masque disjoint),
-    // donc rien de postérieur ne peut plus la recouvrir. Un vrai scanline
-    // CRT ne "saute" jamais les trous du masque disjoint, d'où le noir
-    // opaque (pas un mélange semi-transparent) et le passage en tout
-    // dernier dans drawChar.
-    if (MinSettings().scanlinesEnabled) {
-      final scanlinePaint = Paint()
-        ..color = Colors.black
-        ..isAntiAlias = false;
-      for (int row = 0; row < 10; row++) {
-        canvas.drawRect(
-          _snapRect(x, y + row * scaleHeight, 8.0 * scaleWidth, 0.001, dpr),
-          scanlinePaint,
-        );
-      }
+  }
+
+  // Effet scanlines : post-process dessiné une fois l'écran entier peint
+  // (voir l'appel dans draw()), après tous les caractères et le masque
+  // disjoint — donc rien ne peut plus les recouvrir. Une grille de lignes
+  // noires opaques pleine largeur, au pas fixe de la trame physique du
+  // CRT (cellHeight / 10, la résolution native d'un caractère), sur toute
+  // la hauteur de l'écran. Indépendant du contenu affiché : sur un vrai
+  // tube cathodique, les lignes de balayage ont un pas fixe, qu'un
+  // caractère soit en double hauteur/largeur ou non.
+  void _drawScanlines(Canvas canvas, Size size) {
+    if (!MinSettings().scanlinesEnabled) return;
+
+    final dpr =
+        ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
+    final pixelHeight = (size.height / minmodel.minitel.rows) / 10.0;
+    final totalRows = minmodel.minitel.rows * 10;
+    final scanlinePaint = Paint()
+      ..color = Colors.black
+      ..isAntiAlias = false;
+
+    for (int row = 0; row < totalRows; row++) {
+      canvas.drawRect(
+        _snapRect(0, row * pixelHeight, size.width, 0.001, dpr),
+        scanlinePaint,
+      );
     }
   }
 
