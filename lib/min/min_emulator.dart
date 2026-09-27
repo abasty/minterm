@@ -1897,10 +1897,16 @@ class TMinitel {
       state.needAttrSpace = false;
     }
     if (state.l == 0) {
-      // Un accès en rangée 00 réassocie G0/G1 aux jeux de base (STUM2
-      // §2.2.2), annulant toute association DRCS active.
+      // STUM2 §2.2.1 : "Le jeu G0 est invoqué par défaut... d'un accès en
+      // rangée 00" — l'invocation de G0 y équivaut à un ESC 2/8 4/0 implicite
+      // (association au jeu de base, sans DRCS), pour que la rangée 00
+      // affiche toujours du texte lisible plutôt que des formes DRCS. G1
+      // n'étant jamais invoqué en rangée 00, son association DRCS n'est pas
+      // affectée. Confirmé sur Minitel 2 réel : un accès rangée 00 pendant
+      // une association DRCS G'1 active (ex. Pac-Man, test/drcs/pacman.vdt)
+      // ne la coupe pas — contrairement à ce que suggère le texte littéral
+      // du §2.2.2 ("les jeux de base sont associés à G0 et G1").
       _g0IsDrcs = false;
-      _g1IsDrcs = false;
     }
     state.resetAttr();
   }
