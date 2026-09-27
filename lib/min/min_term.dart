@@ -48,7 +48,7 @@ class MinTerm extends StatelessWidget {
                 SetKeyboardCase(),
                 SetColors(),
                 SetBackground(),
-                SetScanlines(),
+                SetScreenFx(),
                 const SetSoundMode(),
                 const SetAppBarVisible(),
                 Divider(),
@@ -461,19 +461,45 @@ class SetBackground extends StatelessWidget {
   }
 }
 
-class SetScanlines extends StatelessWidget {
-  const SetScanlines({super.key});
+class SetScreenFx extends StatelessWidget {
+  const SetScreenFx({super.key});
+
+  static const _icons = {
+    ScreenFx.off: Icons.crop_din,
+    ScreenFx.crt: Icons.tv,
+    ScreenFx.lcd: Icons.grid_on,
+  };
+
+  static const _labels = {
+    ScreenFx.off: 'Off',
+    ScreenFx.crt: 'CRT',
+    ScreenFx.lcd: 'LCD',
+  };
+
+  static ScreenFx _next(ScreenFx fx) {
+    switch (fx) {
+      case ScreenFx.off:
+        return ScreenFx.crt;
+      case ScreenFx.crt:
+        return ScreenFx.lcd;
+      case ScreenFx.lcd:
+        return ScreenFx.off;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: MinSettings(),
       builder: (context, _) {
-        final enabled = MinSettings().scanlinesEnabled;
-        return SwitchListTile(
-          title: const Text('Scanlines'),
-          value: enabled,
-          onChanged: (_) => MinSettings().toggleScanlines(),
+        final fx = MinSettings().screenFx;
+        return ListTile(
+          onTap: () => MinSettings().setScreenFx(_next(fx)),
+          title: const Text('FX'),
+          trailing: Tooltip(
+            message: _labels[fx],
+            child: Icon(_icons[fx]),
+          ),
         );
       },
     );

@@ -49,6 +49,12 @@ enum SoundMode {
   bip,
 }
 
+enum ScreenFx {
+  off,
+  crt, // Scanlines horizontales seulement.
+  lcd, // Scanlines horizontales + verticales (grille de pixels).
+}
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -114,7 +120,7 @@ class MinSettings extends ChangeNotifier {
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
-  bool _scanlinesEnabled = false;
+  ScreenFx _screenFx = ScreenFx.off;
   // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (plein écran
   // + clavier virtuel forcé à "aucun"). La sous-étape (barre d'outils visible
   // ou non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
@@ -255,7 +261,7 @@ class MinSettings extends ChangeNotifier {
 
   bool get chromeVisible => _chromeVisible;
 
-  bool get scanlinesEnabled => _scanlinesEnabled;
+  ScreenFx get screenFx => _screenFx;
 
   static void setScale(double scale) {
     _singleton.duration = 0;
@@ -392,8 +398,9 @@ class MinSettings extends ChangeNotifier {
     );
   }
 
-  void toggleScanlines() {
-    _scanlinesEnabled = !_scanlinesEnabled;
+  void setScreenFx(ScreenFx fx) {
+    if (_screenFx == fx) return;
+    _screenFx = fx;
     MinModel().markScreenDirty();
     notifyListeners();
   }
@@ -986,28 +993,42 @@ class _MinPainter extends CustomPainter {
 
   }
 
-  // Effet scanlines : post-process dessiné une fois l'écran entier peint
+  // Effet CRT/LCD : post-process dessiné une fois l'écran entier peint
   // (voir l'appel dans draw()), après tous les caractères et le masque
   // disjoint — donc rien ne peut plus les recouvrir. Une grille de lignes
-  // noires opaques pleine largeur, au pas fixe de la trame physique du
-  // CRT (cellHeight / 10, la résolution native d'un caractère), sur toute
-  // la hauteur de l'écran. Indépendant du contenu affiché : sur un vrai
-  // tube cathodique, les lignes de balayage ont un pas fixe, qu'un
-  // caractère soit en double hauteur/largeur ou non.
+  // noires opaques, au pas fixe de la trame physique de l'écran (cellHeight/10
+  // et cellWidth/8, la résolution native d'un caractère), sur toute la
+  // largeur/hauteur de l'écran : lignes horizontales entre les rangées de
+  // pixels (scanlines, mode CRT) et lignes verticales entre les colonnes de
+  // pixels (séparation horizontale des pixels, mode LCD). Indépendant du
+  // contenu affiché : sur un vrai écran, ce pas est fixe, qu'un caractère
+  // soit en double hauteur/largeur ou non.
   void _drawScanlines(Canvas canvas, Size size) {
-    if (!MinSettings().scanlinesEnabled) return;
+    final fx = MinSettings().screenFx;
+    if (fx == ScreenFx.off) return;
 
     final dpr =
         ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
-    final pixelHeight = (size.height / minmodel.minitel.rows) / 10.0;
-    final totalRows = minmodel.minitel.rows * 10;
     final scanlinePaint = Paint()
       ..color = Colors.black
       ..isAntiAlias = false;
 
+    final pixelHeight = (size.height / minmodel.minitel.rows) / 10.0;
+    final totalRows = minmodel.minitel.rows * 10;
     for (int row = 0; row < totalRows; row++) {
       canvas.drawRect(
         _snapRect(0, row * pixelHeight, size.width, 0.001, dpr),
+        scanlinePaint,
+      );
+    }
+
+    if (fx != ScreenFx.lcd) return;
+
+    final pixelWidth = (size.width / minmodel.minitel.columns) / 8.0;
+    final totalCols = minmodel.minitel.columns * 8;
+    for (int col = 0; col < totalCols; col++) {
+      canvas.drawRect(
+        _snapRect(col * pixelWidth, 0, 0.001, size.height, dpr),
         scanlinePaint,
       );
     }
