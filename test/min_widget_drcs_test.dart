@@ -413,6 +413,11 @@ void main() {
         }
       }
 
+      // US terminates the download (STUM2 §2.3.3.3) before the ESC
+      // designation: a lone C0 code does not resynchronize mid-download
+      // (§2.3.3.2), it would otherwise be swallowed as background fill.
+      minitel.emulate([0x1F, 0x41, 0x41]);
+
       // Designate G'0 as DRCS (ESC 2/8 SP 4/2), then "display" the twelve
       // characters by writing them to the screen, row 1 columns 1..12.
       minitel.emulate([0x1b, 0x28, 0x20, 0x42]);

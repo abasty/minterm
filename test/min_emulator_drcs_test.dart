@@ -154,6 +154,106 @@ void main() {
     });
 
     test(
+        'a C0 code other than US/NUL fills background pixels mid-download '
+        'instead of resynchronizing/exiting (STUM2 §2.3.3.2)', () {
+      final minitel = TMinitel();
+      Uint8List? pixels;
+      final codes = <int>[];
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        codes.add(code);
+        pixels = pixels80;
+      };
+
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        0x1F, 0x23, 0x21,
+        0x30, // open form 0x21
+        0x7F, // 6 pixels ON (bits 0..5)
+        0x1B, // ESC: not US/NUL -> fills 6 background pixels, no resync
+        ...List.filled(11, 0x7F), // 66 more pixels ON (idx 12..77)
+        0x7F, // final byte: only idx 78..79 consumed (2 more pixels ON)
+        0x30, // flush
+      ]);
+
+      expect(codes, [0x21],
+          reason: 'ESC must not have exited the download early');
+      expect(pixels, isNotNull);
+      // idx 0..5 ON, 6..11 OFF (ESC fill), 12..79 ON.
+      for (int i = 0; i < 80; i++) {
+        final expected = (i >= 6 && i < 12) ? 0 : 1;
+        expect(pixels![i], expected, reason: 'pixel index $i');
+      }
+    });
+
+    test('NUL mid-download has no effect at all (STUM2 §2.3.3.2)', () {
+      final minitel = TMinitel();
+      late Uint8List withNul;
+      late Uint8List withoutNul;
+
+      final minitelA = TMinitel();
+      minitelA.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        withNul = Uint8List.fromList(pixels80);
+      };
+      minitelA.emulate([
+        ..._buildDrcsHeader(g1: false),
+        0x1F, 0x23, 0x21,
+        0x30,
+        ..._exampleGlyphBytes.sublist(0, 3),
+        0x00, // NUL: absorbed, zero effect
+        ..._exampleGlyphBytes.sublist(3),
+        0x30,
+      ]);
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        withoutNul = Uint8List.fromList(pixels80);
+      };
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        ..._buildDrcsGlyphData(0x21, [_exampleGlyphBytes]),
+      ]);
+
+      expect(withNul, equals(withoutNul),
+          reason: 'a NUL byte mid-download must not shift/alter pixels');
+    });
+
+    test(
+        'a byte arriving before the very first B1 is filtered, not '
+        'accumulated into the first form (STUM2 §2.3.3.2 "B1... précède '
+        'toute forme téléchargée y compris la première")', () {
+      final minitel = TMinitel();
+      Uint8List? pixels;
+      final codes = <int>[];
+
+      minitel.onDrcsGlyph = (bool isG1, int code, Uint8List pixels80) {
+        codes.add(code);
+        pixels = Uint8List.fromList(pixels80);
+      };
+
+      // US 0x23 Y, then a pixel byte AND a C0 code BEFORE the first B1 —
+      // neither belongs to any form yet and both must be filtered, leaving
+      // the glyph identical to the plain STUM2 §2.3.5 example.
+      minitel.emulate([
+        ..._buildDrcsHeader(g1: false),
+        0x1F, 0x23, 0x21,
+        0x7F, // pixel byte before the first B1: must be filtered
+        0x1B, // C0 code before the first B1: must be filtered too
+        0x30, // the actual first B1
+        ..._exampleGlyphBytes,
+        0x30,
+      ]);
+
+      expect(codes, [0x21]);
+      expect(pixels, isNotNull);
+      for (int row = 0; row < 10; row++) {
+        for (int col = 0; col < 8; col++) {
+          final expected = _expectedRows[row][col] == '#' ? 1 : 0;
+          expect(pixels![row * 8 + col], expected, reason: 'row=$row col=$col');
+        }
+      }
+    });
+
+    test(
         'replays test/drcs/pacman.drc: real-world capture whose last glyph '
         'is only closed by US, not by B1', () {
       // Regression test for the pacman-eater ghost sprite (STUM2 §2.3.3.3):
@@ -250,9 +350,15 @@ void main() {
       final minitel = TMinitel();
 
       // Télécharge un glyphe en position 0x21 du jeu G'0 et l'associe à G0.
+      // US termine le téléchargement (STUM2 §2.3.3.3) avant la désignation
+      // ESC : un C0 seul (ex. ESC) ne resynchronise pas pendant un
+      // téléchargement (§2.3.3.2), il serait sinon avalé comme du fond
+      // d'écran — constaté aussi dans test/drcs/msx-sonytel.vdt, qui envoie
+      // "US 5/3 5/0" avant sa désignation ESC.
       minitel.emulate([
         ..._buildDrcsHeader(g1: false),
         ..._buildDrcsGlyphData(0x21, [_exampleGlyphBytes]),
+        0x1F, 0x41, 0x41, // US 4/1 4/1 : termine le téléchargement
         0x1b, 0x28, 0x20, 0x42, // ESC 2/8 2/0 4/2 : G'0 -> G0
       ]);
       minitel.emulate([0x21]); // Écrit le code téléchargé.
@@ -323,10 +429,14 @@ void main() {
         'as standard G0 again, and fires onDrcsReset', () {
       final minitel = TMinitel();
 
-      // Télécharge un glyphe en position 0x21 du jeu G'0.
+      // Télécharge un glyphe en position 0x21 du jeu G'0. US termine le
+      // téléchargement (STUM2 §2.3.3.3) avant la désignation ESC (voir
+      // §2.3.3.2 : un C0 seul ne resynchronise pas pendant un
+      // téléchargement, il serait sinon avalé comme du fond d'écran).
       minitel.emulate([
         ..._buildDrcsHeader(g1: false),
         ..._buildDrcsGlyphData(0x21, [_exampleGlyphBytes]),
+        0x1F, 0x41, 0x41, // US 4/1 4/1 : termine le téléchargement
       ]);
 
       // ESC 2/8 2/0 4/2 : désigne G'0 (DRCS) comme jeu G0 courant.

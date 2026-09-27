@@ -426,7 +426,21 @@ class TMinitel {
       // faut donc pas les filtrer lorsqu'ils sont attendus à cette position.
       final isPro2MagicArg = stateCode == kStatePro2 &&
           (currentCode == 0x10 || currentCode == 0x11);
-      if (currentCode < $space && !isPro2MagicArg) {
+      if (stateCode == kStateDrcsData &&
+          currentCode < $space &&
+          currentCode != $us) {
+        // STUM2 §2.3.3.2 : en cours de définition d'une forme, un code C0
+        // autre que US (et NUL, qui ne fait rien) remplit les pixels
+        // correspondants avec la couleur du fond d'écran au lieu de
+        // resynchroniser/sortir du téléchargement — contrairement à
+        // n'importe quel autre C0 hors téléchargement, qui est routé vers
+        // fadr[] (ex. ESC enclenche une séquence, LF déplace le curseur).
+        // Avant le tout premier B1, aucune forme n'est ouverte : l'octet
+        // est filtré (voir _handleDrcsData / _fillDrcsBackgroundPixels).
+        if (currentCode != 0x00 && _drcsFormOpen) {
+          _fillDrcsBackgroundPixels();
+        }
+      } else if (currentCode < $space && !isPro2MagicArg) {
         // STUM2 §2.3.3.3 "Sortie du téléchargement" : recevoir US pendant
         // le téléchargement DRCS termine la séquence, mais la forme en
         // cours doit d'abord être complétée (par du fond d'écran) et émise
@@ -2089,12 +2103,32 @@ class TMinitel {
         _drcsPixelIndex = 0;
       }
       _drcsFormOpen = true;
-    } else if (code >= 0x40 && code <= 0x7F) {
-      if (_drcsPixelIndex < 80) {
-        final bits = code & 0x3F;
-        for (int b = 5; b >= 0 && _drcsPixelIndex < 80; b--) {
-          _drcsPixels[_drcsPixelIndex++] = (bits >> b) & 1;
+    } else if (_drcsFormOpen) {
+      // STUM2 : "B1 synchronise le début des données relatives à une forme.
+      // Elle précède toute forme téléchargée y compris la première forme."
+      // Tant qu'aucun B1 n'a ouvert de forme, aucun octet n'appartient à
+      // une forme — un octet reçu avant le tout premier B1 est donc filtré
+      // (aucun effet), au lieu d'être accumulé dans le buffer de pixels.
+      if (code >= 0x40 && code <= 0x7F) {
+        if (_drcsPixelIndex < 80) {
+          final bits = code & 0x3F;
+          for (int b = 5; b >= 0 && _drcsPixelIndex < 80; b--) {
+            _drcsPixels[_drcsPixelIndex++] = (bits >> b) & 1;
+          }
         }
+      } else if (code >= 0x20 && code <= 0x3F) {
+        // STUM2 §2.3.3.2 : un code des colonnes 2/3 autre que B1, reçu en
+        // cours de définition d'une forme, remplit les pixels correspondants
+        // avec la couleur du fond d'écran au lieu d'être filtré.
+        _fillDrcsBackgroundPixels();
+      }
+    }
+  }
+
+  void _fillDrcsBackgroundPixels() {
+    if (_drcsPixelIndex < 80) {
+      for (int b = 0; b < 6 && _drcsPixelIndex < 80; b++) {
+        _drcsPixels[_drcsPixelIndex++] = 0;
       }
     }
   }
