@@ -468,12 +468,14 @@ class SetScreenFx extends StatelessWidget {
     ScreenFx.off: Icons.crop_din,
     ScreenFx.crt: Icons.tv,
     ScreenFx.lcd: Icons.grid_on,
+    ScreenFx.crt80s: Icons.blur_circular,
   };
 
   static const _labels = {
     ScreenFx.off: 'Off',
     ScreenFx.crt: 'CRT',
     ScreenFx.lcd: 'LCD',
+    ScreenFx.crt80s: "CRT 80's",
   };
 
   static ScreenFx _next(ScreenFx fx) {
@@ -483,6 +485,8 @@ class SetScreenFx extends StatelessWidget {
       case ScreenFx.crt:
         return ScreenFx.lcd;
       case ScreenFx.lcd:
+        return ScreenFx.crt80s;
+      case ScreenFx.crt80s:
         return ScreenFx.off;
     }
   }
