@@ -1114,6 +1114,13 @@ class _MinPainter extends CustomPainter {
 
     final sourceRecorder = ui.PictureRecorder();
     final sourceCanvas = Canvas(sourceRecorder, Offset.zero & size);
+    // Picture.toImageSync rasterise sur une surface de width×height PIXELS
+    // sans mise à l'échelle automatique : le contenu enregistré en
+    // coordonnées logiques (0..size.width) doit donc être agrandi par dpr
+    // ici, sinon il ne remplit que le coin haut-gauche de l'image sur tout
+    // écran non-DPR=1 (invisible en DPR=1, comme le Chrome headless utilisé
+    // pour les vérifications précédentes — visible sur un vrai écran HiDPI).
+    sourceCanvas.scale(dpr);
     draw(sourceCanvas, size);
     final sourcePicture = sourceRecorder.endRecording();
     final sourceImage = sourcePicture.toImageSync(width, height);

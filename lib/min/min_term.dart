@@ -464,27 +464,20 @@ class SetBackground extends StatelessWidget {
 class SetScreenFx extends StatelessWidget {
   const SetScreenFx({super.key});
 
-  static const _icons = {
-    ScreenFx.off: Icons.crop_din,
-    ScreenFx.crt: Icons.tv,
-    ScreenFx.lcd: Icons.grid_on,
-    ScreenFx.crt80s: Icons.blur_circular,
-  };
-
   static const _labels = {
-    ScreenFx.off: 'Off',
+    ScreenFx.off: 'OFF',
     ScreenFx.crt: 'CRT',
     ScreenFx.lcd: 'LCD',
-    ScreenFx.crt80s: "CRT 80's",
+    ScreenFx.crt80s: 'CRT+',
   };
 
   static ScreenFx _next(ScreenFx fx) {
     switch (fx) {
       case ScreenFx.off:
-        return ScreenFx.crt;
-      case ScreenFx.crt:
         return ScreenFx.lcd;
       case ScreenFx.lcd:
+        return ScreenFx.crt;
+      case ScreenFx.crt:
         return ScreenFx.crt80s;
       case ScreenFx.crt80s:
         return ScreenFx.off;
@@ -500,9 +493,9 @@ class SetScreenFx extends StatelessWidget {
         return ListTile(
           onTap: () => MinSettings().setScreenFx(_next(fx)),
           title: const Text('FX'),
-          trailing: Tooltip(
-            message: _labels[fx],
-            child: Icon(_icons[fx]),
+          trailing: Text(
+            _labels[fx]!,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         );
       },
