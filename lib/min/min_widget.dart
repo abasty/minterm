@@ -49,6 +49,13 @@ enum SoundMode {
   bip,
 }
 
+enum ScreenFx {
+  off,
+  crt, // Scanlines horizontales seulement.
+  lcd, // Scanlines horizontales + verticales (grille de pixels).
+  crt80s, // Scanlines horizontales + distorsion en barillet (tube bombé).
+}
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -98,6 +105,7 @@ class MinSettings extends ChangeNotifier {
   static late final ui.Image _fontG1;
   static late ui.Image _fontG0p;
   static late ui.Image _fontG1p;
+  static ui.FragmentProgram? _crtBarrelProgram;
   Uint8List? _pixelsG0p;
   Uint8List? _pixelsG1p;
   static const durationMax = 400;
@@ -114,6 +122,7 @@ class MinSettings extends ChangeNotifier {
   bool _startupScaleInitialized = false;
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
+  ScreenFx _screenFx = ScreenFx.off;
   // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (plein écran
   // + clavier virtuel forcé à "aucun"). La sous-étape (barre d'outils visible
   // ou non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
@@ -160,6 +169,12 @@ class MinSettings extends ChangeNotifier {
         _loaded++;
         notifyListeners();
       });
+    });
+
+    ui.FragmentProgram.fromAsset('shaders/crt_barrel.frag').then((program) {
+      _crtBarrelProgram = program;
+      _loaded++;
+      notifyListeners();
     });
   }
   List<Color> get colors => _colors;
@@ -233,7 +248,9 @@ class MinSettings extends ChangeNotifier {
     });
   }
 
-  bool get isLoaded => _loaded == 4;
+  bool get isLoaded => _loaded == 5;
+
+  ui.FragmentProgram? get crtBarrelProgram => _crtBarrelProgram;
 
   bool get capslock => _capslock;
 
@@ -253,6 +270,8 @@ class MinSettings extends ChangeNotifier {
   Color get appBackgroundColor => _appBackgroundColor;
 
   bool get chromeVisible => _chromeVisible;
+
+  ScreenFx get screenFx => _screenFx;
 
   static void setScale(double scale) {
     _singleton.duration = 0;
@@ -387,6 +406,13 @@ class MinSettings extends ChangeNotifier {
     setAppBackgroundColor(
       _appBackgroundColor == Colors.black ? Colors.white : Colors.black,
     );
+  }
+
+  void setScreenFx(ScreenFx fx) {
+    if (_screenFx == fx) return;
+    _screenFx = fx;
+    MinModel().markScreenDirty();
+    notifyListeners();
   }
 }
 
@@ -824,6 +850,8 @@ class _MinPainter extends CustomPainter {
       cellHeight: cellHeight,
       dpr: dpr,
     );
+
+    _drawScanlines(canvas, size);
   }
 
   // Method to draw a character
@@ -972,6 +1000,48 @@ class _MinPainter extends CustomPainter {
           ..isAntiAlias = false,
       );
     }
+
+  }
+
+  // Effet CRT/LCD : post-process dessiné une fois l'écran entier peint
+  // (voir l'appel dans draw()), après tous les caractères et le masque
+  // disjoint — donc rien ne peut plus les recouvrir. Une grille de lignes
+  // noires opaques, au pas fixe de la trame physique de l'écran (cellHeight/10
+  // et cellWidth/8, la résolution native d'un caractère), sur toute la
+  // largeur/hauteur de l'écran : lignes horizontales entre les rangées de
+  // pixels (scanlines, mode CRT) et lignes verticales entre les colonnes de
+  // pixels (séparation horizontale des pixels, mode LCD). Indépendant du
+  // contenu affiché : sur un vrai écran, ce pas est fixe, qu'un caractère
+  // soit en double hauteur/largeur ou non.
+  void _drawScanlines(Canvas canvas, Size size) {
+    final fx = MinSettings().screenFx;
+    if (fx == ScreenFx.off) return;
+
+    final dpr =
+        ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
+    final scanlinePaint = Paint()
+      ..color = Colors.black
+      ..isAntiAlias = false;
+
+    final pixelHeight = (size.height / minmodel.minitel.rows) / 10.0;
+    final totalRows = minmodel.minitel.rows * 10;
+    for (int row = 0; row < totalRows; row++) {
+      canvas.drawRect(
+        _snapRect(0, row * pixelHeight, size.width, 0.001, dpr),
+        scanlinePaint,
+      );
+    }
+
+    if (fx != ScreenFx.lcd) return;
+
+    final pixelWidth = (size.width / minmodel.minitel.columns) / 8.0;
+    final totalCols = minmodel.minitel.columns * 8;
+    for (int col = 0; col < totalCols; col++) {
+      canvas.drawRect(
+        _snapRect(col * pixelWidth, 0, 0.001, size.height, dpr),
+        scanlinePaint,
+      );
+    }
   }
 
   // Method to draw a string
@@ -1004,8 +1074,12 @@ class _MinPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (!MinSettings().isLoaded) return;
 
-    // Draw the screen
-    draw(canvas, size);
+    final crtBarrelProgram = MinSettings().crtBarrelProgram;
+    if (MinSettings().screenFx == ScreenFx.crt80s && crtBarrelProgram != null) {
+      _paintWithCrtBarrel(canvas, size, crtBarrelProgram);
+    } else {
+      draw(canvas, size);
+    }
 
     // drawString(
     //   canvas,
@@ -1014,6 +1088,51 @@ class _MinPainter extends CustomPainter {
     //   TMinitelChar(kColorBlack, (kColorWhite - 4) | kAttrInverse, 0),
     //   " Flutter MinWidget ",
     // );
+  }
+
+  // Force de la distorsion en barillet de l'effet "CRT 80's" (voir
+  // shaders/crt_barrel.frag). Une valeur plus élevée (essayé jusqu'à 0.18)
+  // fait apparaître, sur le rendu web/CanvasKit, un artefact d'échantillonnage
+  // asymétrique (contenu qui semble "cisaillé" près des bords/coins) au lieu
+  // d'une courbure propre — 0.06 reste net tout en donnant un bombé visible.
+  static const double _crtBarrelStrength = 0.06;
+
+  // Effet "CRT 80's" : l'écran est d'abord rendu normalement (avec ses
+  // scanlines) dans une image hors-écran, puis reprojeté avec une
+  // distorsion en barillet (shaders/crt_barrel.frag) qui simule le verre
+  // bombé d'un vieux tube cathodique — voir le commentaire du shader pour
+  // le détail de la formule et l'origine des coins arrondis.
+  void _paintWithCrtBarrel(
+    Canvas canvas,
+    Size size,
+    ui.FragmentProgram program,
+  ) {
+    final dpr =
+        ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ?? 1.0;
+    final width = (size.width * dpr).round().clamp(1, 4096);
+    final height = (size.height * dpr).round().clamp(1, 4096);
+
+    final sourceRecorder = ui.PictureRecorder();
+    final sourceCanvas = Canvas(sourceRecorder, Offset.zero & size);
+    // Picture.toImageSync rasterise sur une surface de width×height PIXELS
+    // sans mise à l'échelle automatique : le contenu enregistré en
+    // coordonnées logiques (0..size.width) doit donc être agrandi par dpr
+    // ici, sinon il ne remplit que le coin haut-gauche de l'image sur tout
+    // écran non-DPR=1 (invisible en DPR=1, comme le Chrome headless utilisé
+    // pour les vérifications précédentes — visible sur un vrai écran HiDPI).
+    sourceCanvas.scale(dpr);
+    draw(sourceCanvas, size);
+    final sourcePicture = sourceRecorder.endRecording();
+    final sourceImage = sourcePicture.toImageSync(width, height);
+    sourcePicture.dispose();
+
+    final shader = program.fragmentShader()
+      ..setFloat(0, size.width)
+      ..setFloat(1, size.height)
+      ..setFloat(2, _crtBarrelStrength)
+      ..setImageSampler(0, sourceImage);
+    canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
+    sourceImage.dispose();
   }
 
   @override

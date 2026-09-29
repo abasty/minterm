@@ -48,6 +48,7 @@ class MinTerm extends StatelessWidget {
                 SetKeyboardCase(),
                 SetColors(),
                 SetBackground(),
+                SetScreenFx(),
                 const SetSoundMode(),
                 const SetAppBarVisible(),
                 Divider(),
@@ -454,6 +455,48 @@ class SetBackground extends StatelessWidget {
           title: const Text('Fond clair'),
           value: !isBlack,
           onChanged: (_) => MinSettings().toggleAppBackgroundColor(),
+        );
+      },
+    );
+  }
+}
+
+class SetScreenFx extends StatelessWidget {
+  const SetScreenFx({super.key});
+
+  static const _labels = {
+    ScreenFx.off: 'OFF',
+    ScreenFx.crt: 'CRT',
+    ScreenFx.lcd: 'LCD',
+    ScreenFx.crt80s: 'CRT+',
+  };
+
+  static ScreenFx _next(ScreenFx fx) {
+    switch (fx) {
+      case ScreenFx.off:
+        return ScreenFx.lcd;
+      case ScreenFx.lcd:
+        return ScreenFx.crt;
+      case ScreenFx.crt:
+        return ScreenFx.crt80s;
+      case ScreenFx.crt80s:
+        return ScreenFx.off;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final fx = MinSettings().screenFx;
+        return ListTile(
+          onTap: () => MinSettings().setScreenFx(_next(fx)),
+          title: const Text('FX'),
+          trailing: Text(
+            _labels[fx]!,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         );
       },
     );

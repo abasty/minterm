@@ -45,6 +45,15 @@ Future<void> loadAppPrefs() async {
         // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
       }
     }
+
+    final screenFx = decoded['screenFx'];
+    if (screenFx is String) {
+      try {
+        MinSettings().setScreenFx(ScreenFx.values.byName(screenFx));
+      } catch (_) {
+        // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
+      }
+    }
   } catch (error) {
     debugPrint('Failed to load app preferences: $error');
   }
@@ -57,29 +66,34 @@ void watchAndSaveAppPrefs() {
   List<Color>? lastColors;
   Color? lastBackground;
   SoundMode? lastSoundMode;
+  ScreenFx? lastScreenFx;
 
   void maybeSave() {
     final bps = MinModel().bps;
     final colors = MinSettings().colors;
     final background = MinSettings().appBackgroundColor;
     final soundMode = MinSettings().soundMode;
+    final screenFx = MinSettings().screenFx;
 
     if (bps == lastBps &&
         colors == lastColors &&
         background == lastBackground &&
-        soundMode == lastSoundMode) {
+        soundMode == lastSoundMode &&
+        screenFx == lastScreenFx) {
       return;
     }
     lastBps = bps;
     lastColors = colors;
     lastBackground = background;
     lastSoundMode = soundMode;
+    lastScreenFx = screenFx;
 
     final payload = <String, dynamic>{
       'bps': bps,
       'colorsEnabled': colors == MinColors,
       'backgroundIsBlack': background == Colors.black,
       'soundMode': soundMode.name,
+      'screenFx': screenFx.name,
     };
     unawaited(
       app_prefs_storage.saveAppPrefsJson(json.encode(payload)).catchError(
