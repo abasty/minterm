@@ -45,6 +45,7 @@ class MinTerm extends StatelessWidget {
                 ),
                 SetBps(),
                 SetScreenMode(),
+                SetLine0In40ColsMixte(),
                 SetKeyboardCase(),
                 SetColors(),
                 SetBackground(),
@@ -455,6 +456,25 @@ class SetBackground extends StatelessWidget {
           title: const Text('Fond clair'),
           value: !isBlack,
           onChanged: (_) => MinSettings().toggleAppBackgroundColor(),
+        );
+      },
+    );
+  }
+}
+
+class SetLine0In40ColsMixte extends StatelessWidget {
+  const SetLine0In40ColsMixte({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MinSettings(),
+      builder: (context, _) {
+        final enabled = MinSettings().line0In40ColsMixte;
+        return SwitchListTile(
+          title: const Text('Ligne 0 en 40 cols (mode Mixte)'),
+          value: enabled,
+          onChanged: (_) => MinSettings().toggleLine0In40ColsMixte(),
         );
       },
     );

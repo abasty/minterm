@@ -54,6 +54,12 @@ Future<void> loadAppPrefs() async {
         // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
       }
     }
+
+    final line0In40ColsMixte = decoded['line0In40ColsMixte'];
+    if (line0In40ColsMixte is bool &&
+        line0In40ColsMixte != MinSettings().line0In40ColsMixte) {
+      MinSettings().toggleLine0In40ColsMixte();
+    }
   } catch (error) {
     debugPrint('Failed to load app preferences: $error');
   }
@@ -67,6 +73,7 @@ void watchAndSaveAppPrefs() {
   Color? lastBackground;
   SoundMode? lastSoundMode;
   ScreenFx? lastScreenFx;
+  bool? lastLine0In40ColsMixte;
 
   void maybeSave() {
     final bps = MinModel().bps;
@@ -74,12 +81,14 @@ void watchAndSaveAppPrefs() {
     final background = MinSettings().appBackgroundColor;
     final soundMode = MinSettings().soundMode;
     final screenFx = MinSettings().screenFx;
+    final line0In40ColsMixte = MinSettings().line0In40ColsMixte;
 
     if (bps == lastBps &&
         colors == lastColors &&
         background == lastBackground &&
         soundMode == lastSoundMode &&
-        screenFx == lastScreenFx) {
+        screenFx == lastScreenFx &&
+        line0In40ColsMixte == lastLine0In40ColsMixte) {
       return;
     }
     lastBps = bps;
@@ -87,6 +96,7 @@ void watchAndSaveAppPrefs() {
     lastBackground = background;
     lastSoundMode = soundMode;
     lastScreenFx = screenFx;
+    lastLine0In40ColsMixte = line0In40ColsMixte;
 
     final payload = <String, dynamic>{
       'bps': bps,
@@ -94,6 +104,7 @@ void watchAndSaveAppPrefs() {
       'backgroundIsBlack': background == Colors.black,
       'soundMode': soundMode.name,
       'screenFx': screenFx.name,
+      'line0In40ColsMixte': line0In40ColsMixte,
     };
     unawaited(
       app_prefs_storage.saveAppPrefsJson(json.encode(payload)).catchError(
