@@ -1,14 +1,17 @@
 # Manuel d'utilisation — Minterm
 
-Minterm est un émulateur de terminal Minitel. Il reproduit les deux modes
-d'affichage du Minitel :
+Minterm est un émulateur de terminal Minitel. Il reproduit les trois modes
+d'affichage du Minitel — voir [Basculer entre les trois modes d'écran](#basculer-entre-les-trois-modes-décran) :
 
 - **Videotex, 40 colonnes** — le mode Minitel classique (Vidéotex, jeux de
-  caractères G0/G1/G2, couleurs, semi-graphique).
+  caractères G0/G1/G2, couleurs, semi-graphique), commun à tous les Minitels.
+- **Mixte, 80 colonnes** — standard Télétel 80 colonnes, protocole actif.
 - **Téléinformatique, 80 colonnes** — un mode texte façon VT100/ANSI, utilisé
-  par certains services et par les Minitel 1B et supérieurs. ⚠️ **Ce mode est
-  expérimental** : il reste à confronter à un émulateur matériel ou à un vrai
-  Minitel 1B pour valider son comportement.
+  par certains services et par les Minitel 1B et supérieurs, protocole gelé.
+
+⚠️ **Les modes 80 colonnes (Mixte et Téléinformatique) sont expérimentaux** :
+il reste à les confronter à un émulateur matériel ou à un vrai Minitel 1B
+pour valider leur comportement.
 
 Il peut se connecter à un service Minitel en ligne — WebSocket (toutes
 plateformes) ou TCP (desktop et applications mobiles, pas en web) —, ou à un
@@ -23,13 +26,14 @@ applications, sans passer par le navigateur.
 
 La version web accepte un paramètre `ws` dans l'URL pour se connecter
 automatiquement à un service au chargement de la page, par exemple :
-`https://abasty.github.io/minterm/?ws=ws://127.0.0.1:1967`.
+`https://abasty.github.io/minterm/?ws=wss://go.minipavi.fr:8181/`.
 
 ## Sommaire
 
 - [Aperçu de l'interface](#aperçu-de-linterface)
 - [Se connecter à un service](#se-connecter-à-un-service)
 - [Basculer entre les trois modes d'écran](#basculer-entre-les-trois-modes-décran)
+- [Minitel 2 / Magis Club (M2 / MC)](#minitel-2--magis-club-m2--mc)
 - [Caractères redéfinissables (DRCS)](#caractères-redéfinissables-drcs)
 - [Le clavier](#le-clavier)
 - [Affichage](#affichage)
@@ -141,10 +145,14 @@ L'entrée **Écran** du menu fait défiler manuellement trois modes à chaque
 tap :
 
 - **Videotex** (40 colonnes) — le mode Minitel classique, mode par défaut.
+  Commun à tous les Minitels (M1B et supérieurs).
 - **Mixte 80** (80 colonnes) — standard Télétel : le Protocole (PRO1/PRO2/PRO3)
-  reste actif.
+  reste actif. La rangée 0 (ligne de statut, en haut de l'écran) dépend du
+  type de Minitel simulé — voir [Minitel 2 / Magis Club](#minitel-2--magis-club-m2--mc)
+  ci-dessous.
 - **Téléinfo 80** (80 colonnes) — standard Téléinformatique (STUM 1B) à part
   entière : le Protocole est gelé, PRO1/PRO2/PRO3 ne sont plus interprétés.
+  Commun à tous les Minitels (M1B et supérieurs).
 
 Le service auquel vous êtes connecté peut aussi demander ces changements
 automatiquement (séquences protocole), l'émulateur suit alors la demande et
@@ -158,6 +166,21 @@ classique.
 > ⚠️ Les modes 80 colonnes sont expérimentaux : leur comportement n'a pas
 > encore été confronté à un émulateur matériel ou à un vrai Minitel 1B. Des
 > écarts sont possibles ; n'hésitez pas à signaler tout comportement suspect.
+
+### Minitel 2 / Magis Club (M2 / MC)
+
+À côté de l'entrée **Écran**, un petit sélecteur **M2** / **MC** (tap pour
+basculer) choisit le type de Minitel simulé pour le mode Mixte 80 :
+
+- **M2** (Minitel 2, par défaut) — la rangée 0 suit le reste de l'écran : 80
+  colonnes, sans attribut de couleur propre.
+- **MC** (Magis Club) — la rangée 0 reste toujours en Videotex 40 colonnes
+  (texte à largeur normale, palette couleur, attributs de fond), comme
+  constaté sur un vrai Minitel 1B/2 derrière un boîtier Magis Club, quel que
+  soit le nombre de colonnes utilisé par le reste de l'écran.
+
+Ce réglage n'a d'effet qu'en mode Mixte 80 ; il est mémorisé et réappliqué
+automatiquement au prochain lancement de l'application.
 
 ## Caractères redéfinissables (DRCS)
 
@@ -447,8 +470,3 @@ l'affichage en couleur sans passer par le menu de l'application.
 Ces deux réglages se reflètent aussitôt dans le menu (entrées **Vitesse** et
 **Couleur**), exactement comme un changement fait par l'utilisateur ou par une
 commande protocole standard.
-
-## Liens utiles
-
-- [Micro-serveur Minitel — Wikipédia](https://fr.wikipedia.org/wiki/Micro-serveur_Minitel)
-- [Spécification STUM1B (archive.org)](https://archive.org/details/minitel-stum1b/page/n39/mode/1up?view=theater)

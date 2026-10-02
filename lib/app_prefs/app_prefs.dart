@@ -54,6 +54,15 @@ Future<void> loadAppPrefs() async {
         // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
       }
     }
+
+    final terminalModel = decoded['terminalModel'];
+    if (terminalModel is String) {
+      try {
+        MinSettings().setTerminalModel(TerminalModel.values.byName(terminalModel));
+      } catch (_) {
+        // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
+      }
+    }
   } catch (error) {
     debugPrint('Failed to load app preferences: $error');
   }
@@ -67,6 +76,7 @@ void watchAndSaveAppPrefs() {
   Color? lastBackground;
   SoundMode? lastSoundMode;
   ScreenFx? lastScreenFx;
+  TerminalModel? lastTerminalModel;
 
   void maybeSave() {
     final bps = MinModel().bps;
@@ -74,12 +84,14 @@ void watchAndSaveAppPrefs() {
     final background = MinSettings().appBackgroundColor;
     final soundMode = MinSettings().soundMode;
     final screenFx = MinSettings().screenFx;
+    final terminalModel = MinSettings().terminalModel;
 
     if (bps == lastBps &&
         colors == lastColors &&
         background == lastBackground &&
         soundMode == lastSoundMode &&
-        screenFx == lastScreenFx) {
+        screenFx == lastScreenFx &&
+        terminalModel == lastTerminalModel) {
       return;
     }
     lastBps = bps;
@@ -87,6 +99,7 @@ void watchAndSaveAppPrefs() {
     lastBackground = background;
     lastSoundMode = soundMode;
     lastScreenFx = screenFx;
+    lastTerminalModel = terminalModel;
 
     final payload = <String, dynamic>{
       'bps': bps,
@@ -94,6 +107,7 @@ void watchAndSaveAppPrefs() {
       'backgroundIsBlack': background == Colors.black,
       'soundMode': soundMode.name,
       'screenFx': screenFx.name,
+      'terminalModel': terminalModel.name,
     };
     unawaited(
       app_prefs_storage.saveAppPrefsJson(json.encode(payload)).catchError(

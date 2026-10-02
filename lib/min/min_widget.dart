@@ -56,6 +56,13 @@ enum ScreenFx {
   crt80s, // Scanlines horizontales + distorsion en barillet (tube bombé).
 }
 
+// Modèle de terminal simulé : affecte le rendu/décodage de la rangée 00 en
+// mode Mixte (voir MinSettings.terminalModel). M2 (Minitel 2) : rangée 00
+// à la largeur du reste de l'écran, sans attributs propres. MC (Magis
+// Club) : rangée 00 toujours en 40 colonnes Videotex, comme constaté sur
+// un vrai Minitel 1B/2 derrière un Magis Club (voir test/mode80).
+enum TerminalModel { m2, mc }
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -123,6 +130,9 @@ class MinSettings extends ChangeNotifier {
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
   ScreenFx _screenFx = ScreenFx.off;
+  // Modèle de terminal simulé — voir l'enum TerminalModel. Affecte la
+  // rangée 00 en mode Mixte (largeur et attributs).
+  TerminalModel _terminalModel = TerminalModel.m2;
   // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (plein écran
   // + clavier virtuel forcé à "aucun"). La sous-étape (barre d'outils visible
   // ou non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
@@ -273,6 +283,8 @@ class MinSettings extends ChangeNotifier {
 
   ScreenFx get screenFx => _screenFx;
 
+  TerminalModel get terminalModel => _terminalModel;
+
   static void setScale(double scale) {
     _singleton.duration = 0;
     _singleton.scale = math.max(1.0, math.min(4.0, scale));
@@ -411,6 +423,14 @@ class MinSettings extends ChangeNotifier {
   void setScreenFx(ScreenFx fx) {
     if (_screenFx == fx) return;
     _screenFx = fx;
+    MinModel().markScreenDirty();
+    notifyListeners();
+  }
+
+  void setTerminalModel(TerminalModel model) {
+    if (_terminalModel == model) return;
+    _terminalModel = model;
+    MinModel().minitel.line0AttributesEnabled = model == TerminalModel.mc;
     MinModel().markScreenDirty();
     notifyListeners();
   }
@@ -814,8 +834,33 @@ class _MinPainter extends CustomPainter {
       }
       minmodel.minitel.bip = false;
     }
+    // Modèle Magis Club (MinSettings.terminalModel) : rangée 00 toujours en
+    // 40 colonnes quand le mode Mixte est actif, même si le reste de
+    // l'écran est en 80 colonnes. Les cellules 40 fois plus larges
+    // (displayWidth/40) couvrent exactement toute la largeur : colonnes
+    // 41-80 non dessinées, sans "trou" à combler.
+    final line0As40 = MinSettings().terminalModel == TerminalModel.mc &&
+        minmodel.minitel.isMixteMode;
+    final line0CellWidth = line0As40 ? displayWidth / 40 : cellWidth;
+    final line0Columns = line0As40 ? 40 : columns;
+
     screen[0][columns + 1].code &= ~kIsDirty;
-    for (int line = 0; line <= lastLine; ++line) {
+    screen[0][0].code &= ~kIsDirty;
+    for (int column = columns; column >= 1; --column) {
+      screen[0][column].code &= ~kIsDirty;
+      if (column > line0Columns) continue;
+      drawChar(
+        canvas,
+        (column - 1) * line0CellWidth,
+        0,
+        screen[0][column],
+        cellWidth: line0CellWidth,
+        cellHeight: cellHeight,
+        dpr: dpr,
+        forceVideotex: line0As40,
+      );
+    }
+    for (int line = 1; line <= lastLine; ++line) {
       screen[line][0].code &= ~kIsDirty;
       for (int column = columns; column >= 1; --column) {
         screen[line][column].code &= ~kIsDirty;
@@ -833,22 +878,24 @@ class _MinPainter extends CustomPainter {
 
     final statusCode = minmodel.isConnected ? 0x43 : 0x46;
     // En mode 80 cols, la lettre F/C en ligne 0 n'est pas en vidéo inverse
-    final statusLAttr = minmodel.minitel.isTeleinfoMode
+    // — sauf rangée 00 revenue en Videotex via line0As40.
+    final statusLAttr = (minmodel.minitel.isTeleinfoMode && !line0As40)
         ? kColorWhite
         : kAttrInverse + kColorWhite;
     final statusChar = TMinitelChar(0, statusLAttr, statusCode);
     // Mode 40 colonnes : lettre en colonne 39. Mode 80 colonnes : colonne 77.
-    final statusColumn = minmodel.minitel.columns > 40
-        ? minmodel.minitel.columns - 3
-        : minmodel.minitel.columns - 1;
+    final statusColumn = line0Columns > 40
+        ? line0Columns - 3
+        : line0Columns - 1;
     drawChar(
       canvas,
-      (statusColumn - 1) * cellWidth,
+      (statusColumn - 1) * line0CellWidth,
       0,
       statusChar,
-      cellWidth: cellWidth,
+      cellWidth: line0CellWidth,
       cellHeight: cellHeight,
       dpr: dpr,
+      forceVideotex: line0As40,
     );
 
     _drawScanlines(canvas, size);
@@ -863,9 +910,15 @@ class _MinPainter extends CustomPainter {
     double cellWidth = 8.0,
     double cellHeight = 10.0,
     double dpr = 1.0,
+    // Rangée 00 en mode Mixte avec MinSettings.terminalModel == mc actif :
+    // elle redevient Videotex (palette couleur, curseur bloc inversé,
+    // lettre de statut en vidéo inverse), indépendamment du standard
+    // Téléinformatique utilisé par le reste de l'écran — comme sur un
+    // vrai Minitel où la rangée 00 est générée par le terminal lui-même.
+    bool forceVideotex = false,
   }) {
-    final palette =
-        minmodel.minitel.isTeleinfoMode ? MinGrey : MinSettings().colors;
+    final isTeleinfo = !forceVideotex && minmodel.minitel.isTeleinfoMode;
+    final palette = isTeleinfo ? MinGrey : MinSettings().colors;
     var fgColor = palette[char.lAttr & kColorMask];
     var bgColor = palette[char.gAttr & kColorMask];
 
@@ -874,9 +927,7 @@ class _MinPainter extends CustomPainter {
         (minmodel.minitel.state.c - 1) * cellWidth == x &&
         minmodel.minitel.state.l * cellHeight == y;
     // En mode Videotex, le curseur est un bloc en vidéo inverse
-    if (isCursorHere &&
-        minmodel.showBlink &&
-        !minmodel.minitel.isTeleinfoMode) {
+    if (isCursorHere && minmodel.showBlink && !isTeleinfo) {
       fgColor = palette[7 - (char.lAttr & kColorMask)];
       bgColor = palette[7 - (char.gAttr & kColorMask)];
     }
@@ -985,7 +1036,7 @@ class _MinPainter extends CustomPainter {
     }
 
     // En mode Téléinformatique/80 cols, le curseur est un trait de soulignement clignotant
-    if (minmodel.minitel.isTeleinfoMode && isCursorHere && minmodel.showBlink) {
+    if (isTeleinfo && isCursorHere && minmodel.showBlink) {
       canvas.drawRect(
         _snapRect(
           x,
