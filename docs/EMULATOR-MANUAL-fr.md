@@ -174,10 +174,7 @@ basculer) choisit le type de Minitel simulé pour le mode Mixte 80 :
 
 - **M2** (Minitel 2, par défaut) — la rangée 0 suit le reste de l'écran : 80
   colonnes, sans attribut de couleur propre.
-- **MC** (Magis Club) — la rangée 0 reste toujours en Videotex 40 colonnes
-  (texte à largeur normale, palette couleur, attributs de fond), comme
-  constaté sur un vrai Minitel 1B/2 derrière un boîtier Magis Club, quel que
-  soit le nombre de colonnes utilisé par le reste de l'écran.
+- **MC** (Magis Club) — la rangée 0 reste toujours en Videotex 40 colonnes.
 
 Ce réglage n'a d'effet qu'en mode Mixte 80 ; il est mémorisé et réappliqué
 automatiquement au prochain lancement de l'application.
