@@ -55,10 +55,13 @@ Future<void> loadAppPrefs() async {
       }
     }
 
-    final line0In40ColsMixte = decoded['line0In40ColsMixte'];
-    if (line0In40ColsMixte is bool &&
-        line0In40ColsMixte != MinSettings().line0In40ColsMixte) {
-      MinSettings().toggleLine0In40ColsMixte();
+    final terminalModel = decoded['terminalModel'];
+    if (terminalModel is String) {
+      try {
+        MinSettings().setTerminalModel(TerminalModel.values.byName(terminalModel));
+      } catch (_) {
+        // Valeur inconnue (ancienne version du fichier) : on garde le défaut.
+      }
     }
   } catch (error) {
     debugPrint('Failed to load app preferences: $error');
@@ -73,7 +76,7 @@ void watchAndSaveAppPrefs() {
   Color? lastBackground;
   SoundMode? lastSoundMode;
   ScreenFx? lastScreenFx;
-  bool? lastLine0In40ColsMixte;
+  TerminalModel? lastTerminalModel;
 
   void maybeSave() {
     final bps = MinModel().bps;
@@ -81,14 +84,14 @@ void watchAndSaveAppPrefs() {
     final background = MinSettings().appBackgroundColor;
     final soundMode = MinSettings().soundMode;
     final screenFx = MinSettings().screenFx;
-    final line0In40ColsMixte = MinSettings().line0In40ColsMixte;
+    final terminalModel = MinSettings().terminalModel;
 
     if (bps == lastBps &&
         colors == lastColors &&
         background == lastBackground &&
         soundMode == lastSoundMode &&
         screenFx == lastScreenFx &&
-        line0In40ColsMixte == lastLine0In40ColsMixte) {
+        terminalModel == lastTerminalModel) {
       return;
     }
     lastBps = bps;
@@ -96,7 +99,7 @@ void watchAndSaveAppPrefs() {
     lastBackground = background;
     lastSoundMode = soundMode;
     lastScreenFx = screenFx;
-    lastLine0In40ColsMixte = line0In40ColsMixte;
+    lastTerminalModel = terminalModel;
 
     final payload = <String, dynamic>{
       'bps': bps,
@@ -104,7 +107,7 @@ void watchAndSaveAppPrefs() {
       'backgroundIsBlack': background == Colors.black,
       'soundMode': soundMode.name,
       'screenFx': screenFx.name,
-      'line0In40ColsMixte': line0In40ColsMixte,
+      'terminalModel': terminalModel.name,
     };
     unawaited(
       app_prefs_storage.saveAppPrefsJson(json.encode(payload)).catchError(

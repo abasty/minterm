@@ -154,6 +154,14 @@ class TMinitel {
   // Télétel, Protocole PRO1/2/3 actif) du standard Téléinformatique à part
   // entière (Protocole gelé). Sans effet quand _screenMode == videotex40.
   bool _isMixte = false;
+  // Préférence d'affichage pilotée par l'UI (MinSettings.line0In40ColsMixte) :
+  // quand true, la rangée 00 en mode Mixte est décodée en Videotex complet
+  // (attributs couleur/soulignement/etc. — voir _handleTeleinfoEscape /
+  // _handleTeleinfoPrintableChar). Quand false, elle n'a aucun attribut
+  // propre, comme le reste de l'écran Mixte/Téléinformatique (seul CAN
+  // reste toujours traité comme "effacement de la rangée", jamais comme un
+  // pavé — ça, c'est un vrai bug de décodage indépendant de ce réglage).
+  bool line0AttributesEnabled = false;
   int _columns = 40;
   StringBuffer _teleinfoCsiBuffer = StringBuffer();
   // Marqueur intermédiaire CSI : 0=aucun, 0x3F='?' (Téléinformatique), 0x3C='<' (Minitel 80 cols)
@@ -161,8 +169,6 @@ class TMinitel {
   int _teleinfoPro2Prefix = -1;
   int _teleinfoSavedRow = 1;
   int _teleinfoSavedColumn = 1;
-  int _teleinfoLine0ReturnRow = 1;
-  int _teleinfoLine0ReturnColumn = 1;
   // Mode insertion caractère (ESC[4h/l), partagé Videotex 40 cols et Téléinformatique 80 cols.
   bool _insertMode = false;
 
@@ -306,12 +312,15 @@ class TMinitel {
     if (isTeleinfoMode) {
       scrollOn = true;
       cursorOn = true;
-      _teleinfoLine0ReturnRow = 1;
-      _teleinfoLine0ReturnColumn = 1;
       state.fgColor = 2; // couleur par défaut Téléinformatique
     }
     state.l = 1;
     state.c = 1;
+    if (isTeleinfoMode) {
+      // Contexte à restituer par défaut si LF sort de la rangée 00 sans
+      // qu'on y soit jamais entré explicitement via _handleTeleinfoUsAt.
+      savedState = TMinitelState.from(state);
+    }
     for (int line = 1; line <= lastLine; ++line) {
       for (int column = 0; column <= _dirtyColumn; ++column) {
         screen[line][column].copyFrom(kEmptyChar);
@@ -606,11 +615,7 @@ class TMinitel {
       } else if (code < $space) {
         _handleTeleinfoControl(code);
       } else if (code != 0x7F) {
-        if (_insertMode) {
-          _teleinfoInsertChars(1);
-        }
-        _putCharTeleinfo(code);
-        _setCursorForwardTeleinfo();
+        _handleTeleinfoPrintableChar(code);
       }
 
       if (cursor != cursorOn) {
@@ -658,8 +663,19 @@ class TMinitel {
         break;
       case $can:
       case $sub:
-        _putCharTeleinfo(0x7F);
-        _setCursorForwardTeleinfo();
+        // STUM2 §3.1 : CAN signifie "pavé plein de substitution" en Mixte/
+        // Téléinformatique, mais "effacement de la rangée courante" en
+        // standard Videotex — et la rangée 00 reste toujours décodée en
+        // Videotex, quel que soit le standard actif pour le reste de
+        // l'écran (constaté sur capture réelle Magis Club/SonyTel : sans
+        // ce correctif, CAN affichait un pavé parasite en rangée 00 au
+        // lieu d'effacer la ligne).
+        if (state.l == 0) {
+          handleCancel();
+        } else {
+          _putCharTeleinfo(0x7F);
+          _setCursorForwardTeleinfo();
+        }
         break;
       case $rs:
         _setCursorClamped(1, 1);
@@ -700,12 +716,28 @@ class TMinitel {
     } else if (code < $space) {
       _handleTeleinfoControl(code);
     } else if (code != 0x7F) {
-      if (_insertMode) {
-        _teleinfoInsertChars(1);
-      }
-      _putCharTeleinfo(code);
-      _setCursorForwardTeleinfo();
+      _handleTeleinfoPrintableChar(code);
     }
+  }
+
+  void _handleTeleinfoPrintableChar(int code) {
+    // Rangée 00 en Videotex complet (voir line0AttributesEnabled) :
+    // handleChar() applique le même mécanisme de propagation de fond
+    // (espace séparateur -> inheritGlobalAttr / propagateAndMakeDirty) que
+    // le reste de l'écran en standard Videotex, indispensable pour qu'une
+    // couleur de fond posée en rangée 00 se propage jusqu'en fin de ligne.
+    // Sinon, _putCharTeleinfo normal : la rangée 00 n'a pas plus
+    // d'attributs propres que le reste de l'écran Mixte/Téléinformatique.
+    if (state.l == 0 && line0AttributesEnabled) {
+      currentCode = code;
+      handleChar();
+      return;
+    }
+    if (_insertMode) {
+      _teleinfoInsertChars(1);
+    }
+    _putCharTeleinfo(code);
+    _setCursorForwardTeleinfo();
   }
 
   void _handleTeleinfoUsAt(int code) {
@@ -714,11 +746,17 @@ class TMinitel {
     }
     if (code > 0 && code < 64) {
       if (state.l != 0) {
-        _teleinfoLine0ReturnRow = state.l;
-        _teleinfoLine0ReturnColumn = state.c;
+        savedState = TMinitelState.from(state);
       }
       state.l = 0;
       state.c = code;
+      // Rangée 00 toujours Videotex (STUM2 §2.2.1) : on repart d'attributs
+      // propres plutôt que d'hériter de ceux du corps d'écran (taille
+      // double, couleur, etc. — constaté avec une capture réelle SonyTel
+      // RTC où une taille double restée active sur le corps d'écran se
+      // répercutait à tort sur la rangée 00). setCursorPosition() fait de
+      // même pour le US 4/0 X/Y équivalent côté standard Videotex.
+      state.resetAttr();
     }
     stateCode = 0;
   }
@@ -742,6 +780,40 @@ class TMinitel {
       _teleinfoCsiBuffer = StringBuffer();
       _teleinfoCsiIntermediate = 0;
       stateCode = kStateTeleinfoCsi;
+      return;
+    }
+
+    // Rangée 00 en Videotex complet : voir line0AttributesEnabled. Les
+    // attributs à un octet (couleurs, soulignement, clignotement, taille,
+    // inverse — ESC 4/0-5/F) portés par ESC Q/ESC P.../etc. n'ont d'effet
+    // que si ce réglage est actif ; sinon ils tombent dans le switch
+    // ci-dessous (default: break), comme avant ce correctif.
+    if (state.l == 0 && line0AttributesEnabled && code >= 0x40) {
+      switch (code) {
+        case >= $at && <= $G:
+          setForegroundColor(code);
+          break;
+        case >= $P && <= $W:
+          setBackgroundColor(code);
+          break;
+        case >= $H && <= $I:
+          setFlashAttr(code);
+          break;
+        case >= $Y && <= $Z:
+          setUnderlineAttr(code);
+          break;
+        case == 0x5C || == 0x5D:
+          if (state.charset != kG1Charset) {
+            setInverseAttr(code);
+          }
+          break;
+        case >= $L && <= $O:
+          if (state.charset != kG1Charset) {
+            setSizeAttr(code);
+          }
+          break;
+      }
+      stateCode = 0;
       return;
     }
 
@@ -1139,7 +1211,10 @@ class TMinitel {
 
   void _teleinfoLineFeed() {
     if (state.l == 0) {
-      _setCursorClamped(_teleinfoLine0ReturnRow, _teleinfoLine0ReturnColumn);
+      // Restitue position ET attributs sauvegardés à l'entrée en rangée 00
+      // (voir _handleTeleinfoUsAt) — sinon une couleur/taille posée en
+      // rangée 00 "fuit" sur le corps d'écran après ce LF de sortie.
+      state = TMinitelState.from(savedState);
       return;
     }
     if (state.l < lastLine) {

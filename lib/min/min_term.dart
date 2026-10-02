@@ -45,7 +45,6 @@ class MinTerm extends StatelessWidget {
                 ),
                 SetBps(),
                 SetScreenMode(),
-                SetLine0In40ColsMixte(),
                 SetKeyboardCase(),
                 SetColors(),
                 SetBackground(),
@@ -462,25 +461,6 @@ class SetBackground extends StatelessWidget {
   }
 }
 
-class SetLine0In40ColsMixte extends StatelessWidget {
-  const SetLine0In40ColsMixte({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: MinSettings(),
-      builder: (context, _) {
-        final enabled = MinSettings().line0In40ColsMixte;
-        return SwitchListTile(
-          title: const Text('Ligne 0 en 40 cols (mode Mixte)'),
-          value: enabled,
-          onChanged: (_) => MinSettings().toggleLine0In40ColsMixte(),
-        );
-      },
-    );
-  }
-}
-
 class SetScreenFx extends StatelessWidget {
   const SetScreenFx({super.key});
 
@@ -752,13 +732,57 @@ class ColorsButton extends StatelessWidget {
   }
 }
 
+// Interrupteur vertical façon va-et-vient électrique : un Switch Material
+// standard simplement pivoté de 90°, pour occuper une colonne étroite à
+// droite d'un ListTile au lieu de toute la largeur.
+// Choix du modèle de terminal simulé (Minitel 2 / Magis Club) — voir
+// MinSettings.terminalModel. Affiché entre le libellé "Écran" et la valeur
+// du mode courant (Videotex/Mixte 80/Téléinfo 80), avec son propre tap
+// cible pour ne pas déclencher le cycle de mode porté par le ListTile.
+class _TerminalModelLabel extends StatelessWidget {
+  const _TerminalModelLabel();
+
+  static const _labels = {
+    TerminalModel.m2: 'M2',
+    TerminalModel.mc: 'MC',
+  };
+
+  static const _tooltips = {
+    TerminalModel.m2: 'Minitel 2',
+    TerminalModel.mc: 'Magis Club',
+  };
+
+  static TerminalModel _next(TerminalModel model) {
+    return model == TerminalModel.m2 ? TerminalModel.mc : TerminalModel.m2;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final model = MinSettings().terminalModel;
+    return Tooltip(
+      message: _tooltips[model],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(4),
+        onTap: () => MinSettings().setTerminalModel(_next(model)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Text(
+            _labels[model]!,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SetScreenMode extends StatelessWidget {
   const SetScreenMode({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: MinModel(),
+      listenable: Listenable.merge([MinModel(), MinSettings()]),
       builder: (context, _) {
         final String label;
         final VoidCallback onTap;
@@ -777,7 +801,9 @@ class SetScreenMode extends StatelessWidget {
           title: Row(
             children: [
               const Text('Écran'),
-              Expanded(child: Container()),
+              const Spacer(),
+              _TerminalModelLabel(),
+              const SizedBox(width: 12),
               Text(label),
             ],
           ),

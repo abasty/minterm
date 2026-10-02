@@ -56,6 +56,13 @@ enum ScreenFx {
   crt80s, // Scanlines horizontales + distorsion en barillet (tube bombé).
 }
 
+// Modèle de terminal simulé : affecte le rendu/décodage de la rangée 00 en
+// mode Mixte (voir MinSettings.terminalModel). M2 (Minitel 2) : rangée 00
+// à la largeur du reste de l'écran, sans attributs propres. MC (Magis
+// Club) : rangée 00 toujours en 40 colonnes Videotex, comme constaté sur
+// un vrai Minitel 1B/2 derrière un Magis Club (voir test/mode80).
+enum TerminalModel { m2, mc }
+
 // ignore: non_constant_identifier_names
 final MinColors = <Color>[
   Colors.black,
@@ -123,11 +130,9 @@ class MinSettings extends ChangeNotifier {
   Color _appBackgroundColor = Colors.black;
   bool _chromeVisible = true;
   ScreenFx _screenFx = ScreenFx.off;
-  // Affiche la ligne 0 (rangée 00, infos PAVI/indicateurs d'état) sur la
-  // largeur 40 colonnes plutôt que 80 quand le mode Mixte est actif —
-  // préférence d'affichage pure, n'affecte pas l'interprétation des
-  // données reçues.
-  bool _line0In40ColsMixte = false;
+  // Modèle de terminal simulé — voir l'enum TerminalModel. Affecte la
+  // rangée 00 en mode Mixte (largeur et attributs).
+  TerminalModel _terminalModel = TerminalModel.m2;
   // true entre l'entrée et la sortie du cycle "mode zen" Ctrl+Z (plein écran
   // + clavier virtuel forcé à "aucun"). La sous-étape (barre d'outils visible
   // ou non) n'est pas mémorisée à part : cycleImmersiveMode() la déduit à
@@ -278,7 +283,7 @@ class MinSettings extends ChangeNotifier {
 
   ScreenFx get screenFx => _screenFx;
 
-  bool get line0In40ColsMixte => _line0In40ColsMixte;
+  TerminalModel get terminalModel => _terminalModel;
 
   static void setScale(double scale) {
     _singleton.duration = 0;
@@ -422,8 +427,10 @@ class MinSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleLine0In40ColsMixte() {
-    _line0In40ColsMixte = !_line0In40ColsMixte;
+  void setTerminalModel(TerminalModel model) {
+    if (_terminalModel == model) return;
+    _terminalModel = model;
+    MinModel().minitel.line0AttributesEnabled = model == TerminalModel.mc;
     MinModel().markScreenDirty();
     notifyListeners();
   }
@@ -827,13 +834,13 @@ class _MinPainter extends CustomPainter {
       }
       minmodel.minitel.bip = false;
     }
-    // Préférence d'affichage : rangée 00 toujours en 40 colonnes quand le
-    // mode Mixte est actif, même si le reste de l'écran est en 80 colonnes
-    // (voir MinSettings.line0In40ColsMixte). Les cellules 40 fois plus
-    // larges (displayWidth/40) couvrent exactement toute la largeur :
-    // colonnes 41-80 non dessinées, sans "trou" à combler.
-    final line0As40 =
-        MinSettings().line0In40ColsMixte && minmodel.minitel.isMixteMode;
+    // Modèle Magis Club (MinSettings.terminalModel) : rangée 00 toujours en
+    // 40 colonnes quand le mode Mixte est actif, même si le reste de
+    // l'écran est en 80 colonnes. Les cellules 40 fois plus larges
+    // (displayWidth/40) couvrent exactement toute la largeur : colonnes
+    // 41-80 non dessinées, sans "trou" à combler.
+    final line0As40 = MinSettings().terminalModel == TerminalModel.mc &&
+        minmodel.minitel.isMixteMode;
     final line0CellWidth = line0As40 ? displayWidth / 40 : cellWidth;
     final line0Columns = line0As40 ? 40 : columns;
 
@@ -903,7 +910,7 @@ class _MinPainter extends CustomPainter {
     double cellWidth = 8.0,
     double cellHeight = 10.0,
     double dpr = 1.0,
-    // Rangée 00 en mode Mixte avec MinSettings.line0In40ColsMixte actif :
+    // Rangée 00 en mode Mixte avec MinSettings.terminalModel == mc actif :
     // elle redevient Videotex (palette couleur, curseur bloc inversé,
     // lettre de statut en vidéo inverse), indépendamment du standard
     // Téléinformatique utilisé par le reste de l'écran — comme sur un
