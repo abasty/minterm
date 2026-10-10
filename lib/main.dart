@@ -123,7 +123,16 @@ void main(List<String> args) async {
       if (!_deadModifierKeys.contains(event.logicalKey)) {
         playKeyClickSound();
       }
-      if (event.logicalKey.keyLabel == '[') {
+      // Touche "accent" (circonflexe/tréma) d'un clavier AZERTY : même
+      // position physique que [ en QWERTY (PhysicalKeyboardKey.bracketLeft,
+      // indépendant du layout OS). On ne peut pas se fier à keyLabel ici :
+      // en web, le navigateur ne compose pas la touche morte pour cet
+      // élément (pas un vrai champ texte) et la délivre comme une touche
+      // "Dead" sans keyLabel ni character — `keyLabel == '['` ne matchait
+      // donc jamais et aucun code accent n'était envoyé, même pas pour
+      // ê/ë (constaté avec un vrai clavier physique, keyLabel="" et
+      // character=null pour cet événement).
+      if (event.physicalKey == PhysicalKeyboardKey.bracketLeft) {
         var shift = HardwareKeyboard.instance.isShiftPressed;
         MinModel().handleKeys(
           shift ? TMinitelKey.trema : TMinitelKey.circonflexe,
@@ -293,6 +302,36 @@ void main(List<String> args) async {
                 break;
               case 'ù':
                 MinModel().handleKeys('${TMinitelKey.grave}u');
+                break;
+              case 'â':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}a');
+                break;
+              case 'ê':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}e');
+                break;
+              case 'î':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}i');
+                break;
+              case 'ô':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}o');
+                break;
+              case 'û':
+                MinModel().handleKeys('${TMinitelKey.circonflexe}u');
+                break;
+              case 'ä':
+                MinModel().handleKeys('${TMinitelKey.trema}a');
+                break;
+              case 'ë':
+                MinModel().handleKeys('${TMinitelKey.trema}e');
+                break;
+              case 'ï':
+                MinModel().handleKeys('${TMinitelKey.trema}i');
+                break;
+              case 'ö':
+                MinModel().handleKeys('${TMinitelKey.trema}o');
+                break;
+              case 'ü':
+                MinModel().handleKeys('${TMinitelKey.trema}u');
                 break;
               case 'ç':
                 MinModel().handleKeys('${TMinitelKey.cedille}c');
