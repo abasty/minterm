@@ -45,3 +45,5 @@ app.*.map.json
 # Python virtual environment
 py3-venv/
 capture.vdt
+# Widget Preview related
+.widget_preview/
